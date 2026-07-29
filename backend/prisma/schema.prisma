@@ -18,25 +18,70 @@ enum UserStatus {
 }
 
 model User {
-  id              String     @id @default(cuid())
-  email           String     @unique
-  passwordHash    String
-  displayName     String
-  avatarUrl       String?
-  bio             String?
-  status          UserStatus @default(ACTIVE)
-  emailVerifiedAt DateTime?
-  createdAt       DateTime   @default(now())
-  updatedAt       DateTime   @updatedAt
+  id                  String     @id @default(cuid())
+  email               String     @unique
+  passwordHash        String
+  displayName         String
+  avatarUrl           String?
+  bio                 String?
+  status              UserStatus @default(ACTIVE)
+  emailVerifiedAt     DateTime?
+  failedLoginAttempts Int        @default(0)
+  lockedUntil         DateTime?
+  createdAt           DateTime   @default(now())
+  updatedAt           DateTime   @updatedAt
 
-  roles          UserRole[]
-  wallet         Wallet?
-  posts          Post[]
-  comments       Comment[]
-  downloadGrants DownloadGrant[]
-  downloadEvents DownloadEvent[]
+  roles                  UserRole[]
+  wallet                 Wallet?
+  posts                  Post[]
+  comments               Comment[]
+  downloadGrants         DownloadGrant[]
+  downloadEvents         DownloadEvent[]
+  refreshTokens          RefreshToken[]
+  emailVerificationTokens EmailVerificationToken[]
+  passwordResetTokens    PasswordResetToken[]
 
   @@map("users")
+}
+
+// Token opaque gửi qua email — chỉ lưu bản hash (sha256), không lưu token gốc (UC01)
+model EmailVerificationToken {
+  id         String    @id @default(cuid())
+  userId     String
+  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tokenHash  String    @unique
+  expiresAt  DateTime
+  consumedAt DateTime?
+  createdAt  DateTime  @default(now())
+
+  @@map("email_verification_tokens")
+}
+
+// UC03 — hết hạn 15 phút, one-time use
+model PasswordResetToken {
+  id         String    @id @default(cuid())
+  userId     String
+  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tokenHash  String    @unique
+  expiresAt  DateTime
+  consumedAt DateTime?
+  createdAt  DateTime  @default(now())
+
+  @@map("password_reset_tokens")
+}
+
+// Refresh token xoay vòng (rotate mỗi lần dùng) — cho phép thu hồi từng phiên khi logout/đổi mật khẩu
+model RefreshToken {
+  id         String    @id @default(cuid())
+  userId     String
+  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tokenHash  String    @unique
+  userAgent  String?
+  expiresAt  DateTime
+  revokedAt  DateTime?
+  createdAt  DateTime  @default(now())
+
+  @@map("refresh_tokens")
 }
 
 // Vai trò chỉ là một tập hợp quyền — Admin có thể tạo Custom Role bằng cách

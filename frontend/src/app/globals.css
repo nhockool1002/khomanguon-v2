@@ -1,5 +1,10 @@
 @import "tailwindcss";
 
+/*
+ * Bản sắc v2 (xem Branding_Guide.md): nền nội dung luôn trắng, chỉ navbar cố định màu tối
+ * (#16181d). Chưa thiết kế dark theme riêng nên KHÔNG theo prefers-color-scheme của hệ điều
+ * hành — tránh chữ tối trên nền tối/ngược lại khi máy người dùng bật dark mode.
+ */
 :root {
   --background: #ffffff;
   --foreground: #171717;
@@ -10,13 +15,6 @@
   --color-foreground: var(--foreground);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
 }
 
 body {

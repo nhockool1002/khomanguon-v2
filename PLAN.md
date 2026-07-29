@@ -43,18 +43,19 @@ Quy ước: mỗi phase có **Definition of Done (DoD)** rõ ràng — không sa
 **Thời lượng:** 4–6 tuần · **Môi trường:** Local
 
 ### 1.1 Auth & bảo mật tài khoản
-- [ ] API đăng ký (email + mật khẩu, hash Argon2) + email xác minh
-- [ ] API đăng nhập (JWT access + refresh, cookie httpOnly), rate limit 5 lần sai/khoá tạm — UC01, UC02
-- [ ] API quên/đặt lại mật khẩu (OTP/link, hết hạn 15 phút, one-time use) — UC03
-- [ ] UI Đăng nhập / Đăng ký (wireframe #04), Quên mật khẩu (wireframe #05)
+- [x] API đăng ký (email + mật khẩu, hash Argon2) + email xác minh (token hash SHA-256, hết hạn 24h, one-time use)
+- [x] API đăng nhập (JWT access 15p + refresh 30 ngày xoay vòng, cookie httpOnly `path=/auth`), khoá tạm 15 phút sau 5 lần sai — UC01, UC02
+- [x] API quên/đặt lại mật khẩu (token hết hạn 15 phút, one-time use, đổi xong thu hồi hết refresh token) — UC03
+- [x] UI Đăng nhập (`/dang-nhap`), Đăng ký (`/dang-ky`), Quên mật khẩu (`/quen-mat-khau`), Đặt lại mật khẩu (`/dat-lai-mat-khau`), Xác minh email (`/xac-minh-email`) — theo wireframe #04/#05, đã test qua trình duyệt thật
 
 ### 1.2 Hồ sơ người dùng
-- [ ] API + UI sửa hồ sơ: avatar, tên hiển thị, bio, đổi email (re-verify), đổi mật khẩu — UC04, wireframe #06 (tab Thông tin, Bảo mật)
+- [x] API `GET/PATCH /users/me`, `PATCH /users/me/password` (đổi mật khẩu thu hồi hết session), `POST /auth/resend-verification` — UC04
+- [x] UI trang `/tai-khoan` với tab Thông tin (tên hiển thị, bio, badge vai trò, banner + nút gửi lại email xác minh) và Bảo mật (đổi mật khẩu) — theo wireframe #06, đã test qua trình duyệt thật. Avatar upload thật (ảnh file) để dành Phase 3 khi có R2/S3 — hiện chỉ nhận `avatarUrl` dạng URL.
 
 ### 1.3 RBAC cơ bản
-- [ ] Bảng `roles`, `permissions`, `role_permissions`; seed 4 role mặc định (Admin/Super Mod/Mod/Member) theo ma trận quyền đã định nghĩa
-- [ ] Guard/Middleware kiểm tra theo mã quyền (`post.create`, `menu.manage`...), không hard-code theo tên role
-- [ ] API gán role cho user (chưa cần UI custom role phức tạp — để Phase 2) — UC18
+- [x] Bảng `roles`, `permissions`, `role_permissions`, `user_roles`; seed 18 permission + 4 role mặc định (Admin/Super Mod/Mod/Member) đúng ma trận quyền mục 06 tài liệu thiết kế (`prisma/seed.ts`)
+- [x] `PermissionsGuard` + `@Permissions(...)` kiểm tra theo mã quyền (không hard-code theo tên role) — đã test 403 đúng khi member gọi endpoint cần `user.manage`
+- [x] `GET /users` (list, cần `user.manage`), `POST/DELETE /users/:id/roles` (gán/gỡ role, cần `user.assign_role`) — UC18, đã test admin gán role thành công + member bị chặn
 
 ### 1.4 CMS bài viết (khung cơ bản)
 - [ ] Model Post, Category (chưa có Tag/SEO nâng cao)

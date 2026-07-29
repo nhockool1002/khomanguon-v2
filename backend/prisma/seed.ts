@@ -1,0 +1,79 @@
+import { PrismaClient } from '@prisma/client';
+import * as argon2 from 'argon2';
+import {
+  ALL_PERMISSION_KEYS,
+  DEFAULT_ROLES,
+  DEFAULT_ROLE_PERMISSIONS,
+} from '../src/roles/permissions.constant';
+
+const prisma = new PrismaClient();
+
+async function main() {
+  console.log('Seeding permissions...');
+  for (const key of ALL_PERMISSION_KEYS) {
+    await prisma.permission.upsert({
+      where: { key },
+      update: {},
+      create: { key, description: key },
+    });
+  }
+
+  console.log('Seeding roles...');
+  for (const role of Object.values(DEFAULT_ROLES)) {
+    await prisma.role.upsert({
+      where: { slug: role.slug },
+      update: {},
+      create: { slug: role.slug, name: role.name, isSystem: true },
+    });
+  }
+
+  console.log('Linking role <-> permissions...');
+  for (const [roleSlug, permissionKeys] of Object.entries(DEFAULT_ROLE_PERMISSIONS)) {
+    const role = await prisma.role.findUniqueOrThrow({ where: { slug: roleSlug } });
+    for (const key of permissionKeys) {
+      const permission = await prisma.permission.findUniqueOrThrow({ where: { key } });
+      await prisma.rolePermission.upsert({
+        where: { roleId_permissionId: { roleId: role.id, permissionId: permission.id } },
+        update: {},
+        create: { roleId: role.id, permissionId: permission.id },
+      });
+    }
+  }
+
+  const adminEmail = process.env.SEED_ADMIN_EMAIL;
+  const adminPassword = process.env.SEED_ADMIN_PASSWORD;
+  if (adminEmail && adminPassword) {
+    console.log(`Seeding admin user ${adminEmail}...`);
+    const passwordHash = await argon2.hash(adminPassword);
+    const admin = await prisma.user.upsert({
+      where: { email: adminEmail },
+      update: {},
+      create: {
+        email: adminEmail,
+        passwordHash,
+        displayName: 'Admin',
+        emailVerifiedAt: new Date(),
+        wallet: { create: { balance: 0 } },
+      },
+    });
+    const adminRole = await prisma.role.findUniqueOrThrow({
+      where: { slug: DEFAULT_ROLES.ADMIN.slug },
+    });
+    await prisma.userRole.upsert({
+      where: { userId_roleId: { userId: admin.id, roleId: adminRole.id } },
+      update: {},
+      create: { userId: admin.id, roleId: adminRole.id },
+    });
+  } else {
+    console.log('SEED_ADMIN_EMAIL/SEED_ADMIN_PASSWORD chưa đặt — bỏ qua seed admin user.');
+  }
+
+  console.log('Seed xong.');
+}
+
+main()
+  .catch((e) => {
+    console.error(e);
+    process.exit(1);
+  })
+  .finally(() => prisma.$disconnect());

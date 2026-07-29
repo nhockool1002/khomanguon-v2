@@ -1,0 +1,137 @@
+import {
+  Body,
+  Controller,
+  Post,
+  Req,
+  Res,
+  UseGuards,
+  HttpCode,
+  HttpStatus,
+} from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
+import type { Request, Response } from 'express';
+import { AuthService } from './auth.service';
+import { RegisterDto } from './dto/register.dto';
+import { LoginDto } from './dto/login.dto';
+import { ForgotPasswordDto } from './dto/forgot-password.dto';
+import { ResetPasswordDto } from './dto/reset-password.dto';
+import { VerifyEmailDto } from './dto/verify-email.dto';
+import { JwtAuthGuard } from './guards/jwt-auth.guard';
+import { CurrentUser } from './decorators/current-user.decorator';
+
+interface AuthUser {
+  id: string;
+  email: string;
+}
+
+const REFRESH_COOKIE_NAME = 'refresh_token';
+
+@Controller('auth')
+export class AuthController {
+  constructor(
+    private readonly authService: AuthService,
+    private readonly config: ConfigService,
+  ) {}
+
+  private setRefreshCookie(
+    res: Response,
+    refreshToken: string,
+    expiresAt: Date,
+  ) {
+    res.cookie(REFRESH_COOKIE_NAME, refreshToken, {
+      httpOnly: true,
+      sameSite: 'lax',
+      secure: this.config.get('NODE_ENV') === 'production',
+      path: '/auth',
+      expires: expiresAt,
+    });
+  }
+
+  @Post('register')
+  async register(
+    @Body() dto: RegisterDto,
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    const { user, tokens } = await this.authService.register(dto);
+    this.setRefreshCookie(res, tokens.refreshToken, tokens.refreshExpiresAt);
+    return { user, accessToken: tokens.accessToken };
+  }
+
+  @Post('login')
+  @HttpCode(HttpStatus.OK)
+  async login(
+    @Body() dto: LoginDto,
+    @Req() req: Request,
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    const { user, tokens } = await this.authService.login(
+      dto,
+      req.headers['user-agent'],
+    );
+    this.setRefreshCookie(res, tokens.refreshToken, tokens.refreshExpiresAt);
+    return { user, accessToken: tokens.accessToken };
+  }
+
+  @Post('refresh')
+  @HttpCode(HttpStatus.OK)
+  async refresh(
+    @Req() req: Request,
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    const rawRefreshToken = (req.cookies as Record<string, string>)?.[
+      REFRESH_COOKIE_NAME
+    ];
+    if (!rawRefreshToken) {
+      res.clearCookie(REFRESH_COOKIE_NAME, { path: '/auth' });
+      return { accessToken: null };
+    }
+    const { user, tokens } = await this.authService.refresh(
+      rawRefreshToken,
+      req.headers['user-agent'],
+    );
+    this.setRefreshCookie(res, tokens.refreshToken, tokens.refreshExpiresAt);
+    return { user, accessToken: tokens.accessToken };
+  }
+
+  @Post('logout')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  async logout(@Req() req: Request, @Res({ passthrough: true }) res: Response) {
+    const rawRefreshToken = (req.cookies as Record<string, string>)?.[
+      REFRESH_COOKIE_NAME
+    ];
+    await this.authService.logout(rawRefreshToken);
+    res.clearCookie(REFRESH_COOKIE_NAME, { path: '/auth' });
+  }
+
+  @Post('forgot-password')
+  @HttpCode(HttpStatus.OK)
+  async forgotPassword(@Body() dto: ForgotPasswordDto) {
+    await this.authService.forgotPassword(dto.email);
+    return {
+      message:
+        'Nếu email tồn tại trong hệ thống, chúng tôi đã gửi link đặt lại mật khẩu.',
+    };
+  }
+
+  @Post('reset-password')
+  @HttpCode(HttpStatus.OK)
+  async resetPassword(@Body() dto: ResetPasswordDto) {
+    await this.authService.resetPassword(dto.token, dto.newPassword);
+    return { message: 'Đặt lại mật khẩu thành công, vui lòng đăng nhập lại.' };
+  }
+
+  @Post('verify-email')
+  @HttpCode(HttpStatus.OK)
+  async verifyEmail(@Body() dto: VerifyEmailDto) {
+    await this.authService.verifyEmail(dto.token);
+    return { message: 'Xác minh email thành công.' };
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Post('resend-verification')
+  @HttpCode(HttpStatus.OK)
+  async resendVerification(@CurrentUser() user: AuthUser) {
+    await this.authService.resendVerification(user.id);
+    return { message: 'Đã gửi lại email xác minh.' };
+  }
+}
