@@ -27,6 +27,11 @@ jobs:
           --health-retries 10
     env:
       DATABASE_URL: postgresql://khomanguon:khomanguon_ci_pass@localhost:5432/khomanguon?schema=public
+      JWT_ACCESS_SECRET: ci-test-access-secret
+      JWT_ACCESS_TTL: 15m
+      JWT_REFRESH_SECRET: ci-test-refresh-secret
+      JWT_REFRESH_TTL_DAYS: 30
+      FRONTEND_URL: http://localhost:3000
     steps:
       - uses: actions/checkout@v4
 
