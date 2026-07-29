@@ -1,0 +1,35 @@
+# dependencies
+node_modules/
+.pnpm-store/
+
+# env & secrets
+.env
+.env.*
+!.env.example
+
+# frontend (Next.js)
+frontend/.next/
+frontend/out/
+frontend/build/
+frontend/.turbo/
+
+# backend (NestJS)
+backend/dist/
+backend/build/
+
+# prisma
+backend/prisma/*.db
+
+# logs
+*.log
+npm-debug.log*
+pnpm-debug.log*
+
+# OS / editor
+.DS_Store
+.vscode/*
+!.vscode/extensions.json
+.idea/
+
+# coverage
+coverage/

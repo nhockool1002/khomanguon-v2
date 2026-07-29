@@ -1,0 +1,981 @@
+<title>KHOMANGUON v2 — Đặc tả kỹ thuật & Wireframe</title>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<style>
+  :root{
+    --bg:#f5f4f1;
+    --surface:#ffffff;
+    --surface-2:#edeeec;
+    --ink:#181a1f;
+    --muted:#5c6370;
+    --line:#dde1de;
+    --accent:#1d3557;
+    --accent-ink:#ffffff;
+    --accent-soft:#e7edf5;
+    --grad-a:#ff5da2;
+    --grad-b:#ffcf3f;
+    --role-admin:#1d3557;
+    --role-supermod:#7c5cbf;
+    --role-mod:#2a9d8f;
+    --role-member:#6b7280;
+    --role-guest:#9aa1ad;
+    --role-system:#c07a1b;
+    --ok:#2a9d5c;
+    --warn:#c07a1b;
+    --crit:#c0392b;
+    --mono: ui-monospace, "SF Mono", "Cascadia Mono", "JetBrains Mono", Menlo, Consolas, monospace;
+    --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    --radius-sm:4px;
+    --radius:8px;
+    --sidebar-w:272px;
+  }
+  @media (prefers-color-scheme: dark){
+    :root{
+      --bg:#0f1115;
+      --surface:#171a20;
+      --surface-2:#1e222a;
+      --ink:#e8eaee;
+      --muted:#9aa1ad;
+      --line:#2a2e37;
+      --accent:#8fb2df;
+      --accent-ink:#0f1115;
+      --accent-soft:#1c2836;
+      --grad-a:#ff7fb4;
+      --grad-b:#ffd873;
+    }
+  }
+  :root[data-theme="dark"]{
+    --bg:#0f1115; --surface:#171a20; --surface-2:#1e222a; --ink:#e8eaee; --muted:#9aa1ad;
+    --line:#2a2e37; --accent:#8fb2df; --accent-ink:#0f1115; --accent-soft:#1c2836;
+    --grad-a:#ff7fb4; --grad-b:#ffd873;
+  }
+  :root[data-theme="light"]{
+    --bg:#f5f4f1; --surface:#ffffff; --surface-2:#edeeec; --ink:#181a1f; --muted:#5c6370;
+    --line:#dde1de; --accent:#1d3557; --accent-ink:#ffffff; --accent-soft:#e7edf5;
+    --grad-a:#ff5da2; --grad-b:#ffcf3f;
+  }
+
+  *{box-sizing:border-box;}
+  html{scroll-behavior:smooth;}
+  body{
+    margin:0; background:var(--bg); color:var(--ink); font-family:var(--sans);
+    -webkit-font-smoothing:antialiased; line-height:1.55;
+  }
+  a{color:var(--accent);}
+  ::selection{ background: color-mix(in srgb, var(--accent) 30%, transparent); }
+
+  .layout{ display:grid; grid-template-columns:var(--sidebar-w) 1fr; min-height:100vh; }
+  .toc{
+    border-right:1px solid var(--line); padding:28px 20px; position:sticky; top:0; height:100vh;
+    overflow-y:auto; display:flex; flex-direction:column; gap:22px;
+  }
+  .toc-brand{ display:flex; flex-direction:column; gap:4px; }
+  .toc-brand .mark{ font-family:var(--mono); font-size:11px; letter-spacing:.08em; color:var(--muted); text-transform:uppercase; }
+  .toc-brand .name{ font-size:17px; font-weight:700; letter-spacing:-0.01em; }
+  .toc-brand .name .v2{
+    display:inline-block; margin-left:6px; font-family:var(--mono); font-size:11px; padding:1px 6px;
+    border-radius:20px; background:linear-gradient(90deg,var(--grad-a),var(--grad-b)); color:#1a1a1a; font-weight:700;
+  }
+  .toc nav{ display:flex; flex-direction:column; gap:2px; font-size:13px; }
+  .toc nav a{
+    color:var(--muted); text-decoration:none; padding:7px 9px; border-radius:6px; border-left:2px solid transparent;
+  }
+  .toc nav a:hover{ color:var(--ink); background:var(--surface-2); }
+  .toc-foot{ margin-top:auto; font-size:11px; color:var(--muted); font-family:var(--mono); }
+
+  main{ padding:48px 56px 120px; max-width:1160px; }
+  .doc-head{ max-width:760px; margin-bottom:56px; }
+  .eyebrow{
+    font-family:var(--mono); font-size:11px; letter-spacing:.09em; text-transform:uppercase; color:var(--accent);
+    display:flex; align-items:center; gap:8px; margin-bottom:14px;
+  }
+  .eyebrow .bar{ width:22px; height:2px; background:linear-gradient(90deg,var(--grad-a),var(--grad-b)); border-radius:2px; }
+  h1{ font-size:34px; line-height:1.15; letter-spacing:-0.015em; margin:0 0 14px; text-wrap:balance; }
+  .doc-head p{ color:var(--muted); font-size:15.5px; max-width:64ch; margin:0 0 8px; }
+  .doc-meta{ display:flex; gap:18px; flex-wrap:wrap; margin-top:20px; font-family:var(--mono); font-size:11.5px; color:var(--muted); }
+  .doc-meta b{ color:var(--ink); font-weight:600; }
+
+  section{ max-width:760px; margin:0 0 64px; scroll-margin-top:28px; }
+  section.wide{ max-width:1100px; }
+  section h2{ font-size:22px; letter-spacing:-0.01em; margin:0 0 6px; display:flex; align-items:baseline; gap:10px; }
+  section h2 .num{ font-family:var(--mono); font-size:13px; color:var(--muted); font-weight:400; }
+  .section-intro{ color:var(--muted); font-size:14.5px; max-width:66ch; margin:0 0 26px; }
+  h3{ font-size:15.5px; margin:30px 0 10px; letter-spacing:-0.005em; }
+  h3 .tag{ font-family:var(--mono); font-size:11px; color:var(--muted); font-weight:400; margin-left:6px; }
+  p{ font-size:14.5px; }
+  ul.plain{ margin:0; padding-left:20px; font-size:14.5px; }
+  ul.plain li{ margin-bottom:6px; }
+  code, .code{ font-family:var(--mono); font-size:0.86em; background:var(--surface-2); padding:1px 6px; border-radius:4px; }
+
+  /* tables */
+  .tbl-wrap{ overflow-x:auto; border:1px solid var(--line); border-radius:var(--radius); background:var(--surface); }
+  table{ border-collapse:collapse; width:100%; font-size:13.5px; }
+  thead th{
+    text-align:left; font-family:var(--mono); font-size:10.5px; letter-spacing:.05em; text-transform:uppercase;
+    color:var(--muted); padding:10px 14px; border-bottom:1px solid var(--line); white-space:nowrap; background:var(--surface-2);
+  }
+  tbody td{ padding:10px 14px; border-bottom:1px solid var(--line); vertical-align:top; }
+  tbody tr:last-child td{ border-bottom:none; }
+  tbody tr:hover{ background:var(--surface-2); }
+  td.mono, span.mono{ font-family:var(--mono); font-size:12.5px; }
+  td .muted, .muted{ color:var(--muted); }
+
+  .pill{
+    display:inline-block; font-family:var(--mono); font-size:10.5px; padding:2px 8px; border-radius:20px;
+    border:1px solid var(--line); color:var(--muted); white-space:nowrap;
+  }
+  .role{ display:inline-block; font-family:var(--mono); font-size:10.5px; padding:2px 8px; border-radius:20px; color:#fff; white-space:nowrap; }
+  .role.admin{ background:var(--role-admin); }
+  .role.supermod{ background:var(--role-supermod); }
+  .role.mod{ background:var(--role-mod); }
+  .role.member{ background:var(--role-member); }
+  .role.guest{ background:transparent; color:var(--role-guest); border:1px solid var(--line); }
+  .role.system{ background:var(--role-system); }
+
+  .yes{ color:var(--ok); font-weight:700; }
+  .no{ color:var(--muted); }
+  .part{ color:var(--warn); font-weight:700; }
+
+  /* cards / grid */
+  .cards{ display:grid; gap:14px; }
+  .cards.c3{ grid-template-columns:repeat(3,1fr); }
+  .cards.c2{ grid-template-columns:repeat(2,1fr); }
+  @media (max-width:820px){ .cards.c3, .cards.c2{ grid-template-columns:1fr; } }
+  .card{ border:1px solid var(--line); border-radius:var(--radius); background:var(--surface); padding:16px 18px; }
+  .card .k{ font-family:var(--mono); font-size:10.5px; text-transform:uppercase; letter-spacing:.06em; color:var(--muted); margin-bottom:8px; display:block; }
+  .card h4{ margin:0 0 6px; font-size:14.5px; }
+  .card p{ margin:0; color:var(--muted); font-size:13px; }
+
+  /* mermaid */
+  .diagram{ border:1px solid var(--line); border-radius:var(--radius); background:var(--surface); padding:18px; margin:18px 0 28px; overflow-x:auto; }
+  .diagram .cap{ font-family:var(--mono); font-size:11px; color:var(--muted); margin-top:10px; padding-top:10px; border-top:1px dashed var(--line); }
+
+  /* swatches */
+  .swatches{ display:flex; gap:12px; flex-wrap:wrap; }
+  .swatch{ width:118px; }
+  .swatch .chip{ height:52px; border-radius:6px; border:1px solid var(--line); margin-bottom:6px; }
+  .swatch .name{ font-size:11.5px; font-weight:600; }
+  .swatch .hex{ font-family:var(--mono); font-size:10.5px; color:var(--muted); }
+
+  /* ===== wireframe kit ===== */
+  .wf{ border:1px solid var(--line); border-radius:8px; overflow:hidden; background:var(--surface); margin-bottom:34px; }
+  .wf-top{ display:flex; align-items:center; gap:10px; padding:9px 12px; border-bottom:1px solid var(--line); background:var(--surface-2); }
+  .wf-dots{ display:flex; gap:5px; }
+  .wf-dots i{ width:8px; height:8px; border-radius:50%; background:var(--line); display:block; }
+  .wf-url{ font-family:var(--mono); font-size:10.5px; color:var(--muted); background:var(--bg); border:1px solid var(--line); border-radius:4px; padding:3px 10px; }
+  .wf-title{ margin-left:auto; font-family:var(--mono); font-size:10.5px; color:var(--muted); text-transform:uppercase; letter-spacing:.04em; }
+  .wf-body{ padding:16px; display:flex; flex-direction:column; gap:12px; }
+  .wf-tag{
+    font-family:var(--mono); font-size:9.5px; letter-spacing:.04em; text-transform:uppercase; color:var(--accent);
+    background:var(--accent-soft); display:inline-block; padding:2px 6px; border-radius:3px; margin-bottom:7px;
+  }
+  .wf-block{ border:1px solid var(--line); border-radius:5px; padding:10px; background:var(--surface); }
+  .wf-block.fill{ background:var(--surface-2); }
+  .wf-row{ display:flex; gap:10px; align-items:flex-start; }
+  .wf-row.between{ justify-content:space-between; align-items:center; }
+  .wf-row.wrap{ flex-wrap:wrap; }
+  .wf-col{ display:flex; flex-direction:column; gap:8px; flex:1; min-width:0; }
+  .wf-grid{ display:grid; gap:10px; }
+  .wf-line{ height:7px; border-radius:2px; background:var(--line); }
+  .wf-line.dark{ background:var(--muted); opacity:.55; }
+  .wf-img{
+    border-radius:4px; background-color:var(--surface-2);
+    background-image: repeating-linear-gradient(135deg, var(--line) 0 6px, transparent 6px 13px);
+    border:1px solid var(--line);
+  }
+  .wf-btn{
+    font-family:var(--mono); font-size:10px; letter-spacing:.02em; padding:6px 11px; border-radius:5px;
+    background:var(--accent); color:var(--accent-ink); display:inline-block; white-space:nowrap;
+  }
+  .wf-btn.ghost{ background:transparent; border:1px solid var(--line); color:var(--muted); }
+  .wf-btn.grad{ background:linear-gradient(90deg,var(--grad-a),var(--grad-b)); color:#1a1a1a; }
+  .wf-chip{ font-family:var(--mono); font-size:9.5px; border:1px solid var(--line); color:var(--muted); border-radius:20px; padding:3px 9px; white-space:nowrap; }
+  .wf-avatar{ width:28px; height:28px; border-radius:50%; background:var(--surface-2); border:1px solid var(--line); flex:none; }
+  .wf-navbar{ background:var(--accent); border-radius:5px; padding:10px 14px; display:flex; align-items:center; gap:14px; }
+  .wf-navbar .wf-line{ background:rgba(255,255,255,.5); }
+  .wf-navbar .wf-line.brand{ background:#fff; width:74px; }
+  .wf-navbar .wf-chip{ border-color:rgba(255,255,255,.35); color:rgba(255,255,255,.85); }
+  .wf-navbar .wf-btn{ background:rgba(255,255,255,.14); color:#fff; }
+  .wf-grad-underline{ height:3px; width:64px; border-radius:2px; background:linear-gradient(90deg,var(--grad-a),var(--grad-b)); }
+  .wf-note{ font-family:var(--mono); font-size:10.5px; color:var(--muted); }
+  .wf-tabs{ display:flex; gap:4px; border-bottom:1px solid var(--line); padding-bottom:0; }
+  .wf-tabs span{ font-family:var(--mono); font-size:10.5px; padding:7px 12px; color:var(--muted); border-bottom:2px solid transparent; }
+  .wf-tabs span.active{ color:var(--ink); border-color:var(--accent); font-weight:600; }
+  .wf-sidenav{ display:flex; flex-direction:column; gap:2px; }
+  .wf-sidenav span{ font-family:var(--mono); font-size:10.5px; padding:7px 9px; border-radius:5px; color:var(--muted); }
+  .wf-sidenav span.active{ background:var(--accent-soft); color:var(--accent); font-weight:600; }
+  .wf-tree-row{ display:flex; align-items:center; gap:8px; padding:6px 8px; border:1px solid var(--line); border-radius:5px; background:var(--surface); font-family:var(--mono); font-size:10.5px; }
+  .wf-tree-row .handle{ color:var(--muted); }
+  .wf-checkgrid{ display:grid; grid-template-columns:repeat(5,1fr); gap:6px; font-family:var(--mono); font-size:10px; text-align:center; }
+  .wf-checkgrid .hd{ color:var(--muted); text-transform:uppercase; }
+  .wf-checkgrid .cell{ padding:6px 2px; border:1px solid var(--line); border-radius:4px; }
+  .wf-caption{ font-family:var(--mono); font-size:10.5px; color:var(--muted); padding:11px 16px; border-top:1px dashed var(--line); }
+
+  /* roadmap */
+  .phase{ display:grid; grid-template-columns:120px 1fr; gap:18px; padding:16px 0; border-top:1px solid var(--line); }
+  .phase:first-of-type{ border-top:none; }
+  .phase .when{ font-family:var(--mono); font-size:11px; color:var(--muted); padding-top:2px; }
+  .phase h4{ margin:0 0 6px; font-size:14.5px; }
+  .phase p{ margin:0; color:var(--muted); }
+
+  footer.end{ max-width:760px; padding-top:20px; border-top:1px solid var(--line); font-size:12.5px; color:var(--muted); }
+
+  /* deployment: steps, code, checklist, env cards */
+  .steps{ counter-reset:step; display:flex; flex-direction:column; gap:0; border:1px solid var(--line); border-radius:var(--radius); background:var(--surface); overflow:hidden; }
+  .steps .step{ counter-increment:step; display:grid; grid-template-columns:34px 1fr; gap:12px; padding:14px 16px; border-bottom:1px solid var(--line); }
+  .steps .step:last-child{ border-bottom:none; }
+  .steps .step::before{
+    content:counter(step); font-family:var(--mono); font-size:11px; color:var(--accent); background:var(--accent-soft);
+    width:24px; height:24px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-weight:700;
+  }
+  .steps .step h4{ margin:0 0 4px; font-size:14px; }
+  .steps .step p{ margin:0; color:var(--muted); font-size:13.5px; }
+  .steps .step .codeblock{ margin-top:8px; }
+
+  .codeblock{
+    font-family:var(--mono); font-size:12px; background:var(--surface-2); border:1px solid var(--line); border-radius:6px;
+    padding:12px 14px; overflow-x:auto; white-space:pre; color:var(--ink); line-height:1.6;
+  }
+  .codeblock .c{ color:var(--muted); }
+
+  .env-cards{ display:grid; grid-template-columns:repeat(3,1fr); gap:14px; margin-bottom:24px; }
+  @media (max-width:820px){ .env-cards{ grid-template-columns:1fr; } }
+  .env-card{ border:1px solid var(--line); border-radius:var(--radius); background:var(--surface); padding:16px 18px; }
+  .env-card .stage{ font-family:var(--mono); font-size:10.5px; text-transform:uppercase; letter-spacing:.06em; color:var(--accent); margin-bottom:8px; display:block; }
+  .env-card h4{ margin:0 0 8px; font-size:15px; }
+  .env-card ul{ margin:0; padding-left:18px; font-size:13px; color:var(--muted); }
+  .env-card ul li{ margin-bottom:4px; }
+
+  .checklist{ display:flex; flex-direction:column; gap:0; border:1px solid var(--line); border-radius:var(--radius); background:var(--surface); overflow:hidden; }
+  .checklist .item{ display:flex; align-items:flex-start; gap:10px; padding:11px 16px; border-bottom:1px solid var(--line); font-size:13.5px; }
+  .checklist .item:last-child{ border-bottom:none; }
+  .checklist .box{ width:15px; height:15px; border:1.5px solid var(--muted); border-radius:4px; flex:none; margin-top:2px; }
+  .checklist .item b{ font-weight:600; }
+
+  .warn-box{
+    border:1px solid var(--warn); background:color-mix(in srgb, var(--warn) 10%, transparent); border-radius:var(--radius);
+    padding:12px 16px; font-size:13.5px; margin:16px 0;
+  }
+  .warn-box b{ color:var(--warn); }
+
+  @media (max-width:980px){
+    .layout{ grid-template-columns:1fr; }
+    .toc{ position:relative; height:auto; border-right:none; border-bottom:1px solid var(--line); flex-direction:row; align-items:center; padding:14px 18px; }
+    .toc nav{ flex-direction:row; overflow-x:auto; }
+    .toc-foot{ display:none; }
+    main{ padding:32px 20px 90px; }
+  }
+</style>
+
+<div class="layout">
+  <aside class="toc">
+    <div class="toc-brand">
+      <span class="mark">Đặc tả sản phẩm</span>
+      <span class="name">khomanguon<span class="v2">v2</span></span>
+    </div>
+    <nav>
+      <a href="#overview">01 · Tổng quan</a>
+      <a href="#identity">02 · Bản sắc thị giác</a>
+      <a href="#techstack">03 · Tech stack</a>
+      <a href="#architecture">04 · Kiến trúc hệ thống</a>
+      <a href="#flows">05 · Luồng tải game &amp; nạp tiền</a>
+      <a href="#rbac">06 · Phân quyền (RBAC)</a>
+      <a href="#usecases">07 · Use case đầy đủ</a>
+      <a href="#wireframes">08 · Wireframe các trang</a>
+      <a href="#performance">09 · Tối ưu tốc độ</a>
+      <a href="#roadmap">10 · Lộ trình triển khai</a>
+      <a href="#infra">11 · Môi trường &amp; hạ tầng</a>
+      <a href="#aapanel">12 · Deploy lên aaPanel</a>
+      <a href="#golive">13 · Go-live &amp; vận hành</a>
+    </nav>
+    <div class="toc-foot">v1.1 · 29/07/2026</div>
+  </aside>
+
+  <main>
+    <div class="doc-head">
+      <div class="eyebrow"><span class="bar"></span>Tài liệu kỹ thuật &amp; thiết kế</div>
+      <h1>Xây dựng lại khomanguon.org phiên bản 2</h1>
+      <p>Giữ nguyên tinh thần giao diện của bản v1 — thanh điều hướng tối màu, lưới bài viết dạng thẻ, gạch chân gradient hồng–vàng — trong khi bổ sung tài khoản người dùng, phân quyền theo vai trò, biên tập bài viết chuẩn SEO, hệ thống tải game trả phí bằng ví nội bộ <span class="code">$P</span>, và nạp tiền tự động qua SePay.</p>
+      <div class="doc-meta">
+        <span><b>Phạm vi</b> Rebuild toàn bộ (v2)</span>
+        <span><b>Đối tượng</b> Cộng đồng chia sẻ mã nguồn game/web/app</span>
+        <span><b>Tham chiếu</b> khomanguon.org (v1, đã khảo sát trực tiếp)</span>
+      </div>
+    </div>
+
+    <!-- 01 OVERVIEW -->
+    <section id="overview">
+      <h2><span class="num">01</span>Tổng quan</h2>
+      <p class="section-intro">v1 hiện là một site dạng WordPress: trang chủ liệt kê bài viết mới, trang chi tiết có sidebar tìm kiếm/bài viết mới/bình luận, đã có sẵn khái niệm "@CASH" trên thanh nav — cho thấy nhu cầu tiền tệ nội bộ đã tồn tại nhưng chưa được vận hành đầy đủ. v2 chuẩn hoá lại toàn bộ thành một hệ thống tự viết (custom build), giữ cảm giác quen thuộc cho người dùng cũ nhưng vận hành trên nền tảng có thể mở rộng: tài khoản, phân quyền chi tiết, biên tập nội dung chuyên nghiệp, và một hệ kinh tế nội bộ ($P) gắn với việc tải file.</p>
+      <div class="cards c3">
+        <div class="card"><span class="k">Người dùng</span><h4>Tài khoản &amp; hồ sơ</h4><p>Đăng ký, đăng nhập, quên mật khẩu, hồ sơ cá nhân, ví $P, lịch sử tải.</p></div>
+        <div class="card"><span class="k">Nội dung</span><h4>CMS chuẩn SEO</h4><p>Soạn bài WYSIWYG, ảnh đại diện, danh mục, menu đa cấp kéo-thả, bình luận.</p></div>
+        <div class="card"><span class="k">Kinh tế</span><h4>Ví $P &amp; tải file trả phí</h4><p>Mỗi link tải gắn giá riêng, sinh presigned URL từ R2/S3, nạp tiền qua SePay.</p></div>
+      </div>
+    </section>
+
+    <!-- 02 IDENTITY -->
+    <section id="identity">
+      <h2><span class="num">02</span>Bản sắc thị giác kế thừa từ v1</h2>
+      <p class="section-intro">Ghi lại từ khảo sát trực tiếp trang hiện tại để wireframe bên dưới bám đúng "khung xương" quen thuộc với người dùng cũ.</p>
+      <div class="swatches">
+        <div class="swatch"><div class="chip" style="background:#16181d"></div><div class="name">Navbar tối</div><div class="hex">#16181d</div></div>
+        <div class="swatch"><div class="chip" style="background:#1d3557"></div><div class="name">Tiêu đề / link</div><div class="hex">#1d3557</div></div>
+        <div class="swatch"><div class="chip" style="background:linear-gradient(90deg,#ff5da2,#ffcf3f)"></div><div class="name">Gạch chân gradient</div><div class="hex">hồng → vàng</div></div>
+        <div class="swatch"><div class="chip" style="background:#f4a300"></div><div class="name">Bullet phụ</div><div class="hex">#f4a300</div></div>
+        <div class="swatch"><div class="chip" style="background:#ffffff;border:1px solid var(--line)"></div><div class="name">Nền nội dung</div><div class="hex">#ffffff</div></div>
+      </div>
+      <ul class="plain" style="margin-top:18px">
+        <li>Bố cục 2 cột ở trang danh sách/chi tiết: nội dung chính + sidebar (tìm kiếm, bài viết mới, bình luận gần đây).</li>
+        <li>Thẻ bài viết: ảnh thumbnail → tiêu đề (màu navy) → tác giả · ngày đăng → đoạn trích 2 dòng.</li>
+        <li>Menu ngang có dropdown cấp 2 (ví dụ "Mã nguồn Game ▾") — v2 mở rộng thành đa cấp, quản lý bằng kéo-thả thay vì code cứng theme.</li>
+        <li>Nav đã có placeholder cho tiền tệ ("GET @CASH") → v2 thay bằng ví <span class="code">$P</span> hiển thị số dư thật, có trang nạp tiền.</li>
+      </ul>
+    </section>
+
+    <!-- 03 TECH STACK -->
+    <section id="techstack" class="wide">
+      <h2><span class="num">03</span>Đề xuất tech stack</h2>
+      <p class="section-intro">Ưu tiên: tốc độ tải trang public (SEO-critical), toàn vẹn dữ liệu cho ví tiền (ACID), và chi phí hạ tầng hợp lý cho một site cộng đồng.</p>
+      <div class="tbl-wrap">
+        <table>
+          <thead><tr><th style="width:15%">Lớp</th><th style="width:30%">Lựa chọn đề xuất</th><th>Lý do chọn / phương án thay thế</th></tr></thead>
+          <tbody>
+            <tr><td>Frontend</td><td class="mono">Next.js 15 (App Router) + TS + Tailwind + shadcn/ui</td><td>SSR/ISR cho SEO &amp; tốc độ hiển thị đầu tiên; React Server Components giảm JS gửi về client. <span class="muted">Thay thế: Nuxt nếu team quen Vue.</span></td></tr>
+            <tr><td>Backend API</td><td class="mono">NestJS (TypeScript)</td><td>Module hoá theo domain (auth, wallet, posts, storage); Guard/Interceptor có sẵn rất hợp để chặn theo permission và ghi audit log giao dịch ví.</td></tr>
+            <tr><td>Cơ sở dữ liệu</td><td class="mono">PostgreSQL 16 + Prisma ORM</td><td>Giao dịch ACID bắt buộc khi trừ/cộng $P; JSONB cho metadata SEO linh hoạt theo từng bài viết.</td></tr>
+            <tr><td>Cache / Hàng đợi</td><td class="mono">Redis + BullMQ</td><td>Cache danh sách bài viết/danh mục nóng; queue xử lý webhook SePay và sinh presigned URL không chặn request chính.</td></tr>
+            <tr><td>Lưu trữ file</td><td class="mono">Cloudflare R2 (chính) + AWS S3 (dự phòng)</td><td>R2 miễn phí băng thông ra (egress) — quan trọng với file game dung lượng lớn; dùng chung SDK <span class="code">@aws-sdk/client-s3</span> vì cùng chuẩn S3 API. Trang cài đặt cho phép cấu hình nhiều bộ key song song.</td></tr>
+            <tr><td>Trình soạn thảo</td><td class="mono">Tiptap (ProseMirror)</td><td>Headless, nhẹ, dễ nhúng upload ảnh/bảng/code block hơn CKEditor; kiểm soát HTML output để tránh XSS khi render lại.</td></tr>
+            <tr><td>Xác thực</td><td class="mono">JWT (access + refresh, cookie httpOnly) + Argon2</td><td>Tự chủ hoàn toàn để khớp mô hình Role/Permission tuỳ biến, không lệ thuộc SaaS auth bên thứ ba.</td></tr>
+            <tr><td>Thanh toán</td><td class="mono">SePay Webhook API (VietQR)</td><td>Đối soát tự động theo nội dung chuyển khoản chứa mã giao dịch; xác thực chữ ký HMAC ở webhook.</td></tr>
+            <tr><td>SEO</td><td class="mono">next-seo · next-sitemap · JSON-LD · Open Graph</td><td>Sitemap tự sinh khi publish bài; snippet preview ngay trong trình soạn bài.</td></tr>
+            <tr><td>Realtime</td><td class="mono">WebSocket (Socket.IO)</td><td>Đẩy số dư ví cập nhật tức thời sau khi SePay xác nhận, và trạng thái duyệt bài cho Moderator.</td></tr>
+            <tr><td>Hạ tầng &amp; Deploy</td><td class="mono">Docker Compose + Caddy/Nginx, Cloudflare phía trước</td><td>Coolify/Dokploy trên VPS để CI/CD đơn giản, chi phí thấp — hợp quy mô site cộng đồng. <span class="muted">Thay thế: Vercel (FE) + Railway/Fly.io (BE+DB) nếu muốn giảm việc vận hành.</span></td></tr>
+            <tr><td>Giám sát</td><td class="mono">Sentry · Uptime Kuma · Plausible/GA4</td><td>Theo dõi lỗi, uptime và hành vi người dùng mà không kéo nặng trang public.</td></tr>
+            <tr><td>Kiểm thử</td><td class="mono">Vitest/Jest + Playwright</td><td>Bắt buộc test E2E cho 2 luồng trọng yếu: nạp tiền và tải game (ảnh hưởng trực tiếp doanh thu).</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- 04 ARCHITECTURE -->
+    <section id="architecture" class="wide">
+      <h2><span class="num">04</span>Kiến trúc hệ thống</h2>
+      <p class="section-intro">Cloudflare đứng trước để cache trang public và chống bot; backend tách khỏi frontend để cô lập logic nhạy cảm (ví, phân quyền, ký URL).</p>
+      <div class="diagram">
+        <pre class="mermaid">
+flowchart LR
+  U["Người dùng"] --> CF["Cloudflare CDN / WAF"]
+  CF --> WEB["Next.js — SSR/ISR Frontend"]
+  WEB --> API["NestJS API"]
+  API --> PG[("PostgreSQL")]
+  API --> RD[("Redis — cache & queue")]
+  API -- "presigned URL" --> R2[("Cloudflare R2")]
+  API -- "presigned URL" --> S3[("AWS S3 (dự phòng)")]
+  SEPAY["SePay"] -- "webhook nạp tiền" --> API
+  API -- "realtime số dư" --> WEB
+        </pre>
+        <div class="cap">Frontend không bao giờ gọi trực tiếp R2/S3 hay SePay — mọi thao tác nhạy cảm (trừ tiền, ký URL, xác thực webhook) đi qua API để giữ tính toàn vẹn giao dịch.</div>
+      </div>
+    </section>
+
+    <!-- 05 FLOWS -->
+    <section id="flows" class="wide">
+      <h2><span class="num">05</span>Luồng nghiệp vụ trọng yếu</h2>
+      <p class="section-intro">Hai luồng ảnh hưởng trực tiếp đến tiền của người dùng — cần transaction chặt và chống trùng lặp webhook.</p>
+
+      <h3>Tải game qua link trả phí <span class="tag">UC11</span></h3>
+      <div class="diagram">
+        <pre class="mermaid">
+sequenceDiagram
+  actor U as Member
+  participant W as Web App
+  participant API as Backend API
+  participant DB as PostgreSQL
+  participant ST as R2 / S3
+  U->>W: Bấm "Tải xuống" trên link #2
+  W->>API: POST /downloads/:linkId
+  API->>DB: Kiểm tra số dư ví $P
+  alt Đủ số dư
+    API->>DB: Trừ $P + ghi log giao dịch (1 transaction)
+    API->>ST: Yêu cầu presigned URL (TTL 10 phút)
+    ST-->>API: Signed URL
+    API-->>W: Trả signed URL
+    W-->>U: Chuyển hướng tải file
+  else Không đủ số dư
+    API-->>W: 402 — yêu cầu nạp thêm $P
+    W-->>U: Hiển thị modal nạp tiền
+  end
+        </pre>
+      </div>
+
+      <h3>Nạp tiền tự động qua SePay <span class="tag">UC09 · UC23</span></h3>
+      <div class="diagram">
+        <pre class="mermaid">
+sequenceDiagram
+  actor U as Người dùng
+  participant W as Web App
+  participant API as Backend API
+  participant SP as SePay
+  participant DB as PostgreSQL
+  U->>W: Nhập số tiền muốn nạp
+  W->>API: Tạo yêu cầu nạp tiền
+  API->>DB: Lưu giao dịch trạng thái "pending"
+  API-->>W: Trả mã QR VietQR (nội dung CK = mã giao dịch)
+  U->>SP: Chuyển khoản theo QR
+  SP->>API: Webhook xác nhận (kèm chữ ký HMAC)
+  API->>API: Xác thực chữ ký & chống gọi trùng
+  API->>DB: Cập nhật "success" + cộng $P vào ví
+  API-->>W: Đẩy realtime số dư mới (WebSocket)
+  W-->>U: Thông báo nạp tiền thành công
+        </pre>
+        <div class="cap">Chống trùng lặp: mỗi webhook lưu theo mã giao dịch SePay duy nhất (unique constraint) — webhook gọi lại nhiều lần không cộng tiền 2 lần.</div>
+      </div>
+    </section>
+
+    <!-- 06 RBAC -->
+    <section id="rbac" class="wide">
+      <h2><span class="num">06</span>Mô hình phân quyền (RBAC)</h2>
+      <p class="section-intro">Vai trò chỉ là một <em>tập hợp quyền</em> (many-to-many), không hard-code trong logic — nhờ vậy Admin có thể tạo <b>Custom Role</b> bất kỳ bằng cách tick các quyền mong muốn. Middleware luôn kiểm tra theo mã quyền (<span class="code">post.publish</span>...), không kiểm tra theo tên vai trò.</p>
+      <div class="tbl-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Quyền</th>
+              <th><span class="role admin">Admin</span></th>
+              <th><span class="role supermod">Super Mod</span></th>
+              <th><span class="role mod">Moderator</span></th>
+              <th><span class="role member">Member</span></th>
+              <th>Custom</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr><td class="mono">post.create / post.edit.own</td><td class="yes">✓</td><td class="yes">✓</td><td class="yes">✓</td><td class="no">–</td><td class="muted">tuỳ chọn</td></tr>
+            <tr><td class="mono">post.publish (không cần duyệt)</td><td class="yes">✓</td><td class="yes">✓</td><td class="part">gửi duyệt</td><td class="no">–</td><td class="muted">tuỳ chọn</td></tr>
+            <tr><td class="mono">post.edit.any / post.delete</td><td class="yes">✓</td><td class="yes">✓</td><td class="no">–</td><td class="no">–</td><td class="muted">tuỳ chọn</td></tr>
+            <tr><td class="mono">menu.manage</td><td class="yes">✓</td><td class="yes">✓</td><td class="no">–</td><td class="no">–</td><td class="muted">tuỳ chọn</td></tr>
+            <tr><td class="mono">comment.create</td><td class="yes">✓</td><td class="yes">✓</td><td class="yes">✓</td><td class="yes">✓</td><td class="muted">tuỳ chọn</td></tr>
+            <tr><td class="mono">comment.moderate</td><td class="yes">✓</td><td class="yes">✓</td><td class="yes">✓</td><td class="no">–</td><td class="muted">tuỳ chọn</td></tr>
+            <tr><td class="mono">user.manage (khoá / mở)</td><td class="yes">✓</td><td class="part">trừ Admin</td><td class="no">–</td><td class="no">–</td><td class="muted">tuỳ chọn</td></tr>
+            <tr><td class="mono">role.manage (tạo custom role)</td><td class="yes">✓</td><td class="no">–</td><td class="no">–</td><td class="no">–</td><td class="muted">tuỳ chọn</td></tr>
+            <tr><td class="mono">wallet.view.any / wallet.adjust</td><td class="yes">✓</td><td class="part">chỉ xem</td><td class="no">–</td><td class="muted">chỉ ví mình</td><td class="muted">tuỳ chọn</td></tr>
+            <tr><td class="mono">download.manage_links (đặt giá $P)</td><td class="yes">✓</td><td class="yes">✓</td><td class="no">–</td><td class="no">–</td><td class="muted">tuỳ chọn</td></tr>
+            <tr><td class="mono">settings.seo / settings.storage_keys / settings.payment</td><td class="yes">✓</td><td class="no">–</td><td class="no">–</td><td class="no">–</td><td class="muted">tuỳ chọn</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p style="color:var(--muted);font-size:13px;margin-top:10px">Bảng trên là <em>giá trị mặc định</em> khi khởi tạo hệ thống — Admin có thể chỉnh lại từng ô qua trang Phân quyền (xem wireframe #11) mà không cần deploy lại code.</p>
+    </section>
+
+    <!-- 07 USE CASES -->
+    <section id="usecases" class="wide">
+      <h2><span class="num">07</span>Use case đầy đủ</h2>
+      <p class="section-intro">25 use case bao trùm toàn bộ yêu cầu, nhóm theo tác nhân. UC11, UC23 đã mô tả chi tiết ở luồng nghiệp vụ phía trên.</p>
+      <div class="tbl-wrap">
+        <table>
+          <thead><tr><th style="width:52px">Mã</th><th style="width:15%">Tác nhân</th><th style="width:24%">Use case</th><th>Mô tả tóm tắt</th></tr></thead>
+          <tbody>
+            <tr><td class="mono">UC01</td><td><span class="role guest">Guest</span></td><td>Đăng ký tài khoản</td><td>Nhập email/mật khẩu hoặc OAuth Google; gửi email xác minh trước khi kích hoạt.</td></tr>
+            <tr><td class="mono">UC02</td><td><span class="role guest">Guest</span></td><td>Đăng nhập</td><td>Email/mật khẩu; khoá tạm sau 5 lần sai (rate limit).</td></tr>
+            <tr><td class="mono">UC03</td><td><span class="role guest">Guest</span></td><td>Quên / đặt lại mật khẩu</td><td>Gửi OTP/link qua email, hết hạn sau 15 phút, một lần dùng.</td></tr>
+            <tr><td class="mono">UC04</td><td><span class="role member">Member</span></td><td>Cập nhật hồ sơ</td><td>Đổi avatar, tên hiển thị, bio, đổi email (yêu cầu xác minh lại), đổi mật khẩu.</td></tr>
+            <tr><td class="mono">UC05</td><td><span class="role guest">Guest</span></td><td>Duyệt / tìm kiếm bài viết</td><td>Lọc theo danh mục, tag, sắp xếp mới nhất/phổ biến; tìm kiếm full-text.</td></tr>
+            <tr><td class="mono">UC06</td><td><span class="role guest">Guest</span></td><td>Xem chi tiết bài viết</td><td>Nội dung, danh sách link tải kèm giá $P, bình luận công khai.</td></tr>
+            <tr><td class="mono">UC07</td><td><span class="role member">Member</span></td><td>Bình luận / trả lời / thích</td><td>Bình luận theo luồng (threaded), cần đăng nhập, chống spam (rate limit + honeypot).</td></tr>
+            <tr><td class="mono">UC08</td><td><span class="role mod">Moderator</span></td><td>Kiểm duyệt bình luận</td><td>Ẩn/xoá bình luận vi phạm, ghim bình luận, chặn user spam.</td></tr>
+            <tr><td class="mono">UC09</td><td><span class="role member">Member</span></td><td>Nạp tiền qua SePay</td><td>Sinh mã QR VietQR, chờ webhook xác nhận, cộng $P realtime. <span class="muted">Chi tiết ở mục 05.</span></td></tr>
+            <tr><td class="mono">UC10</td><td><span class="role member">Member</span></td><td>Xem lịch sử giao dịch ví</td><td>Danh sách nạp tiền + chi tiêu tải file, xuất được biên lai từng giao dịch.</td></tr>
+            <tr><td class="mono">UC11</td><td><span class="role member">Member</span></td><td>Tải game (trừ $P → presigned URL)</td><td>Kiểm tra số dư, trừ tiền, sinh link ký có TTL. <span class="muted">Chi tiết ở mục 05.</span></td></tr>
+            <tr><td class="mono">UC12</td><td><span class="role mod">Moderator</span></td><td>Đăng bài viết mới</td><td>WYSIWYG, upload ảnh/thumbnail, chọn danh mục, gắn nhiều link tải kèm giá $P mỗi link.</td></tr>
+            <tr><td class="mono">UC13</td><td><span class="role mod">Moderator</span></td><td>Sửa / xoá / gửi duyệt bài</td><td>Trạng thái Nháp → Chờ duyệt → Xuất bản; Moderator không tự publish, Super Mod/Admin duyệt.</td></tr>
+            <tr><td class="mono">UC14</td><td><span class="role mod">Moderator</span></td><td>Cài đặt SEO cho từng bài</td><td>Meta title/description có đếm ký tự, slug, ảnh OG, xem trước snippet Google.</td></tr>
+            <tr><td class="mono">UC15</td><td><span class="role admin">Admin</span></td><td>Cài đặt SEO toàn site</td><td>Sitemap, robots.txt, xác minh Search Console, mã Analytics, schema mặc định.</td></tr>
+            <tr><td class="mono">UC16</td><td><span class="role admin">Admin</span></td><td>Quản lý menu đa cấp</td><td>Thêm/sửa/xoá mục menu, kéo-thả thay đổi thứ tự &amp; cấp con, gán hiển thị theo vai trò.</td></tr>
+            <tr><td class="mono">UC17</td><td><span class="role admin">Admin</span></td><td>Quản lý vai trò &amp; quyền</td><td>Tạo custom role, tick ma trận quyền theo module (xem mục 06).</td></tr>
+            <tr><td class="mono">UC18</td><td><span class="role admin">Admin</span></td><td>Gán vai trò cho user</td><td>Thăng/giáng chức, thu hồi vai trò, xem lịch sử thay đổi quyền.</td></tr>
+            <tr><td class="mono">UC19</td><td><span class="role admin">Admin</span></td><td>Quản lý người dùng</td><td>Khoá/mở tài khoản, reset mật khẩu hộ, xem chi tiết ví &amp; lịch sử hoạt động.</td></tr>
+            <tr><td class="mono">UC20</td><td><span class="role admin">Admin</span></td><td>Cài đặt key R2/S3</td><td>Nhập Access Key/Secret theo từng provider, nút "Test kết nối", chọn provider mặc định.</td></tr>
+            <tr><td class="mono">UC21</td><td><span class="role admin">Admin</span></td><td>Cấu hình tỉ giá &amp; khuyến mãi $P</td><td>Tỉ giá VNĐ ↔ $P, gói nạp có thưởng, giá $P mặc định cho link mới.</td></tr>
+            <tr><td class="mono">UC22</td><td><span class="role admin">Admin</span></td><td>Xem thống kê Dashboard</td><td>Doanh thu nạp tiền, lượt tải, bài viết hot, user mới theo ngày/tuần/tháng.</td></tr>
+            <tr><td class="mono">UC23</td><td><span class="role system">System</span></td><td>Nhận webhook SePay</td><td>Xác thực chữ ký, đối soát, chống replay, cộng ví. <span class="muted">Chi tiết ở mục 05.</span></td></tr>
+            <tr><td class="mono">UC24</td><td><span class="role system">System</span></td><td>Sinh presigned URL an toàn</td><td>TTL ngắn (5–15 phút), log IP/lượt tải chống chia sẻ link công khai.</td></tr>
+            <tr><td class="mono">UC25</td><td><span class="role member">Member</span></td><td>Báo lỗi link die</td><td>Report ngay dưới link tải → vào hàng chờ xử lý của Moderator.</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- 08 WIREFRAMES -->
+    <section id="wireframes" class="wide">
+      <h2><span class="num">08</span>Wireframe các trang chính</h2>
+      <p class="section-intro">Wireframe mức trung bình (structure-first, chưa đi vào màu sắc cuối) — bố cục bám theo bản sắc v1 ở mục 02: navbar tối, thẻ bài viết, gạch chân gradient. 12 màn hình bao trùm toàn bộ 25 use case ở trên.</p>
+
+      <!-- 1 Homepage -->
+      <div class="wf">
+        <div class="wf-top"><div class="wf-dots"><i></i><i></i><i></i></div><span class="wf-url">khomanguon.vn/</span><span class="wf-title">01 · Trang chủ</span></div>
+        <div class="wf-body">
+          <div class="wf-navbar">
+            <span class="wf-line brand"></span>
+            <span class="wf-chip">Server Game</span><span class="wf-chip">Mã nguồn Game ▾</span><span class="wf-chip">Mã nguồn Web/App</span><span class="wf-chip">Khoá học</span><span class="wf-chip">Phần mềm</span>
+            <span style="margin-left:auto"></span>
+            <span class="wf-chip">🪙 1.250 $P</span>
+            <span class="wf-btn">Đăng nhập</span><span class="wf-btn ghost" style="border-color:rgba(255,255,255,.4);color:#fff">Đăng ký</span>
+          </div>
+          <div class="wf-row between">
+            <div class="wf-block fill" style="flex:1"><span class="wf-line" style="width:40%"></span></div>
+          </div>
+          <div class="wf-row" style="align-items:flex-start">
+            <div class="wf-col" style="flex:3">
+              <span class="wf-tag">Recent posts — lưới thẻ</span>
+              <div class="wf-grid" style="grid-template-columns:repeat(3,1fr)">
+                <div class="wf-block"><div class="wf-img" style="height:70px;margin-bottom:8px"></div><div class="wf-line dark" style="width:90%;margin-bottom:6px"></div><div class="wf-line" style="width:60%;margin-bottom:6px"></div><div class="wf-chip">Từ 20 $P</div></div>
+                <div class="wf-block"><div class="wf-img" style="height:70px;margin-bottom:8px"></div><div class="wf-line dark" style="width:85%;margin-bottom:6px"></div><div class="wf-line" style="width:55%;margin-bottom:6px"></div><div class="wf-chip">Miễn phí</div></div>
+                <div class="wf-block"><div class="wf-img" style="height:70px;margin-bottom:8px"></div><div class="wf-line dark" style="width:95%;margin-bottom:6px"></div><div class="wf-line" style="width:50%;margin-bottom:6px"></div><div class="wf-chip">Từ 50 $P</div></div>
+                <div class="wf-block"><div class="wf-img" style="height:70px;margin-bottom:8px"></div><div class="wf-line dark" style="width:80%;margin-bottom:6px"></div><div class="wf-line" style="width:60%;margin-bottom:6px"></div><div class="wf-chip">Từ 10 $P</div></div>
+                <div class="wf-block"><div class="wf-img" style="height:70px;margin-bottom:8px"></div><div class="wf-line dark" style="width:88%;margin-bottom:6px"></div><div class="wf-line" style="width:65%;margin-bottom:6px"></div><div class="wf-chip">Miễn phí</div></div>
+                <div class="wf-block"><div class="wf-img" style="height:70px;margin-bottom:8px"></div><div class="wf-line dark" style="width:92%;margin-bottom:6px"></div><div class="wf-line" style="width:58%;margin-bottom:6px"></div><div class="wf-chip">Từ 30 $P</div></div>
+              </div>
+            </div>
+            <div class="wf-col" style="flex:1">
+              <span class="wf-tag">Sidebar</span>
+              <div class="wf-block"><span class="wf-line" style="width:100%"></span></div>
+              <div class="wf-block fill"><span class="wf-line dark" style="width:60%;margin-bottom:8px"></span><span class="wf-line" style="width:90%;margin-bottom:5px"></span><span class="wf-line" style="width:80%;margin-bottom:5px"></span><span class="wf-line" style="width:85%"></span></div>
+              <div class="wf-block fill"><span class="wf-line dark" style="width:50%;margin-bottom:8px"></span><span class="wf-chip" style="margin:2px">RPG</span><span class="wf-chip" style="margin:2px">Offline</span><span class="wf-chip" style="margin:2px">Webgame</span></div>
+            </div>
+          </div>
+        </div>
+        <div class="wf-caption">Giữ đúng nhịp v1: navbar tối, lưới 3 cột, sidebar phải — thêm chip số dư $P thay cho "GET @CASH" tĩnh.</div>
+      </div>
+
+      <!-- 2 Category -->
+      <div class="wf">
+        <div class="wf-top"><div class="wf-dots"><i></i><i></i><i></i></div><span class="wf-url">khomanguon.vn/danh-muc/server-game</span><span class="wf-title">02 · Danh mục / Tìm kiếm</span></div>
+        <div class="wf-body">
+          <div class="wf-row between"><span class="wf-chip">Trang chủ / Mã nguồn Game / Server Game</span><span class="wf-btn ghost">Sắp xếp: Mới nhất ▾</span></div>
+          <div class="wf-row wrap"><span class="wf-chip">Tất cả</span><span class="wf-chip">Offline</span><span class="wf-chip">Private Server</span><span class="wf-chip">1-Click VM</span></div>
+          <span class="wf-tag">Danh sách dạng hàng ngang</span>
+          <div class="wf-col">
+            <div class="wf-block wf-row"><div class="wf-img" style="width:96px;height:64px;flex:none"></div><div class="wf-col"><span class="wf-line dark" style="width:70%"></span><span class="wf-line" style="width:40%"></span><span class="wf-line" style="width:90%"></span></div><span class="wf-chip">40 $P</span></div>
+            <div class="wf-block wf-row"><div class="wf-img" style="width:96px;height:64px;flex:none"></div><div class="wf-col"><span class="wf-line dark" style="width:60%"></span><span class="wf-line" style="width:35%"></span><span class="wf-line" style="width:85%"></span></div><span class="wf-chip">Miễn phí</span></div>
+            <div class="wf-block wf-row"><div class="wf-img" style="width:96px;height:64px;flex:none"></div><div class="wf-col"><span class="wf-line dark" style="width:65%"></span><span class="wf-line" style="width:38%"></span><span class="wf-line" style="width:80%"></span></div><span class="wf-chip">25 $P</span></div>
+          </div>
+          <div class="wf-row" style="justify-content:center"><span class="wf-chip">‹</span><span class="wf-chip">1</span><span class="wf-chip">2</span><span class="wf-chip">3</span><span class="wf-chip">›</span></div>
+        </div>
+      </div>
+
+      <!-- 3 Post detail -->
+      <div class="wf">
+        <div class="wf-top"><div class="wf-dots"><i></i><i></i><i></i></div><span class="wf-url">khomanguon.vn/bai-viet/ten-bai-viet</span><span class="wf-title">03 · Chi tiết bài viết</span></div>
+        <div class="wf-body">
+          <span class="wf-chip">Game Mobile · Mã nguồn Game · Server Game</span>
+          <div class="wf-block fill">
+            <span class="wf-line dark" style="width:75%;height:14px;margin-bottom:6px"></span>
+            <span class="wf-line dark" style="width:50%;height:14px;margin-bottom:8px"></span>
+            <div class="wf-grad-underline"></div>
+          </div>
+          <div class="wf-row"><div class="wf-avatar"></div><span class="wf-chip">Mr. Psycho</span><span class="wf-chip">10 Tháng 6, 2026</span><span class="wf-chip">1.2k lượt xem</span></div>
+          <div class="wf-row" style="align-items:flex-start">
+            <div class="wf-col" style="flex:3">
+              <span class="wf-tag">Nội dung bài viết</span>
+              <div class="wf-block"><span class="wf-line" style="width:100%;margin-bottom:6px"></span><span class="wf-line" style="width:96%;margin-bottom:6px"></span><span class="wf-line" style="width:88%;margin-bottom:10px"></span><div class="wf-img" style="height:90px"></div></div>
+              <span class="wf-tag">Liên kết tải xuống · số dư của bạn: 1.250 $P</span>
+              <div class="wf-block fill wf-row between"><span class="wf-line" style="width:30%"></span><span class="wf-chip">2.1 GB</span><span class="wf-chip">Cloudflare R2</span><span class="wf-chip">20 $P</span><span class="wf-btn grad">Tải xuống</span></div>
+              <div class="wf-block fill wf-row between"><span class="wf-line" style="width:26%"></span><span class="wf-chip">2.1 GB</span><span class="wf-chip">AWS S3</span><span class="wf-chip">20 $P</span><span class="wf-btn grad">Tải xuống</span></div>
+              <span class="wf-tag">Bình luận</span>
+              <div class="wf-block"><span class="wf-line" style="width:100%;height:26px;background:var(--surface-2);display:block;border-radius:4px"></span></div>
+              <div class="wf-block wf-row"><div class="wf-avatar"></div><div class="wf-col"><span class="wf-line" style="width:20%"></span><span class="wf-line" style="width:70%"></span></div></div>
+              <div class="wf-block wf-row" style="margin-left:34px"><div class="wf-avatar"></div><div class="wf-col"><span class="wf-line" style="width:20%"></span><span class="wf-line" style="width:55%"></span></div></div>
+            </div>
+            <div class="wf-col" style="flex:1">
+              <span class="wf-tag">Bài viết liên quan</span>
+              <div class="wf-block fill"><span class="wf-line" style="width:90%;margin-bottom:6px"></span><span class="wf-line" style="width:70%;margin-bottom:6px"></span><span class="wf-line" style="width:80%"></span></div>
+            </div>
+          </div>
+        </div>
+        <div class="wf-caption">Mỗi link tải hiển thị dung lượng, provider lưu trữ và giá $P riêng — khớp UC11/UC24 (presigned URL TTL ngắn).</div>
+      </div>
+
+      <!-- 4 Login/Register -->
+      <div class="wf">
+        <div class="wf-top"><div class="wf-dots"><i></i><i></i><i></i></div><span class="wf-url">khomanguon.vn/dang-nhap</span><span class="wf-title">04 · Đăng nhập / Đăng ký</span></div>
+        <div class="wf-body">
+          <div class="wf-row" style="justify-content:center">
+            <div class="wf-block" style="flex:1;max-width:320px">
+              <span class="wf-tag">Đăng nhập</span>
+              <div class="wf-col"><span class="wf-line" style="width:100%;height:22px"></span><span class="wf-line" style="width:100%;height:22px"></span></div>
+              <div class="wf-row between" style="margin-top:8px"><span class="wf-note">Quên mật khẩu?</span><span class="wf-btn">Đăng nhập</span></div>
+              <div class="wf-row" style="justify-content:center;margin-top:8px"><span class="wf-note">— hoặc —</span></div>
+              <div class="wf-btn ghost" style="width:100%;text-align:center;margin-top:6px">Đăng nhập với Google</div>
+            </div>
+            <div class="wf-block fill" style="flex:1;max-width:320px">
+              <span class="wf-tag">Đăng ký</span>
+              <div class="wf-col"><span class="wf-line" style="width:100%;height:22px"></span><span class="wf-line" style="width:100%;height:22px"></span><span class="wf-line" style="width:100%;height:22px"></span><span class="wf-line" style="width:100%;height:22px"></span></div>
+              <div class="wf-row" style="margin-top:8px"><span class="wf-note">☐ Tôi đồng ý điều khoản</span></div>
+              <div class="wf-btn grad" style="width:100%;text-align:center;margin-top:8px">Tạo tài khoản</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 5 Forgot password -->
+      <div class="wf">
+        <div class="wf-top"><div class="wf-dots"><i></i><i></i><i></i></div><span class="wf-url">khomanguon.vn/quen-mat-khau</span><span class="wf-title">05 · Quên mật khẩu</span></div>
+        <div class="wf-body">
+          <div class="wf-row" style="justify-content:center">
+            <div class="wf-block" style="flex:1;max-width:280px">
+              <span class="wf-tag">Bước 1 — Nhập email</span>
+              <span class="wf-line" style="width:100%;height:22px;display:block;margin-bottom:10px"></span>
+              <div class="wf-btn grad" style="width:100%;text-align:center">Gửi mã xác nhận</div>
+            </div>
+            <div class="wf-block fill" style="flex:1;max-width:280px">
+              <span class="wf-tag">Bước 2 — OTP + mật khẩu mới</span>
+              <span class="wf-line" style="width:60%;height:22px;display:block;margin-bottom:8px"></span>
+              <span class="wf-line" style="width:100%;height:22px;display:block;margin-bottom:8px"></span>
+              <span class="wf-line" style="width:100%;height:22px;display:block;margin-bottom:10px"></span>
+              <div class="wf-btn grad" style="width:100%;text-align:center">Đặt lại mật khẩu</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 6 Profile -->
+      <div class="wf">
+        <div class="wf-top"><div class="wf-dots"><i></i><i></i><i></i></div><span class="wf-url">khomanguon.vn/tai-khoan</span><span class="wf-title">06 · Hồ sơ người dùng</span></div>
+        <div class="wf-body">
+          <div class="wf-tabs"><span class="active">Thông tin</span><span>Ví &amp; giao dịch</span><span>Lịch sử tải</span><span>Bình luận của tôi</span><span>Bảo mật</span></div>
+          <div class="wf-row" style="align-items:flex-start">
+            <div class="wf-col" style="flex:1">
+              <div class="wf-block fill" style="text-align:center"><div class="wf-avatar" style="width:56px;height:56px;margin:0 auto 8px"></div><span class="wf-line dark" style="width:70%;margin:0 auto 6px"></span><span class="role member" style="margin-bottom:8px;display:inline-block">Member</span><div class="wf-block" style="margin-top:8px"><span class="wf-note">Số dư</span><br/><span class="wf-line dark" style="width:60%;height:16px;margin-top:4px"></span></div></div>
+            </div>
+            <div class="wf-col" style="flex:2.4">
+              <span class="wf-tag">Form thông tin cá nhân</span>
+              <div class="wf-block"><span class="wf-line" style="width:30%;margin-bottom:6px"></span><span class="wf-line" style="width:100%;height:22px;margin-bottom:10px"></span><span class="wf-line" style="width:30%;margin-bottom:6px"></span><span class="wf-line" style="width:100%;height:22px;margin-bottom:10px"></span><span class="wf-line" style="width:30%;margin-bottom:6px"></span><span class="wf-line" style="width:100%;height:50px"></span></div>
+              <div class="wf-btn grad">Lưu thay đổi</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 7 Wallet -->
+      <div class="wf">
+        <div class="wf-top"><div class="wf-dots"><i></i><i></i><i></i></div><span class="wf-url">khomanguon.vn/tai-khoan/vi</span><span class="wf-title">07 · Ví &amp; Nạp tiền (SePay)</span></div>
+        <div class="wf-body">
+          <div class="wf-row">
+            <div class="wf-block fill" style="flex:1"><span class="wf-note">Số dư hiện tại</span><br/><span class="wf-line dark" style="width:50%;height:20px;margin-top:6px"></span></div>
+            <div class="wf-block" style="flex:1"><span class="wf-note">Nạp nhanh</span><div class="wf-row wrap" style="margin-top:6px"><span class="wf-chip">50k → 500$P</span><span class="wf-chip">100k → 1050$P</span><span class="wf-chip">Tuỳ chọn</span></div></div>
+          </div>
+          <div class="wf-row" style="align-items:flex-start">
+            <div class="wf-col" style="flex:1">
+              <span class="wf-tag">Mã QR VietQR — nội dung CK: GD48213</span>
+              <div class="wf-block fill" style="text-align:center"><div class="wf-img" style="width:140px;height:140px;margin:0 auto"></div><span class="wf-note" style="display:block;margin-top:8px">⏳ Đang chờ thanh toán — hết hạn sau 09:41</span></div>
+            </div>
+            <div class="wf-col" style="flex:1.4">
+              <span class="wf-tag">Lịch sử giao dịch</span>
+              <div class="wf-block wf-row between"><span class="wf-chip">GD48213</span><span class="wf-line" style="width:20%"></span><span class="pill" style="color:var(--warn);border-color:var(--warn)">pending</span></div>
+              <div class="wf-block wf-row between"><span class="wf-chip">GD48190</span><span class="wf-line" style="width:20%"></span><span class="pill" style="color:var(--ok);border-color:var(--ok)">success</span></div>
+              <div class="wf-block wf-row between"><span class="wf-chip">DL-8831</span><span class="wf-line" style="width:20%"></span><span class="pill">-20 $P</span></div>
+            </div>
+          </div>
+        </div>
+        <div class="wf-caption">Trạng thái pending tự chuyển sang success qua WebSocket ngay khi webhook SePay được xác thực — không cần người dùng bấm "kiểm tra lại".</div>
+      </div>
+
+      <!-- 8 Admin dashboard -->
+      <div class="wf">
+        <div class="wf-top"><div class="wf-dots"><i></i><i></i><i></i></div><span class="wf-url">khomanguon.vn/admin</span><span class="wf-title">08 · Admin — Dashboard</span></div>
+        <div class="wf-body">
+          <div class="wf-row" style="align-items:flex-start">
+            <div class="wf-col" style="flex:0 0 150px">
+              <span class="wf-tag">Điều hướng</span>
+              <div class="wf-sidenav">
+                <span class="active">Dashboard</span><span>Bài viết</span><span>Menu</span><span>User &amp; Vai trò</span><span>Bình luận</span><span>Ví &amp; Thanh toán</span><span>SEO</span><span>Cài đặt hệ thống</span>
+              </div>
+            </div>
+            <div class="wf-col" style="flex:1">
+              <div class="wf-grid" style="grid-template-columns:repeat(4,1fr)">
+                <div class="wf-block fill"><span class="wf-note">Doanh thu hôm nay</span><br/><span class="wf-line dark" style="width:60%;height:16px;margin-top:6px"></span></div>
+                <div class="wf-block fill"><span class="wf-note">Tổng người dùng</span><br/><span class="wf-line dark" style="width:60%;height:16px;margin-top:6px"></span></div>
+                <div class="wf-block fill"><span class="wf-note">Bài chờ duyệt</span><br/><span class="wf-line dark" style="width:40%;height:16px;margin-top:6px"></span></div>
+                <div class="wf-block fill"><span class="wf-note">Lượt tải hôm nay</span><br/><span class="wf-line dark" style="width:50%;height:16px;margin-top:6px"></span></div>
+              </div>
+              <span class="wf-tag" style="margin-top:12px;display:inline-block">Doanh thu 30 ngày</span>
+              <div class="wf-block" style="height:90px"></div>
+              <div class="wf-row">
+                <div class="wf-col" style="flex:1"><span class="wf-tag">Bài viết chờ duyệt</span><div class="wf-block fill"><span class="wf-line" style="width:80%;margin-bottom:6px"></span><span class="wf-line" style="width:70%;margin-bottom:6px"></span><span class="wf-line" style="width:75%"></span></div></div>
+                <div class="wf-col" style="flex:1"><span class="wf-tag">Giao dịch nạp gần đây</span><div class="wf-block fill"><span class="wf-line" style="width:80%;margin-bottom:6px"></span><span class="wf-line" style="width:70%;margin-bottom:6px"></span><span class="wf-line" style="width:75%"></span></div></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 9 Post editor -->
+      <div class="wf">
+        <div class="wf-top"><div class="wf-dots"><i></i><i></i><i></i></div><span class="wf-url">khomanguon.vn/admin/bai-viet/moi</span><span class="wf-title">09 · Admin — Soạn bài viết</span></div>
+        <div class="wf-body">
+          <div class="wf-row" style="align-items:flex-start">
+            <div class="wf-col" style="flex:2.4">
+              <span class="wf-line dark" style="width:100%;height:26px"></span>
+              <div class="wf-block fill wf-row wrap" style="gap:6px">
+                <span class="wf-chip">B</span><span class="wf-chip">I</span><span class="wf-chip">U</span><span class="wf-chip">🔗</span><span class="wf-chip">🖼</span><span class="wf-chip">▤ bảng</span><span class="wf-chip">&lt;/&gt;</span>
+              </div>
+              <div class="wf-block" style="height:150px"><span class="wf-line" style="width:95%;margin-bottom:6px"></span><span class="wf-line" style="width:90%;margin-bottom:6px"></span><div class="wf-img" style="height:70px;margin:6px 0"></div><span class="wf-line" style="width:85%"></span></div>
+              <span class="wf-tag">Liên kết tải xuống</span>
+              <div class="wf-block fill wf-row between"><span class="wf-chip">Tên: Bản chính</span><span class="wf-chip">R2 ▾</span><span class="wf-chip">object-key.zip</span><span class="wf-chip">Giá: 20 $P</span><span class="wf-chip">✕</span></div>
+              <div class="wf-btn ghost">+ Thêm link tải</div>
+            </div>
+            <div class="wf-col" style="flex:1">
+              <span class="wf-tag">Xuất bản</span>
+              <div class="wf-block"><span class="wf-chip">Trạng thái: Chờ duyệt ▾</span><div class="wf-btn grad" style="margin-top:8px">Gửi duyệt</div><div class="wf-btn ghost" style="margin-top:6px">Lưu nháp</div></div>
+              <span class="wf-tag">Danh mục</span>
+              <div class="wf-block"><span class="wf-note">☑ Server Game</span><br/><span class="wf-note">☐ Game Mobile</span><br/><span class="wf-note">☐ Phần mềm</span></div>
+              <span class="wf-tag">Ảnh đại diện</span>
+              <div class="wf-img" style="height:70px"></div>
+              <span class="wf-tag" style="margin-top:10px;display:inline-block">SEO</span>
+              <div class="wf-block fill"><span class="wf-note">Meta title (48/60)</span><span class="wf-line" style="width:100%;height:18px;margin:6px 0"></span><span class="wf-note">Meta description (120/160)</span><span class="wf-line" style="width:100%;height:18px;margin:6px 0"></span><span class="wf-note">Xem trước Google:</span><div class="wf-block" style="margin-top:6px"><span class="wf-line" style="width:60%;margin-bottom:4px"></span><span class="wf-line" style="width:40%"></span></div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 10 Menu builder -->
+      <div class="wf">
+        <div class="wf-top"><div class="wf-dots"><i></i><i></i><i></i></div><span class="wf-url">khomanguon.vn/admin/menu</span><span class="wf-title">10 · Admin — Quản lý menu (kéo-thả)</span></div>
+        <div class="wf-body">
+          <div class="wf-row between"><span class="wf-tag" style="margin:0">Cây menu</span><span class="wf-btn">+ Thêm mục</span></div>
+          <div class="wf-col">
+            <div class="wf-tree-row"><span class="handle">⠿</span> Server Game <span class="muted" style="margin-left:auto">/server-game</span> <span class="wf-chip">sửa</span><span class="wf-chip">xoá</span></div>
+            <div class="wf-tree-row" style="margin-left:26px"><span class="handle">⠿</span> Offline <span class="muted" style="margin-left:auto">/server-game/offline</span> <span class="wf-chip">sửa</span><span class="wf-chip">xoá</span></div>
+            <div class="wf-tree-row" style="margin-left:52px"><span class="handle">⠿</span> Yulgang <span class="muted" style="margin-left:auto">/tag/yulgang</span> <span class="wf-chip">sửa</span><span class="wf-chip">xoá</span></div>
+            <div class="wf-tree-row"><span class="handle">⠿</span> Mã nguồn Game <span class="muted" style="margin-left:auto">▾</span> <span class="wf-chip">sửa</span><span class="wf-chip">xoá</span></div>
+            <div class="wf-tree-row" style="margin-left:26px"><span class="handle">⠿</span> Mobile <span class="muted" style="margin-left:auto">/mnguon/mobile</span> <span class="wf-chip">sửa</span><span class="wf-chip">xoá</span></div>
+          </div>
+          <span class="wf-tag">Chỉnh sửa mục đang chọn</span>
+          <div class="wf-block fill wf-row wrap">
+            <span class="wf-chip">Nhãn hiển thị: Offline</span><span class="wf-chip">Liên kết: /server-game/offline</span><span class="wf-chip">☐ Mở tab mới</span><span class="wf-chip">Icon: 🎮</span><span class="wf-chip">Hiển thị với: Tất cả ▾</span>
+          </div>
+        </div>
+        <div class="wf-caption">Kéo tay cầm ⠿ để đổi vị trí/cấp độ; thứ tự &amp; parent_id cập nhật trực tiếp qua API khi thả (dnd-kit).</div>
+      </div>
+
+      <!-- 11 Roles -->
+      <div class="wf">
+        <div class="wf-top"><div class="wf-dots"><i></i><i></i><i></i></div><span class="wf-url">khomanguon.vn/admin/vai-tro</span><span class="wf-title">11 · Admin — Phân quyền</span></div>
+        <div class="wf-body">
+          <div class="wf-row" style="align-items:flex-start">
+            <div class="wf-col" style="flex:0 0 170px">
+              <span class="wf-tag">Danh sách vai trò</span>
+              <div class="wf-sidenav">
+                <span><span class="role admin" style="margin-right:6px">●</span>Admin</span>
+                <span class="active"><span class="role supermod" style="margin-right:6px">●</span>Super Moderator</span>
+                <span><span class="role mod" style="margin-right:6px">●</span>Moderator</span>
+                <span><span class="role member" style="margin-right:6px">●</span>Member</span>
+                <span style="color:var(--accent)">+ Tạo role tuỳ chỉnh</span>
+              </div>
+            </div>
+            <div class="wf-col" style="flex:1">
+              <span class="wf-tag">Ma trận quyền — Super Moderator</span>
+              <div class="wf-checkgrid">
+                <div class="hd">Module</div><div class="hd">Xem</div><div class="hd">Tạo/Sửa</div><div class="hd">Duyệt</div><div class="hd">Xoá</div>
+                <div style="text-align:left" class="cell mono">Bài viết</div><div class="cell">☑</div><div class="cell">☑</div><div class="cell">☑</div><div class="cell">☑</div>
+                <div style="text-align:left" class="cell mono">Menu</div><div class="cell">☑</div><div class="cell">☑</div><div class="cell">—</div><div class="cell">☑</div>
+                <div style="text-align:left" class="cell mono">Người dùng</div><div class="cell">☑</div><div class="cell">☑</div><div class="cell">—</div><div class="cell">☐</div>
+                <div style="text-align:left" class="cell mono">Bình luận</div><div class="cell">☑</div><div class="cell">☑</div><div class="cell">☑</div><div class="cell">☑</div>
+                <div style="text-align:left" class="cell mono">Ví &amp; Thanh toán</div><div class="cell">☑</div><div class="cell">☐</div><div class="cell">—</div><div class="cell">☐</div>
+                <div style="text-align:left" class="cell mono">Cài đặt hệ thống</div><div class="cell">☐</div><div class="cell">☐</div><div class="cell">—</div><div class="cell">☐</div>
+              </div>
+              <div class="wf-btn grad" style="margin-top:10px">Lưu quyền</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 12 Settings -->
+      <div class="wf">
+        <div class="wf-top"><div class="wf-dots"><i></i><i></i><i></i></div><span class="wf-url">khomanguon.vn/admin/cai-dat</span><span class="wf-title">12 · Admin — Cài đặt hệ thống</span></div>
+        <div class="wf-body">
+          <div class="wf-tabs"><span>SEO chung</span><span class="active">Khoá lưu trữ</span><span>SePay</span><span>Người dùng</span><span>Bình luận</span></div>
+          <div class="wf-row">
+            <div class="wf-col" style="flex:1">
+              <span class="wf-tag">Cloudflare R2 · mặc định</span>
+              <div class="wf-block fill wf-row wrap"><span class="wf-chip">Access Key: ••••••</span><span class="wf-chip">Secret Key: ••••••</span><span class="wf-chip">Bucket: kmn-games</span><span class="wf-chip">Endpoint: r2.cloudflarestorage.com</span><span class="wf-btn ghost">Test kết nối</span></div>
+            </div>
+            <div class="wf-col" style="flex:1">
+              <span class="wf-tag">AWS S3 · dự phòng</span>
+              <div class="wf-block fill wf-row wrap"><span class="wf-chip">Access Key: ••••••</span><span class="wf-chip">Secret Key: ••••••</span><span class="wf-chip">Bucket: kmn-backup</span><span class="wf-chip">Region: ap-southeast-1</span><span class="wf-btn ghost">Test kết nối</span></div>
+            </div>
+          </div>
+          <span class="wf-tag" style="margin-top:14px;display:inline-block">Xem trước tab "Người dùng"</span>
+          <div class="wf-block fill wf-row between"><div class="wf-row"><div class="wf-avatar"></div><span class="wf-line" style="width:80px"></span></div><span class="role member">Member</span><span class="wf-chip">🪙 1.250 $P</span><span class="pill" style="color:var(--ok);border-color:var(--ok)">active</span><span class="wf-chip">khoá</span></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 09 PERFORMANCE -->
+    <section id="performance">
+      <h2><span class="num">09</span>Chiến lược tối ưu tốc độ tải trang</h2>
+      <p class="section-intro">Trang public (danh sách/chi tiết bài viết) là nơi SEO và tốc độ ảnh hưởng doanh thu nhiều nhất — ưu tiên tối ưu ở đây trước.</p>
+      <ul class="plain">
+        <li><b>SSR + ISR:</b> trang bài viết/danh mục render sẵn, revalidate theo thời gian hoặc ngay khi publish/sửa bài.</li>
+        <li><b>Edge cache Cloudflare:</b> cache HTML trang public + asset tĩnh, <span class="code">stale-while-revalidate</span> để không chặn người dùng khi cache hết hạn.</li>
+        <li><b>Redis cache tầng API:</b> bài viết mới, đếm lượt tải, danh mục — tránh query PostgreSQL lặp lại cho traffic cao.</li>
+        <li><b>Ảnh:</b> pipeline resize bằng sharp khi upload, xuất nhiều kích thước + WebP/AVIF, lazy-load qua <span class="code">next/image</span>.</li>
+        <li><b>Giảm JS phía client:</b> dùng React Server Components tối đa, chỉ hydrate phần thật sự tương tác (form bình luận, ví, menu builder).</li>
+        <li><b>Không proxy file qua backend:</b> presigned URL trỏ thẳng tới R2/S3 sau CDN — backend chỉ ký URL, không stream file nặng.</li>
+        <li><b>Hạ tầng:</b> nén Brotli/Gzip, HTTP/2-3, index đúng cột hay truy vấn (slug, category_id, created_at), pgbouncer connection pooling, rate limit ở tầng Redis cho endpoint tìm kiếm.</li>
+      </ul>
+    </section>
+
+    <!-- 10 ROADMAP -->
+    <section id="roadmap">
+      <h2><span class="num">10</span>Lộ trình triển khai đề xuất</h2>
+      <div class="phase">
+        <div class="when">Giai đoạn 1<br/>4–6 tuần</div>
+        <div><h4>Nền tảng</h4><p>Auth (đăng ký/đăng nhập/quên mật khẩu), hồ sơ người dùng, RBAC cơ bản, CMS bài viết + WYSIWYG + SEO cơ bản, giao diện public bám sát v1.</p></div>
+      </div>
+      <div class="phase">
+        <div class="when">Giai đoạn 2<br/>3–4 tuần</div>
+        <div><h4>Nội dung &amp; điều hướng</h4><p>Menu đa cấp kéo-thả, hệ thống bình luận, tìm kiếm/lọc nâng cao, custom role chi tiết.</p></div>
+      </div>
+      <div class="phase">
+        <div class="when">Giai đoạn 3<br/>4–5 tuần</div>
+        <div><h4>Kinh tế nội bộ</h4><p>Ví $P, tích hợp SePay nạp tiền tự động, hệ thống link tải gắn giá + presigned URL R2/S3, trang cài đặt key lưu trữ.</p></div>
+      </div>
+      <div class="phase">
+        <div class="when">Giai đoạn 4<br/>2–3 tuần</div>
+        <div><h4>Hoàn thiện</h4><p>Tối ưu tốc độ, SEO nâng cao (sitemap/schema), dashboard thống kê, kiểm thử bảo mật &amp; tải, go-live.</p></div>
+      </div>
+    </section>
+
+    <!-- 11 INFRA -->
+    <section id="infra" class="wide">
+      <h2><span class="num">11</span>Môi trường &amp; hạ tầng</h2>
+      <p class="section-intro">Ba môi trường tách biệt để không ai phải sửa lỗi trực tiếp trên site đang thu tiền thật.</p>
+      <div class="env-cards">
+        <div class="env-card">
+          <span class="stage">Local — máy dev</span>
+          <h4>Docker Compose</h4>
+          <ul><li>Toàn bộ service (web, api, postgres, redis) chạy local</li><li>R2/S3 dùng bucket "dev", SePay dùng sandbox key</li><li>Seed dữ liệu mẫu, không đụng dữ liệu thật</li></ul>
+        </div>
+        <div class="env-card">
+          <span class="stage">Staging — trước khi phát hành</span>
+          <h4>aaPanel · VPS nhỏ</h4>
+          <ul><li>2 vCPU / 4GB RAM, cùng phiên bản OS với production</li><li>Domain phụ: staging.khomanguon.vn</li><li>SePay sandbox, R2 bucket "staging" — nơi QA/khách kiểm tra trước khi duyệt</li></ul>
+        </div>
+        <div class="env-card">
+          <span class="stage">Production — site thật</span>
+          <h4>aaPanel · VPS chính + Cloudflare</h4>
+          <ul><li>Tối thiểu 4 vCPU / 8GB RAM, SSD NVMe (Postgres + build Next.js ăn RAM lúc build)</li><li>Cloudflare proxy phía trước (CDN/WAF/DDoS)</li><li>SePay production key, backup tự động hàng ngày</li></ul>
+        </div>
+      </div>
+      <h3>Pipeline phát hành</h3>
+      <div class="diagram">
+        <pre class="mermaid">
+flowchart LR
+  DEV["Local — Docker Compose"] --> GH["GitHub — pull request → main"]
+  GH -- "Actions: build, test, build image" --> REG[("GHCR — registry image")]
+  REG -- "docker compose pull" --> STG["Staging — aaPanel VPS nhỏ"]
+  STG -- "QA duyệt thủ công" --> PROD["Production — aaPanel VPS chính"]
+  CF["Cloudflare CDN / WAF"] --> PROD
+        </pre>
+        <div class="cap">Mỗi lần merge vào <span class="code">main</span> tự động build &amp; deploy staging; lên production luôn cần một cú "Approve" thủ công — không auto-deploy thẳng ra site thật.</div>
+      </div>
+    </section>
+
+    <!-- 12 AAPANEL -->
+    <section id="aapanel" class="wide">
+      <h2><span class="num">12</span>Deploy lên aaPanel</h2>
+      <p class="section-intro">Hai cách triển khai trên aaPanel — chọn theo cấu hình VPS thực tế của bạn.</p>
+      <div class="warn-box"><b>Giả định:</b> VPS chạy Ubuntu 22.04, đã cài sẵn aaPanel, có quyền root/sudo qua SSH. Nếu VPS của bạn khác (CentOS, đã có site khác dùng chung cổng 80/443…), báo lại để tôi điều chỉnh câu lệnh.</div>
+
+      <h3>Cách A — Docker Compose qua aaPanel <span class="tag">khuyến nghị</span></h3>
+      <p style="color:var(--muted);font-size:13.5px;margin-top:-4px">Dùng lại đúng <span class="code">Dockerfile</span>/<span class="code">docker-compose.yml</span> đã build ở môi trường dev — tránh lệch môi trường. Cần VPS tối thiểu 4GB RAM.</p>
+      <div class="steps">
+        <div class="step"><h4>Cài aaPanel &amp; khoá panel</h4><p>Chạy script cài chính thức từ aapanel.com. Sau khi cài xong: đổi cổng panel mặc định (8888), bật xác thực 2 lớp, đổi URL panel ngẫu nhiên.</p></div>
+        <div class="step"><h4>Cài Docker Manager từ App Store</h4><p>Vào <b>App Store → Docker Manager</b> (kèm hỗ trợ Compose) và cài đặt. Nginx thường đã có sẵn theo LNMP mặc định.</p></div>
+        <div class="step"><h4>Đưa mã nguồn lên server</h4><p>Qua SSH hoặc File Manager của aaPanel:</p>
+          <div class="codeblock"><span class="c"># SSH vào VPS</span>
+cd /www/wwwroot
+git clone https://github.com/&lt;org&gt;/khomanguon-v2.git
+cd khomanguon-v2</div>
+        </div>
+        <div class="step"><h4>Tạo file secrets production</h4><p>Tạo <span class="code">.env.production</span> ngoài tầm truy cập public (quyền 600), chứa DB password, JWT_SECRET, R2/S3 Access &amp; Secret Key, SEPAY_API_KEY, SEPAY_WEBHOOK_SECRET. Không commit file này vào Git.</p></div>
+        <div class="step"><h4>Deploy bằng Compose</h4><p>Trong app Docker của aaPanel, chọn <b>Compose → Add</b>, trỏ tới <span class="code">docker-compose.prod.yml</span>. File này chỉ bind cổng ra <span class="code">127.0.0.1</span>, không public cổng container ra ngoài:</p>
+          <div class="codeblock">services:
+  web:
+    build: .
+    env_file: .env.production
+    ports: ["127.0.0.1:3000:3000"]
+    restart: always
+  api:
+    build: ./apps/api
+    env_file: .env.production
+    ports: ["127.0.0.1:4000:4000"]
+    restart: always
+  postgres:
+    image: postgres:16
+    volumes: ["pgdata:/var/lib/postgresql/data"]
+    restart: always
+  redis:
+    image: redis:7
+    restart: always
+volumes:
+  pgdata:</div>
+        </div>
+        <div class="step"><h4>Tạo site &amp; reverse proxy trong aaPanel</h4><p><b>Website → Add site</b> với domain <span class="code">khomanguon.vn</span> (không cần PHP). Vào site vừa tạo → <b>Reverse Proxy</b> → thêm 2 proxy:</p>
+          <div class="codeblock">location /api/ {
+    proxy_pass http://127.0.0.1:4000/;
+    proxy_set_header Host $host;
+    proxy_set_header X-Real-IP $remote_addr;
+}
+location / {
+    proxy_pass http://127.0.0.1:3000/;
+    proxy_set_header Host $host;
+    proxy_set_header X-Real-IP $remote_addr;
+    proxy_set_header Upgrade $http_upgrade;   <span class="c"># cho WebSocket (ví realtime)</span>
+    proxy_set_header Connection "upgrade";
+}</div>
+        </div>
+        <div class="step"><h4>Bật SSL</h4><p>Tab <b>SSL</b> của site → Let's Encrypt → chọn domain → Apply → bật "Force HTTPS". Miễn phí, tự gia hạn.</p></div>
+        <div class="step"><h4>Nối Cloudflare</h4><p>DNS record <span class="code">A</span> trỏ về IP VPS, bật proxy (mây cam) để có CDN/WAF/chặn DDoS lớp mạng. SSL mode ở Cloudflare đặt <b>Full (strict)</b>.</p></div>
+        <div class="step"><h4>Khoá firewall</h4><p>aaPanel → Security: chỉ mở 80, 443 và cổng panel đã đổi. Đóng hẳn 5432 (Postgres), 6379 (Redis), 3000, 4000 khỏi Internet — vì đã bind 127.0.0.1 nên mặc định không lộ, nhưng vẫn nên chặn tường lửa ở tầng OS/nhà cung cấp VPS để chắc chắn.</p></div>
+        <div class="step"><h4>Đặt lịch Cron</h4><p><b>Cron</b> trong aaPanel: (1) huỷ giao dịch SePay "pending" quá 30 phút, (2) dọn log presigned URL hết hạn, (3) backup PostgreSQL hàng ngày lúc ít traffic (VD 3h sáng).</p></div>
+      </div>
+
+      <h3 style="margin-top:34px">Cách B — Native (không Docker) <span class="tag">VPS RAM thấp &lt; 2GB</span></h3>
+      <p style="color:var(--muted);font-size:13.5px;margin-top:-4px">Nhẹ hơn nhưng dễ lệch môi trường dev/prod hơn — chỉ chọn khi VPS không kham nổi overhead Docker.</p>
+      <ul class="plain">
+        <li>App Store cài <b>Node.js Version Manager</b> + <b>PM2 Manager</b> (chọn Node 20 LTS), <b>PostgreSQL</b>, <b>Redis</b> — cả ba chạy trực tiếp trên host thay vì trong container.</li>
+        <li>Build rồi chạy qua PM2: <span class="code">pm2 start ecosystem.config.js</span> với 2 tiến trình <span class="code">web</span> (<span class="code">next start -p 3000</span>) và <span class="code">api</span> (<span class="code">node dist/main.js</span>, cổng 4000).</li>
+        <li>Reverse proxy Nginx trong aaPanel cấu hình giống hệt Cách A (proxy_pass tới 127.0.0.1:3000 / :4000).</li>
+        <li>PM2 tự restart khi crash (<span class="code">pm2 startup</span> + <span class="code">pm2 save</span>) — tương đương <span class="code">restart: always</span> của Docker.</li>
+      </ul>
+    </section>
+
+    <!-- 13 GO-LIVE -->
+    <section id="golive">
+      <h2><span class="num">13</span>Go-live &amp; vận hành</h2>
+      <h3>Checklist trước khi mở cho người dùng thật</h3>
+      <div class="checklist">
+        <div class="item"><span class="box"></span><span><b>DNS &amp; SSL</b> — domain trỏ đúng IP, https hoạt động, http tự redirect https.</span></div>
+        <div class="item"><span class="box"></span><span><b>Secrets production</b> — đã đổi toàn bộ key sandbox (SePay, R2/S3) sang key thật, không còn key dev trong <span class="code">.env.production</span>.</span></div>
+        <div class="item"><span class="box"></span><span><b>Test nạp tiền thật</b> — chuyển khoản số tiền nhỏ qua SePay, xác nhận webhook cộng đúng $P và đúng người.</span></div>
+        <div class="item"><span class="box"></span><span><b>Test tải file thật</b> — mua 1 link trên bucket R2/S3 production, xác nhận trừ tiền đúng, presigned URL tải được và hết hạn đúng TTL.</span></div>
+        <div class="item"><span class="box"></span><span><b>Backup đã kiểm chứng</b> — chạy thử restore từ bản backup PostgreSQL ít nhất 1 lần, không chỉ tin vào việc "cron đã chạy".</span></div>
+        <div class="item"><span class="box"></span><span><b>Firewall &amp; panel</b> — cổng quản trị aaPanel đã đổi khỏi mặc định, 2FA bật, các cổng DB/Redis không lộ ra ngoài.</span></div>
+        <div class="item"><span class="box"></span><span><b>Giám sát</b> — Sentry nhận được lỗi test, Uptime Kuma/monitor báo trạng thái site đúng.</span></div>
+        <div class="item"><span class="box"></span><span><b>Kế hoạch rollback</b> — giữ lại image/tag bản trước; nếu lỗi nghiêm trọng, <span class="code">docker compose up -d</span> lại tag cũ trong vài phút.</span></div>
+      </div>
+
+      <h3>Nhịp vận hành sau khi lên hàng</h3>
+      <ul class="plain">
+        <li><b>Hàng ngày:</b> xem dashboard doanh thu/lỗi webhook SePay, kiểm tra job backup đêm qua chạy thành công.</li>
+        <li><b>Hàng tuần:</b> thử restore backup ngẫu nhiên 1 lần, rà soát log lỗi Sentry chưa xử lý.</li>
+        <li><b>Hàng tháng:</b> vá bản vá bảo mật OS &amp; aaPanel, xoay vòng (rotate) JWT secret hoặc key R2/S3 nếu nghi ngờ rò rỉ.</li>
+        <li><b>Khi có sự cố thanh toán:</b> đối soát thủ công qua bảng "Giao dịch nạp gần đây" (wireframe #08) trước khi liên hệ SePay hỗ trợ.</li>
+      </ul>
+    </section>
+
+    <footer class="end">khomanguon v2 — đặc tả kỹ thuật, wireframe, kế hoạch triển khai &amp; deploy aaPanel · biên soạn dựa trên khảo sát trực tiếp khomanguon.org (v1)</footer>
+  </main>
+</div>

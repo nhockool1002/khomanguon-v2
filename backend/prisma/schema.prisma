@@ -1,0 +1,348 @@
+// khomanguon v2 — schema khởi tạo Phase 0, theo ERD trong /PLAN.md
+// Các module Phase 2/3 (SEO nâng cao, custom role UI, chi tiết ví...) sẽ mở rộng thêm khi triển khai.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ───────────────────────── Người dùng & phân quyền (RBAC) ─────────────────────────
+
+enum UserStatus {
+  ACTIVE
+  BANNED
+}
+
+model User {
+  id              String     @id @default(cuid())
+  email           String     @unique
+  passwordHash    String
+  displayName     String
+  avatarUrl       String?
+  bio             String?
+  status          UserStatus @default(ACTIVE)
+  emailVerifiedAt DateTime?
+  createdAt       DateTime   @default(now())
+  updatedAt       DateTime   @updatedAt
+
+  roles          UserRole[]
+  wallet         Wallet?
+  posts          Post[]
+  comments       Comment[]
+  downloadGrants DownloadGrant[]
+  downloadEvents DownloadEvent[]
+
+  @@map("users")
+}
+
+// Vai trò chỉ là một tập hợp quyền — Admin có thể tạo Custom Role bằng cách
+// tick permission trong RolePermission, không hard-code trong code (xem mục 06 docs/khomanguon-v2-spec.html).
+model Role {
+  id        String   @id @default(cuid())
+  name      String   @unique
+  slug      String   @unique
+  isSystem  Boolean  @default(false) // true cho 4 role mặc định, không cho xoá
+  createdAt DateTime @default(now())
+
+  users       UserRole[]
+  permissions RolePermission[]
+  menus       MenuRole[]
+
+  @@map("roles")
+}
+
+model Permission {
+  id          String @id @default(cuid())
+  key         String @unique // vd: "post.publish", "wallet.adjust"
+  description String
+
+  roles RolePermission[]
+
+  @@map("permissions")
+}
+
+model UserRole {
+  userId String
+  roleId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role   Role   @relation(fields: [roleId], references: [id], onDelete: Cascade)
+
+  @@id([userId, roleId])
+  @@map("user_roles")
+}
+
+model RolePermission {
+  roleId       String
+  permissionId String
+  role         Role       @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  permission   Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+
+  @@id([roleId, permissionId])
+  @@map("role_permissions")
+}
+
+// ───────────────────────── Nội dung: bài viết, danh mục, menu, bình luận ─────────────────────────
+
+enum PostStatus {
+  DRAFT
+  PENDING_REVIEW
+  PUBLISHED
+}
+
+model Category {
+  id       String     @id @default(cuid())
+  name     String
+  slug     String     @unique
+  parentId String?
+  parent   Category?  @relation("CategoryTree", fields: [parentId], references: [id], onDelete: SetNull)
+  children Category[] @relation("CategoryTree")
+
+  posts Post[]
+
+  @@map("categories")
+}
+
+model Tag {
+  id   String @id @default(cuid())
+  name String
+  slug String @unique
+
+  posts PostTag[]
+
+  @@map("tags")
+}
+
+model Post {
+  id           String     @id @default(cuid())
+  title        String
+  slug         String     @unique
+  excerpt      String?
+  contentHtml  String
+  thumbnailUrl String?
+  status       PostStatus @default(DRAFT)
+  viewCount    Int        @default(0)
+
+  // SEO — UC14
+  metaTitle       String?
+  metaDescription String?
+  ogImageUrl      String?
+  canonicalUrl    String?
+
+  authorId   String
+  author     User      @relation(fields: [authorId], references: [id])
+  categoryId String?
+  category   Category? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+
+  tags          PostTag[]
+  comments      Comment[]
+  downloadLinks DownloadLink[]
+
+  publishedAt DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@map("posts")
+}
+
+model PostTag {
+  postId String
+  tagId  String
+  post   Post   @relation(fields: [postId], references: [id], onDelete: Cascade)
+  tag    Tag    @relation(fields: [tagId], references: [id], onDelete: Cascade)
+
+  @@id([postId, tagId])
+  @@map("post_tags")
+}
+
+// Menu đa cấp — cây tự tham chiếu, thứ tự/cấp độ cập nhật qua kéo-thả (UC16)
+model Menu {
+  id           String  @id @default(cuid())
+  label        String
+  url          String
+  icon         String?
+  order        Int     @default(0)
+  openInNewTab Boolean @default(false)
+  parentId     String?
+  parent       Menu?   @relation("MenuTree", fields: [parentId], references: [id], onDelete: Cascade)
+  children     Menu[]  @relation("MenuTree")
+
+  visibleTo MenuRole[] // rỗng = hiển thị công khai
+
+  @@map("menus")
+}
+
+model MenuRole {
+  menuId String
+  roleId String
+  menu   Menu   @relation(fields: [menuId], references: [id], onDelete: Cascade)
+  role   Role   @relation(fields: [roleId], references: [id], onDelete: Cascade)
+
+  @@id([menuId, roleId])
+  @@map("menu_roles")
+}
+
+enum CommentStatus {
+  PUBLISHED
+  HIDDEN
+  PENDING
+}
+
+model Comment {
+  id        String        @id @default(cuid())
+  postId    String
+  post      Post          @relation(fields: [postId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User          @relation(fields: [userId], references: [id])
+  parentId  String?
+  parent    Comment?      @relation("CommentTree", fields: [parentId], references: [id], onDelete: Cascade)
+  replies   Comment[]     @relation("CommentTree")
+  content   String
+  status    CommentStatus @default(PUBLISHED)
+  createdAt DateTime      @default(now())
+
+  @@map("comments")
+}
+
+// ───────────────────────── Lưu trữ file & link tải trả phí (Phase 3) ─────────────────────────
+
+enum StorageProviderType {
+  R2
+  S3
+}
+
+model StorageProvider {
+  id                       String              @id @default(cuid())
+  type                     StorageProviderType
+  label                    String
+  endpoint                 String? // R2 cần accountId/endpoint, S3 dùng region
+  region                   String?
+  bucket                   String
+  uploadPrefix             String?
+  accessKeyId              String
+  // Secret không lưu plaintext — mã hoá ở tầng application trước khi ghi DB (xem UC20).
+  secretAccessKeyEncrypted String
+  isDefault                Boolean             @default(false)
+  createdAt                DateTime            @default(now())
+
+  downloadLinks DownloadLink[]
+
+  @@map("storage_providers")
+}
+
+model DownloadLink {
+  id                String          @id @default(cuid())
+  postId            String
+  post              Post            @relation(fields: [postId], references: [id], onDelete: Cascade)
+  label             String
+  storageProviderId String
+  storageProvider   StorageProvider @relation(fields: [storageProviderId], references: [id])
+  objectKey         String
+  sizeBytes         BigInt?
+  priceP            Int             @default(0) // giá tính bằng $P, 0 = miễn phí
+  createdAt         DateTime        @default(now())
+
+  grants DownloadGrant[]
+  events DownloadEvent[]
+
+  @@map("download_links")
+}
+
+// Ghi nhận một lượt mua — cho phép tải lại miễn phí trong thời hạn thay vì trừ tiền mỗi lần bấm (UC11)
+model DownloadGrant {
+  id             String       @id @default(cuid())
+  userId         String
+  user           User         @relation(fields: [userId], references: [id])
+  downloadLinkId String
+  downloadLink   DownloadLink @relation(fields: [downloadLinkId], references: [id], onDelete: Cascade)
+  purchasedAt    DateTime     @default(now())
+  expiresAt      DateTime?
+
+  @@map("download_grants")
+}
+
+// Log mỗi lần sinh presigned URL — chống lạm dụng/chia sẻ link (UC24, UC25)
+model DownloadEvent {
+  id             String       @id @default(cuid())
+  userId         String
+  user           User         @relation(fields: [userId], references: [id])
+  downloadLinkId String
+  downloadLink   DownloadLink @relation(fields: [downloadLinkId], references: [id], onDelete: Cascade)
+  ipAddress      String
+  createdAt      DateTime     @default(now())
+
+  @@map("download_events")
+}
+
+// ───────────────────────── Ví $P & SePay (Phase 3) ─────────────────────────
+
+enum WalletTxType {
+  TOPUP
+  PURCHASE
+  ADMIN_ADJUST
+  REFUND
+}
+
+enum WalletTxStatus {
+  PENDING
+  SUCCESS
+  FAILED
+}
+
+model Wallet {
+  id        String   @id @default(cuid())
+  userId    String   @unique
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  balance   Int      @default(0) // đơn vị $P, luôn cập nhật trong cùng transaction với WalletTransaction
+  updatedAt DateTime @updatedAt
+
+  transactions WalletTransaction[]
+
+  @@map("wallets")
+}
+
+model WalletTransaction {
+  id            String         @id @default(cuid())
+  walletId      String
+  wallet        Wallet         @relation(fields: [walletId], references: [id], onDelete: Cascade)
+  type          WalletTxType
+  amount        Int // dương = cộng, âm = trừ
+  balanceAfter  Int
+  status        WalletTxStatus @default(PENDING)
+  referenceType String? // "sepay_topup" | "download_link" | ...
+  referenceId   String?
+  createdAt     DateTime       @default(now())
+
+  sepayTransaction SepayTransaction?
+
+  @@map("wallet_transactions")
+}
+
+// Đối soát webhook SePay — unique theo mã giao dịch để chống cộng tiền trùng khi webhook gọi lại (UC23)
+model SepayTransaction {
+  id                   String             @id @default(cuid())
+  sepayTransactionCode String             @unique
+  walletTransactionId  String?            @unique
+  walletTransaction    WalletTransaction? @relation(fields: [walletTransactionId], references: [id])
+  amountVnd            Int
+  pCredited            Int
+  rawPayload           Json
+  status               WalletTxStatus     @default(PENDING)
+  createdAt            DateTime           @default(now())
+
+  @@map("sepay_transactions")
+}
+
+// ───────────────────────── Cài đặt hệ thống ─────────────────────────
+
+// Key/value chung cho SEO toàn site, tỉ giá $P, cấu hình SePay... (UC15, UC21)
+model SiteSetting {
+  key       String   @id
+  value     Json
+  updatedAt DateTime @updatedAt
+
+  @@map("site_settings")
+}
