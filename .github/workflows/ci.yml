@@ -57,6 +57,9 @@ jobs:
       - name: Apply migrations
         run: pnpm exec prisma migrate deploy
 
+      - name: Seed roles & permissions
+        run: pnpm exec prisma db seed
+
       - name: Unit tests
         run: pnpm run test
 
