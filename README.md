@@ -47,7 +47,10 @@ pnpm exec prisma migrate dev --name <mo-ta-thay-doi>
 
 ## Deploy
 
-Frontend deploy trên **Vercel** (root directory `frontend/`), backend deploy trên **aaPanel** (`docker-compose.prod.yml`, chỉ postgres/redis/backend). Vì 2 domain khác nhau, backend cần đúng `ALLOWED_ORIGINS`/`FRONTEND_URL` để CORS và cookie refresh token hoạt động — xem mục 11–13 trong [`docs/khomanguon-v2-spec.html`](docs/khomanguon-v2-spec.html) (hướng dẫn từng bước + checklist go-live).
+Frontend deploy trên **Vercel** (root directory `frontend/`), backend deploy trên **aaPanel** (`docker-compose.prod.yml`, chỉ postgres/redis/backend). Vì 2 domain khác nhau, backend cần đúng `ALLOWED_ORIGINS`/`FRONTEND_URL` để CORS và cookie refresh token hoạt động.
+
+- **Checklist thao tác cụ thể (làm theo thứ tự để deploy lần đầu):** [`Deploy_Checklist.md`](Deploy_Checklist.md)
+- **Tài liệu tham khảo đầy đủ** (vì sao, giải thích từng lựa chọn): mục 11–13 trong [`docs/khomanguon-v2-spec.html`](docs/khomanguon-v2-spec.html)
 
 ## Bảo mật
 

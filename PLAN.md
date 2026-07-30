@@ -165,6 +165,7 @@ Quy ước: mỗi phase có **Definition of Done (DoD)** rõ ràng — không sa
 - [ ] Audit log cho thao tác nhạy cảm: đổi quyền, điều chỉnh ví thủ công, đổi key R2/S3
 
 ### 4.4 Hạ tầng Production — Vercel (frontend) + aaPanel (backend)
+- [ ] 🔴 Làm theo thứ tự trong [`Deploy_Checklist.md`](Deploy_Checklist.md) — checklist thao tác cụ thể cho lần deploy đầu tiên (cần quyền truy cập Vercel/VPS/DNS của bạn, tôi không tự thực hiện được)
 - [ ] Import repo lên Vercel (Root Directory `frontend`), gắn domain `khomanguon.vn`, đặt `NEXT_PUBLIC_API_URL` — theo mục 12.1 tài liệu
 - [ ] Setup aaPanel cho backend theo mục 12.2 tài liệu (Cách A: Docker Compose, chỉ postgres/redis/backend) — cài panel, khoá 2FA, Docker Manager, reverse proxy domain `api.khomanguon.vn`, SSL, Cloudflare, firewall, cron
 - [ ] Cấu hình CORS/cookie cross-origin đúng (`ALLOWED_ORIGINS`/`FRONTEND_URL` trên backend trỏ domain Vercel thật) — xem mục 12.3 tài liệu, test đăng nhập + reload giữ phiên trên domain production
