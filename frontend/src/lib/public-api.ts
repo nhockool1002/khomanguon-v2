@@ -1,4 +1,4 @@
-import type { Category, PostDetail, PostListResponse } from "./types";
+import type { Category, MenuItem, PostDetail, PostListResponse } from "./types";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000";
 
@@ -33,5 +33,10 @@ export async function fetchPostBySlug(slug: string): Promise<PostDetail | null> 
 
 export async function fetchCategories(): Promise<Category[]> {
   const result = await publicFetch<Category[]>("/categories");
+  return result ?? [];
+}
+
+export async function fetchMenus(): Promise<MenuItem[]> {
+  const result = await publicFetch<MenuItem[]>("/menus");
   return result ?? [];
 }

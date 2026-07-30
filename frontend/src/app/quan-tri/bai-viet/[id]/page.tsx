@@ -41,15 +41,19 @@ export default function EditPostPage() {
         categoryId: values.categoryId || undefined,
         contentHtml: values.contentHtml,
         status: values.status,
+        metaTitle: values.metaTitle || undefined,
+        metaDescription: values.metaDescription || undefined,
+        ogImageUrl: values.ogImageUrl || undefined,
+        canonicalUrl: values.canonicalUrl || undefined,
       }),
     });
   }
 
   return (
-    <div className="flex w-full max-w-2xl flex-col gap-6 px-8 py-8">
+    <div className="flex w-full flex-col gap-6 px-8 py-8">
       <h1 className="text-xl font-semibold text-zinc-900">Chỉnh sửa bài viết</h1>
       <ErrorBanner message={error} />
-      {post && <PostForm initial={post} submitLabel="Lưu thay đổi" onSubmit={handleSubmit} />}
+      {post && <PostForm initial={post} onSubmit={handleSubmit} />}
     </div>
   );
 }

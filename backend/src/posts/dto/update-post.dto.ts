@@ -31,7 +31,10 @@ export class UpdatePostDto {
   contentHtml?: string;
 
   @IsOptional()
-  @IsUrl({}, { message: 'thumbnailUrl phải là một URL hợp lệ' })
+  @IsUrl(
+    { require_tld: false },
+    { message: 'thumbnailUrl phải là một URL hợp lệ' },
+  )
   thumbnailUrl?: string;
 
   @IsOptional()
@@ -41,4 +44,28 @@ export class UpdatePostDto {
   @IsOptional()
   @IsEnum(PostStatus)
   status?: PostStatus;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(70)
+  metaTitle?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(180)
+  metaDescription?: string;
+
+  @IsOptional()
+  @IsUrl(
+    { require_tld: false },
+    { message: 'ogImageUrl phải là một URL hợp lệ' },
+  )
+  ogImageUrl?: string;
+
+  @IsOptional()
+  @IsUrl(
+    { require_tld: false },
+    { message: 'canonicalUrl phải là một URL hợp lệ' },
+  )
+  canonicalUrl?: string;
 }

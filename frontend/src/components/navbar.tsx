@@ -3,10 +3,15 @@
 import Link from "next/link";
 import { useState } from "react";
 import { useAuth } from "@/context/auth-context";
-import type { Category } from "@/lib/types";
+import type { MenuItem } from "@/lib/types";
 import { LogoMark } from "./logo-mark";
 
-export function Navbar({ categories = [] }: { categories?: Category[] }) {
+export function Navbar({ menus = [] }: { menus?: MenuItem[] }) {
+  // Chỉ hiển thị mục gốc, công khai (roleSlugs rỗng) — lọc theo vai trò user cụ thể
+  // cần AuthUser có roles (chưa có ở context hiện tại), để dành bản sau.
+  const publicRootMenus = menus
+    .filter((m) => !m.parentId && m.roleSlugs.length === 0)
+    .sort((a, b) => a.order - b.order);
   const { user, loading, logout } = useAuth();
   const [loggingOut, setLoggingOut] = useState(false);
 
@@ -74,19 +79,20 @@ export function Navbar({ categories = [] }: { categories?: Category[] }) {
         </nav>
       </div>
 
-      {categories.length > 0 && (
+      {publicRootMenus.length > 0 && (
         <div className="flex items-center gap-1 overflow-x-auto border-t border-white/10 px-6 py-2">
-          {categories
-            .filter((c) => !c.parentId)
-            .map((c) => (
-              <Link
-                key={c.id}
-                href={`/danh-muc/${c.slug}`}
-                className="whitespace-nowrap rounded-md px-2.5 py-1 text-xs text-zinc-300 hover:bg-white/10 hover:text-white"
-              >
-                {c.name}
-              </Link>
-            ))}
+          {publicRootMenus.map((m) => (
+            <Link
+              key={m.id}
+              href={m.url}
+              target={m.openInNewTab ? "_blank" : undefined}
+              rel={m.openInNewTab ? "noopener noreferrer" : undefined}
+              className="whitespace-nowrap rounded-md px-2.5 py-1 text-xs text-zinc-300 hover:bg-white/10 hover:text-white"
+            >
+              {m.icon && <span aria-hidden>{m.icon} </span>}
+              {m.label}
+            </Link>
+          ))}
         </div>
       )}
     </header>

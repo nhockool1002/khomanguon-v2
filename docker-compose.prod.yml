@@ -26,9 +26,14 @@ services:
     env_file: .env.production
     ports:
       - "127.0.0.1:4000:4000"
+    volumes:
+      # Ảnh upload qua trình soạn bài (Phase 2, tạm — Phase 3 chuyển sang R2/S3) — mount volume
+      # riêng để không mất file mỗi lần "up -d --build" thay container.
+      - backend_uploads:/app/uploads
     depends_on:
       - postgres
       - redis
 
 volumes:
   pgdata:
+  backend_uploads:

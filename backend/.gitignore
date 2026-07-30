@@ -3,3 +3,6 @@ node_modules
 .env
 
 /generated/prisma
+
+# Ảnh upload local (Phase 2, tạm — Phase 3 chuyển sang R2/S3)
+/uploads

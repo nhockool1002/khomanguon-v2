@@ -140,6 +140,10 @@ export class PostsService {
         authorId,
         status,
         publishedAt: status === PostStatus.PUBLISHED ? new Date() : null,
+        metaTitle: dto.metaTitle,
+        metaDescription: dto.metaDescription,
+        ogImageUrl: dto.ogImageUrl,
+        canonicalUrl: dto.canonicalUrl,
       },
       select: detailSelect,
     });
@@ -176,6 +180,14 @@ export class PostsService {
           thumbnailUrl: dto.thumbnailUrl,
         }),
         ...(dto.categoryId !== undefined && { categoryId: dto.categoryId }),
+        ...(dto.metaTitle !== undefined && { metaTitle: dto.metaTitle }),
+        ...(dto.metaDescription !== undefined && {
+          metaDescription: dto.metaDescription,
+        }),
+        ...(dto.ogImageUrl !== undefined && { ogImageUrl: dto.ogImageUrl }),
+        ...(dto.canonicalUrl !== undefined && {
+          canonicalUrl: dto.canonicalUrl,
+        }),
         ...(nextStatus !== undefined && {
           status: nextStatus,
           publishedAt:

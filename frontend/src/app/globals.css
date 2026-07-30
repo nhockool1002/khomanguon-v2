@@ -1,4 +1,5 @@
 @import "tailwindcss";
+@plugin "@tailwindcss/typography";
 
 /*
  * Bản sắc v2 (xem Branding_Guide.md): nền nội dung luôn trắng, chỉ navbar cố định màu tối
