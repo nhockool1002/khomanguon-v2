@@ -11,15 +11,15 @@ COPY . .
 RUN pnpm exec prisma generate
 RUN pnpm run build
 
-# pnpm không hoist gói ra node_modules gốc như npm/yarn — Prisma Client sinh ra nằm sâu
-# trong node_modules/.pnpm/@prisma+client@<hash>/node_modules/.prisma, đường dẫn đổi theo
-# version nên không copy chọn lọc được đáng tin cậy. Copy nguyên node_modules đã build thay
-# vì cài lại --prod riêng ở stage runtime — image nặng hơn một chút nhưng chắc chắn khớp
-# 100% với những gì `pnpm run build` vừa chạy qua.
+# Không copy node_modules từ stage build sang runtime — trên VPS production, "COPY --from"
+# node_modules dạng symlink của pnpm giữa các stage đã từng khiến require() một số gói
+# (vd multer) báo "Cannot find module" dù cùng image, cùng cây phụ thuộc, chạy tốt ở máy dev.
+# Cài lại trực tiếp trong stage runtime để node_modules được tạo mới, tự chứa 100% trong
+# đúng layer sẽ chạy — image nặng hơn một chút (2 lần install) nhưng chắc chắn resolve đúng.
 FROM base AS runtime
 ENV NODE_ENV=production
-COPY --from=build /app/package.json ./package.json
-COPY --from=build /app/node_modules ./node_modules
+COPY package.json pnpm-lock.yaml ./
+RUN pnpm install --frozen-lockfile
 COPY --from=build /app/dist ./dist
 COPY --from=build /app/prisma ./prisma
 # prisma/seed.ts chạy qua ts-node (không qua dist) và import trực tiếp từ src/ để dùng
@@ -27,5 +27,7 @@ COPY --from=build /app/prisma ./prisma
 # được trong image production, không chỉ ở máy dev.
 COPY --from=build /app/src ./src
 COPY --from=build /app/tsconfig.json ./tsconfig.json
+# Prisma Client (query engine) được sinh dựa trên node_modules cụ thể của stage này.
+RUN pnpm exec prisma generate
 EXPOSE 4000
 CMD ["node", "dist/main.js"]
