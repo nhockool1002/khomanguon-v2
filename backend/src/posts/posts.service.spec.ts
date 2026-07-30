@@ -8,7 +8,10 @@ import { PERMISSIONS } from '../roles/permissions.constant';
 
 describe('PostsService.update — phân quyền sửa bài (post.edit.own / post.edit.any)', () => {
   let service: PostsService;
-  let prisma: { post: Record<string, jest.Mock>; category: Record<string, jest.Mock> };
+  let prisma: {
+    post: Record<string, jest.Mock>;
+    category: Record<string, jest.Mock>;
+  };
   let roles: { getUserPermissionKeys: jest.Mock };
 
   const basePost = {
@@ -21,7 +24,14 @@ describe('PostsService.update — phân quyền sửa bài (post.edit.own / post
     prisma = {
       post: {
         findUnique: jest.fn().mockResolvedValue(basePost),
-        update: jest.fn().mockImplementation(({ data }) => ({ ...basePost, ...data })),
+        update: jest
+          .fn()
+          .mockImplementation(
+            ({ data }: { data: Record<string, unknown> }) => ({
+              ...basePost,
+              ...data,
+            }),
+          ),
       },
       category: { findUnique: jest.fn() },
     };

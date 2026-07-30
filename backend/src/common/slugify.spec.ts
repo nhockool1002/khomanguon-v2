@@ -14,13 +14,17 @@ describe('slugify', () => {
 
 describe('buildUniqueSlug', () => {
   it('trả về slug gốc nếu chưa tồn tại', async () => {
-    const slug = await buildUniqueSlug('Tiêu đề mới', async () => false);
+    const slug = await buildUniqueSlug('Tiêu đề mới', () =>
+      Promise.resolve(false),
+    );
     expect(slug).toBe('tieu-de-moi');
   });
 
   it('thêm hậu tố -2, -3... khi slug đã bị trùng', async () => {
     const taken = new Set(['tieu-de', 'tieu-de-2']);
-    const slug = await buildUniqueSlug('Tiêu đề', async (c) => taken.has(c));
+    const slug = await buildUniqueSlug('Tiêu đề', (c) =>
+      Promise.resolve(taken.has(c)),
+    );
     expect(slug).toBe('tieu-de-3');
   });
 });
