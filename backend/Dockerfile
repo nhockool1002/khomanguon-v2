@@ -17,8 +17,10 @@ RUN pnpm run build
 # Cài lại trực tiếp trong stage runtime để node_modules được tạo mới, tự chứa 100% trong
 # đúng layer sẽ chạy — image nặng hơn một chút (2 lần install) nhưng chắc chắn resolve đúng.
 FROM base AS runtime
-ENV NODE_ENV=production
 COPY package.json pnpm-lock.yaml ./
+# Cài trước khi đặt NODE_ENV=production — đặt sớm hơn khiến pnpm bỏ qua devDependencies,
+# nhưng "prisma" (CLI, cần cho lệnh generate dưới đây) và "ts-node" (cần cho seed) đều nằm
+# ở devDependencies.
 RUN pnpm install --frozen-lockfile
 COPY --from=build /app/dist ./dist
 COPY --from=build /app/prisma ./prisma
@@ -29,5 +31,6 @@ COPY --from=build /app/src ./src
 COPY --from=build /app/tsconfig.json ./tsconfig.json
 # Prisma Client (query engine) được sinh dựa trên node_modules cụ thể của stage này.
 RUN pnpm exec prisma generate
+ENV NODE_ENV=production
 EXPOSE 4000
 CMD ["node", "dist/main.js"]
