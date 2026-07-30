@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation";
 const NAV_ITEMS = [
   { href: "/quan-tri/bai-viet", label: "Tất cả bài viết", icon: "📄", match: "exact-prefix" as const },
   { href: "/quan-tri/bai-viet/moi", label: "Viết bài mới", icon: "＋", match: "exact" as const },
+  { href: "/quan-tri/danh-muc", label: "Danh mục", icon: "🗂", match: "prefix" as const },
   { href: "/quan-tri/menu", label: "Menu", icon: "☰", match: "prefix" as const },
 ];
 
