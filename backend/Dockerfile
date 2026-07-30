@@ -22,5 +22,10 @@ COPY --from=build /app/package.json ./package.json
 COPY --from=build /app/node_modules ./node_modules
 COPY --from=build /app/dist ./dist
 COPY --from=build /app/prisma ./prisma
+# prisma/seed.ts chạy qua ts-node (không qua dist) và import trực tiếp từ src/ để dùng
+# chung danh sách permission với app — cần copy cả src/ để lệnh "prisma db seed" chạy
+# được trong image production, không chỉ ở máy dev.
+COPY --from=build /app/src ./src
+COPY --from=build /app/tsconfig.json ./tsconfig.json
 EXPOSE 4000
 CMD ["node", "dist/main.js"]
