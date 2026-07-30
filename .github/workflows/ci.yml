@@ -48,6 +48,13 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      # Không dựa vào postinstall của @prisma/client: khi pnpm phục vụ gói từ store cache
+      # (actions/setup-node cache: pnpm), nó có thể bỏ qua script postinstall, để lại
+      # .prisma/client rỗng (không sinh type theo schema thật) mà không có cảnh báo nào —
+      # gây lỗi "no-unsafe-*" hàng loạt ở bước Lint dù code không đổi gì liên quan.
+      - name: Generate Prisma Client
+        run: pnpm exec prisma generate
+
       - name: Lint
         run: pnpm run lint
 
