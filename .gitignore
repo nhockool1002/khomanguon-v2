@@ -17,9 +17,13 @@ frontend/.turbo/
 # backend (NestJS)
 backend/dist/
 backend/build/
+backend/*.tsbuildinfo
 
 # prisma
 backend/prisma/*.db
+backend/prisma/*.js
+backend/prisma/*.d.ts
+backend/prisma/*.js.map
 
 # logs
 *.log

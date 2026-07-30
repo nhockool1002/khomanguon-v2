@@ -152,10 +152,10 @@ Sau khi có domain Vercel thật:
 
 ## 6. Smoke test sau khi deploy (bắt buộc, đừng bỏ qua)
 
-- [ ] `https://kmn2api.nhutnm.id.vn/health` trả về `{"status":"ok","db":"up"}`
-- [ ] Mở `https://khomanguon.vn` — trang chủ load được, navbar hiển thị đúng
-- [ ] Đăng ký tài khoản thật qua UI (`/dang-ky`) — thành công, chuyển vào `/tai-khoan`
-- [ ] **Reload trang `/tai-khoan`** — vẫn còn đăng nhập (xác nhận cookie cross-site + silent refresh hoạt động; đây là bước hay lỗi nhất khi tách domain)
+- [x] `https://kmn2api.nhutnm.id.vn/health` trả về `{"status":"ok","db":"up"}`
+- [x] Mở `https://khomanguon-v2.vercel.app` — trang chủ load được, navbar hiển thị đúng *(domain thật đang dùng — chưa gắn domain riêng)*
+- [x] Đăng ký tài khoản thật qua UI (`/dang-ky`) — thành công, chuyển vào `/tai-khoan`
+- [x] **Reload trang `/tai-khoan`** — vẫn còn đăng nhập, xác nhận qua trình duyệt thật
 - [ ] Đăng xuất rồi đăng nhập lại — thành công
 - [ ] Kiểm tra log backend không có lỗi CORS: `docker compose -f docker-compose.prod.yml logs backend --tail=50`
 
