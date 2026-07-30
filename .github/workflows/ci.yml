@@ -121,7 +121,12 @@ jobs:
             cd /www/wwwroot/khomanguon-v2
             git fetch origin main
             git reset --hard origin/main
-            docker compose --env-file .env.production -f docker-compose.prod.yml up -d --build backend
+            # --force-recreate: "up -d --build" build ra image mới nhưng Docker Compose quyết định
+            # có tạo lại container hay không dựa trên hash cấu hình YAML, không phải digest image
+            # thực tế — service này không khai báo "image:" cố định nên đã có ít nhất 2 lần compose
+            # kết luận "không đổi gì" và để nguyên container CŨ chạy dù image build lại hoàn toàn
+            # (routes/module mới của code mới không lên, phải phát hiện qua log ứng dụng).
+            docker compose --env-file .env.production -f docker-compose.prod.yml up -d --build --force-recreate backend
             sleep 5
             echo "===== backend container logs (debug) ====="
             docker compose --env-file .env.production -f docker-compose.prod.yml logs backend --tail=200 || true
