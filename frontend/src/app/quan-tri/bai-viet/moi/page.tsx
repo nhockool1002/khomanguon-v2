@@ -30,15 +30,19 @@ export default function NewPostPage() {
         categoryId: values.categoryId || undefined,
         contentHtml: values.contentHtml,
         status: values.status,
+        metaTitle: values.metaTitle || undefined,
+        metaDescription: values.metaDescription || undefined,
+        ogImageUrl: values.ogImageUrl || undefined,
+        canonicalUrl: values.canonicalUrl || undefined,
       }),
     });
     router.push(`/quan-tri/bai-viet/${created.id}`);
   }
 
   return (
-    <div className="flex w-full max-w-2xl flex-col gap-6 px-8 py-8">
+    <div className="flex w-full flex-col gap-6 px-8 py-8">
       <h1 className="text-xl font-semibold text-zinc-900">Bài viết mới</h1>
-      <PostForm submitLabel="Tạo bài viết" onSubmit={handleSubmit} />
+      <PostForm onSubmit={handleSubmit} />
     </div>
   );
 }

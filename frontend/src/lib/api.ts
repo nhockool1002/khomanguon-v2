@@ -1,4 +1,4 @@
-const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000";
+export const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000";
 
 let accessToken: string | null = null;
 
@@ -25,11 +25,13 @@ interface ApiFetchOptions extends RequestInit {
 }
 
 async function rawFetch(path: string, options: RequestInit) {
+  // FormData (upload file) phải để browser tự set Content-Type kèm boundary — không ghi đè.
+  const isFormData = options.body instanceof FormData;
   return fetch(`${API_URL}${path}`, {
     ...options,
     credentials: "include",
     headers: {
-      ...(options.body ? { "Content-Type": "application/json" } : {}),
+      ...(options.body && !isFormData ? { "Content-Type": "application/json" } : {}),
       ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
       ...options.headers,
     },

@@ -74,15 +74,15 @@ Quy ước: mỗi phase có **Definition of Done (DoD)** rõ ràng — không sa
 **Thời lượng:** 3–4 tuần · **Môi trường:** Local → Staging (deploy thử lần đầu cuối phase)
 
 ### 2.1 Soạn thảo & SEO bài viết
-- [ ] Tích hợp Tiptap (WYSIWYG) + upload ảnh trong nội dung
-- [ ] Upload thumbnail/ảnh đại diện bài viết
-- [ ] Panel SEO: meta title/description có đếm ký tự, slug, ảnh OG, xem trước snippet Google — UC14, wireframe #09
-- [ ] Workflow trạng thái bài viết: Nháp → Chờ duyệt → Xuất bản, quyền `post.publish` — UC12, UC13
+- [x] Tích hợp Tiptap (WYSIWYG) + upload ảnh trong nội dung — ảnh lưu tạm ổ đĩa cục bộ (volume Docker riêng) cho tới khi có trang cài đặt R2/S3 ở Phase 3
+- [x] Upload thumbnail/ảnh đại diện bài viết (+ ảnh OG) qua file thay vì dán URL
+- [x] Panel SEO: meta title/description có đếm ký tự, slug, ảnh OG, xem trước snippet Google — UC14, wireframe #09 (đã áp dụng vào `<head>` trang chi tiết qua `generateMetadata`)
+- [x] Workflow trạng thái bài viết: Nháp → Chờ duyệt → Xuất bản, quyền `post.publish` — UC12, UC13 (nút hành động riêng thay vì dropdown, quyền đã enforce từ Phase 1.4)
 
 ### 2.2 Menu đa cấp
-- [ ] Model menu dạng cây (adjacency list: `parent_id`, `order`)
-- [ ] API CRUD + đổi thứ tự/cấp độ
-- [ ] UI kéo-thả bằng dnd-kit, gán hiển thị theo vai trò — UC16, wireframe #10
+- [x] Model menu dạng cây (adjacency list: `parent_id`, `order`) — đã có sẵn từ ERD Phase 0
+- [x] API CRUD + đổi thứ tự/cấp độ (`backend/src/menus`, quyền `menu.manage`)
+- [x] UI kéo-thả bằng dnd-kit, gán hiển thị theo vai trò — UC16, wireframe #10. Lọc menu công khai theo vai trò user cụ thể (không chỉ "công khai/không công khai") để dành bản sau — `AuthUser` context chưa mang theo `roles`.
 
 ### 2.3 Bình luận
 - [ ] Model comment (threaded — `parent_id`), API tạo/trả lời/thích

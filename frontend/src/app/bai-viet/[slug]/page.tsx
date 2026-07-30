@@ -1,14 +1,35 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { fetchPostBySlug } from "@/lib/public-api";
 import { GradientUnderline } from "@/components/gradient-underline";
 import { formatDate, formatViewCount } from "@/lib/format";
 
-export default async function PostDetailPage({
-  params,
-}: {
+type Props = {
   params: Promise<{ slug: string }>;
-}) {
+};
+
+export async function generateMetadata({ params }: Props): Promise<Metadata> {
+  const { slug } = await params;
+  const post = await fetchPostBySlug(slug);
+  if (!post) return {};
+
+  const title = post.metaTitle || post.title;
+  const description = post.metaDescription || post.excerpt || undefined;
+
+  return {
+    title,
+    description,
+    alternates: post.canonicalUrl ? { canonical: post.canonicalUrl } : undefined,
+    openGraph: {
+      title,
+      description,
+      images: post.ogImageUrl || post.thumbnailUrl ? [post.ogImageUrl || post.thumbnailUrl!] : undefined,
+    },
+  };
+}
+
+export default async function PostDetailPage({ params }: Props) {
   const { slug } = await params;
   const post = await fetchPostBySlug(slug);
   if (!post) notFound();
@@ -54,10 +75,11 @@ export default async function PostDetailPage({
         />
       )}
 
-      {/* Chưa có WYSIWYG (Phase 2.1) — nội dung là text thô từ textarea, hiển thị nguyên văn thay vì HTML. */}
-      <div className="whitespace-pre-wrap text-sm leading-relaxed text-zinc-800">
-        {post.contentHtml}
-      </div>
+      {/* Nội dung soạn từ Tiptap (Phase 2.1) — HTML thật do admin/mod đã qua permission gate, không phải input công khai. */}
+      <div
+        className="prose prose-sm max-w-none text-zinc-800 [&_img]:rounded-md"
+        dangerouslySetInnerHTML={{ __html: post.contentHtml }}
+      />
     </main>
   );
 }

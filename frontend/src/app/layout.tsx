@@ -3,7 +3,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { AuthProvider } from "@/context/auth-context";
 import { Navbar } from "@/components/navbar";
-import { fetchCategories } from "@/lib/public-api";
+import { fetchMenus } from "@/lib/public-api";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -26,7 +26,7 @@ export default async function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const categories = await fetchCategories();
+  const menus = await fetchMenus();
 
   return (
     <html
@@ -35,7 +35,7 @@ export default async function RootLayout({
     >
       <body className="flex min-h-full flex-col">
         <AuthProvider>
-          <Navbar categories={categories} />
+          <Navbar menus={menus} />
           {children}
         </AuthProvider>
       </body>

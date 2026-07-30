@@ -9,6 +9,8 @@ import { AuthModule } from './auth/auth.module';
 import { UsersModule } from './users/users.module';
 import { CategoriesModule } from './categories/categories.module';
 import { PostsModule } from './posts/posts.module';
+import { UploadsModule } from './uploads/uploads.module';
+import { MenusModule } from './menus/menus.module';
 
 @Module({
   imports: [
@@ -20,6 +22,8 @@ import { PostsModule } from './posts/posts.module';
     UsersModule,
     CategoriesModule,
     PostsModule,
+    UploadsModule,
+    MenusModule,
   ],
   controllers: [AppController],
   providers: [AppService],

@@ -57,9 +57,24 @@ export interface PostDetail extends PostSummary {
   categoryId: string | null;
   authorId: string;
   updatedAt: string;
+  metaTitle: string | null;
+  metaDescription: string | null;
+  ogImageUrl: string | null;
+  canonicalUrl: string | null;
 }
 
 export interface PostListResponse {
   items: PostSummary[];
   total: number;
+}
+
+export interface MenuItem {
+  id: string;
+  label: string;
+  url: string;
+  icon: string | null;
+  order: number;
+  openInNewTab: boolean;
+  parentId: string | null;
+  roleSlugs: string[];
 }
