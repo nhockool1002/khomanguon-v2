@@ -122,4 +122,8 @@ jobs:
             git fetch origin main
             git reset --hard origin/main
             docker compose --env-file .env.production -f docker-compose.prod.yml up -d --build backend
-            docker compose --env-file .env.production -f docker-compose.prod.yml exec -T backend pnpm exec prisma migrate deploy
+            # Gọi thẳng binary đã có sẵn trong node_modules thay vì "pnpm exec" — image runtime
+            # không copy cache corepack từ stage build, nên "pnpm exec" phải tải lại pnpm qua
+            # mạng mỗi lần exec, dễ bị OOM-kill (137) trên VPS RAM nhỏ khi trùng lúc container
+            # vừa khởi động lại tốn thêm bộ nhớ.
+            docker compose --env-file .env.production -f docker-compose.prod.yml exec -T backend ./node_modules/.bin/prisma migrate deploy
