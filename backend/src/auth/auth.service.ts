@@ -96,6 +96,10 @@ export class AuthService {
       throw new UnauthorizedException('Email hoặc mật khẩu không đúng');
     }
 
+    if (user.status === 'BANNED') {
+      throw new UnauthorizedException('Tài khoản đã bị khoá');
+    }
+
     if (user.lockedUntil && user.lockedUntil > new Date()) {
       const minutesLeft = Math.ceil(
         (user.lockedUntil.getTime() - Date.now()) / 60000,
@@ -184,6 +188,10 @@ export class AuthService {
       throw new UnauthorizedException(
         'Phiên đăng nhập đã hết hạn, vui lòng đăng nhập lại',
       );
+    }
+
+    if (existing.user.status === 'BANNED') {
+      throw new UnauthorizedException('Tài khoản đã bị khoá');
     }
 
     await this.prisma.refreshToken.update({

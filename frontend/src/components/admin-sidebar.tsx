@@ -8,6 +8,7 @@ const NAV_ITEMS = [
   { href: "/quan-tri/bai-viet/moi", label: "Viết bài mới", icon: "＋", match: "exact" as const },
   { href: "/quan-tri/danh-muc", label: "Danh mục", icon: "🗂", match: "prefix" as const },
   { href: "/quan-tri/menu", label: "Menu", icon: "☰", match: "prefix" as const },
+  { href: "/quan-tri/vai-tro", label: "Phân quyền", icon: "🛡", match: "prefix" as const },
 ];
 
 // Menu quản trị nằm bên trái, kiểu WordPress admin — thay cho việc rải link trên navbar.

@@ -18,6 +18,7 @@ import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { UpdateProfileDto } from './dto/update-profile.dto';
 import { ChangePasswordDto } from './dto/change-password.dto';
 import { AssignRoleDto } from './dto/assign-role.dto';
+import { UpdateStatusDto } from './dto/update-status.dto';
 
 interface AuthUser {
   id: string;
@@ -56,6 +57,14 @@ export class UsersController {
     const take = Math.min(Number(limit) || 20, 100);
     const skip = (Math.max(Number(page) || 1, 1) - 1) * take;
     return this.usersService.list(skip, take);
+  }
+
+  // Chặn user spam bình luận (UC08) — cũng dùng chung cho khoá tài khoản nói chung.
+  @UseGuards(JwtAuthGuard, PermissionsGuard)
+  @Permissions(PERMISSIONS.USER_MANAGE)
+  @Patch(':id/status')
+  updateStatus(@Param('id') id: string, @Body() dto: UpdateStatusDto) {
+    return this.usersService.updateStatus(id, dto.status);
   }
 
   @UseGuards(JwtAuthGuard, PermissionsGuard)

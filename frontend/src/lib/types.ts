@@ -78,3 +78,38 @@ export interface MenuItem {
   parentId: string | null;
   roleSlugs: string[];
 }
+
+export type CommentStatus = "PUBLISHED" | "HIDDEN" | "PENDING";
+
+export interface CommentAuthor {
+  id: string;
+  displayName: string;
+  avatarUrl: string | null;
+}
+
+export interface Comment {
+  id: string;
+  postId: string;
+  parentId: string | null;
+  content: string;
+  status: CommentStatus;
+  pinned: boolean;
+  createdAt: string;
+  user: CommentAuthor;
+  likeCount: number;
+  likedByMe: boolean;
+}
+
+export interface Role {
+  id: string;
+  name: string;
+  slug: string;
+  isSystem: boolean;
+  permissionKeys: string[];
+}
+
+export interface Permission {
+  id: string;
+  key: string;
+  description: string;
+}
