@@ -16,3 +16,50 @@ export interface AuthResponse {
   user: AuthUser;
   accessToken: string;
 }
+
+export type PostStatus = "DRAFT" | "PENDING_REVIEW" | "PUBLISHED";
+
+export interface Category {
+  id: string;
+  name: string;
+  slug: string;
+  parentId: string | null;
+}
+
+export interface CategoryRef {
+  id: string;
+  name: string;
+  slug: string;
+}
+
+export interface PostAuthor {
+  id: string;
+  displayName: string;
+  avatarUrl: string | null;
+}
+
+export interface PostSummary {
+  id: string;
+  title: string;
+  slug: string;
+  excerpt: string | null;
+  thumbnailUrl: string | null;
+  status: PostStatus;
+  viewCount: number;
+  publishedAt: string | null;
+  createdAt: string;
+  category: CategoryRef | null;
+  author: PostAuthor;
+}
+
+export interface PostDetail extends PostSummary {
+  contentHtml: string;
+  categoryId: string | null;
+  authorId: string;
+  updatedAt: string;
+}
+
+export interface PostListResponse {
+  items: PostSummary[];
+  total: number;
+}
