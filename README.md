@@ -4,6 +4,7 @@ Rebuild của [khomanguon.org](https://khomanguon.org) — kho chia sẻ mã ngu
 
 - **Kế hoạch triển khai theo phase:** [`PLAN.md`](PLAN.md)
 - **Đặc tả kỹ thuật đầy đủ** (tech stack, kiến trúc, RBAC, use case, wireframe 12 trang, hướng dẫn deploy aaPanel): [`docs/khomanguon-v2-spec.html`](docs/khomanguon-v2-spec.html)
+- **Migration dữ liệu từ WordPress v1:** [`Migration_Plan.md`](Migration_Plan.md)
 
 ## Cấu trúc repo
 

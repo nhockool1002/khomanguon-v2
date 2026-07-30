@@ -171,7 +171,7 @@ Quy ước: mỗi phase có **Definition of Done (DoD)** rõ ràng — không sa
 - [ ] Giám sát: Sentry (lỗi), Uptime Kuma (uptime), theo dõi tài nguyên aaPanel
 
 ### 4.5 Dữ liệu & nội dung
-- [ ] 🔴 Kế hoạch migrate bài viết cũ từ v1 (nếu giữ lại nội dung) — export/import + kiểm tra lại SEO slug tránh gãy link cũ
+- [ ] 🔴 Migrate dữ liệu từ WordPress v1 sang v2 — kế hoạch chi tiết, mapping bảng, các quyết định kỹ thuật (mật khẩu, ảnh/file, ví `@CASH` cũ, comment khách...) nằm ở [`Migration_Plan.md`](Migration_Plan.md). Đang chờ file SQL export đầy đủ từ WordPress — khâu khảo sát/viết script ETL có thể bắt đầu ngay khi có SQL, **không cần chờ tới Phase 4**, chỉ việc chạy thật lên Production mới nên để sát Go-live.
 - [ ] 🔴 Soạn điều khoản sử dụng, chính sách hoàn tiền $P, chính sách bản quyền mã nguồn chia sẻ
 
 ### 4.6 Go-live (checklist đầy đủ ở mục 13 tài liệu)
@@ -200,5 +200,6 @@ Quy ước: mỗi phase có **Definition of Done (DoD)** rõ ràng — không sa
 ## Phụ lục
 
 - **Tài liệu chi tiết:** [`docs/khomanguon-v2-spec.html`](docs/khomanguon-v2-spec.html) — tech stack đầy đủ, sơ đồ kiến trúc, luồng nghiệp vụ (mermaid), ma trận RBAC, 25 use case, 12 wireframe, hướng dẫn deploy aaPanel từng bước.
+- **Migration dữ liệu WordPress:** [`Migration_Plan.md`](Migration_Plan.md) — mapping bảng WP → v2, các quyết định kỹ thuật (mật khẩu, ảnh/file, ví `@CASH` cũ), quy trình dry-run → Staging → Production.
 - **Nguyên tắc theo dõi:** cập nhật trực tiếp các checkbox `- [ ]` → `- [x]` trong file này khi hoàn thành; mỗi phase kết thúc bằng một buổi demo nội bộ trước khi mở khoá phase tiếp theo.
 - **Mục 🔴 phụ thuộc bên ngoài** nên giao cho người phụ trách vận hành/kinh doanh làm song song, không chờ đến đúng phase mới bắt đầu — đặc biệt merchant SePay production có thể mất thời gian duyệt.
