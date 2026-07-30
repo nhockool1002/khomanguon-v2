@@ -99,3 +99,27 @@ jobs:
 
       - name: Build
         run: pnpm run build
+
+  # Chỉ chạy khi push thẳng vào main (không chạy cho PR) và job "backend" ở trên đã xanh.
+  # Yêu cầu đã deploy thủ công 1 lần theo Deploy_Checklist.md (repo đã clone sẵn ở
+  # /www/wwwroot/khomanguon-v2 trên VPS, .env.production đã có) — job này chỉ pull code
+  # mới + rebuild container backend + chạy migration, không tạo hạ tầng từ đầu.
+  deploy-backend:
+    needs: backend
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    runs-on: ubuntu-latest
+    steps:
+      - name: SSH deploy backend lên aaPanel
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          port: ${{ secrets.SSH_PORT }}
+          script: |
+            set -e
+            cd /www/wwwroot/khomanguon-v2
+            git fetch origin main
+            git reset --hard origin/main
+            docker compose --env-file .env.production -f docker-compose.prod.yml up -d --build backend
+            docker compose --env-file .env.production -f docker-compose.prod.yml exec -T backend pnpm exec prisma migrate deploy
