@@ -38,10 +38,15 @@ export class AuthController {
     refreshToken: string,
     expiresAt: Date,
   ) {
+    // Production: frontend (Vercel) và backend (aaPanel) nằm ở domain khác nhau — cookie
+    // cross-site bắt buộc `SameSite=None; Secure`, nếu không trình duyệt sẽ không gửi cookie
+    // kèm request /auth/refresh, silent refresh sẽ âm thầm fail. Dev vẫn dùng `Lax` (không cần
+    // Secure) vì http://localhost không có HTTPS.
+    const isProd = this.config.get('NODE_ENV') === 'production';
     res.cookie(REFRESH_COOKIE_NAME, refreshToken, {
       httpOnly: true,
-      sameSite: 'lax',
-      secure: this.config.get('NODE_ENV') === 'production',
+      sameSite: isProd ? 'none' : 'lax',
+      secure: isProd,
       path: '/auth',
       expires: expiresAt,
     });

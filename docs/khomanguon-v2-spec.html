@@ -284,10 +284,10 @@
       <a href="#performance">09 · Tối ưu tốc độ</a>
       <a href="#roadmap">10 · Lộ trình triển khai</a>
       <a href="#infra">11 · Môi trường &amp; hạ tầng</a>
-      <a href="#aapanel">12 · Deploy lên aaPanel</a>
+      <a href="#aapanel">12 · Deploy: Vercel + aaPanel</a>
       <a href="#golive">13 · Go-live &amp; vận hành</a>
     </nav>
-    <div class="toc-foot">v1.1 · 29/07/2026</div>
+    <div class="toc-foot">v1.2 · 30/07/2026</div>
   </aside>
 
   <main>
@@ -350,7 +350,7 @@
             <tr><td>Thanh toán</td><td class="mono">SePay Webhook API (VietQR)</td><td>Đối soát tự động theo nội dung chuyển khoản chứa mã giao dịch; xác thực chữ ký HMAC ở webhook.</td></tr>
             <tr><td>SEO</td><td class="mono">next-seo · next-sitemap · JSON-LD · Open Graph</td><td>Sitemap tự sinh khi publish bài; snippet preview ngay trong trình soạn bài.</td></tr>
             <tr><td>Realtime</td><td class="mono">WebSocket (Socket.IO)</td><td>Đẩy số dư ví cập nhật tức thời sau khi SePay xác nhận, và trạng thái duyệt bài cho Moderator.</td></tr>
-            <tr><td>Hạ tầng &amp; Deploy</td><td class="mono">Docker Compose + Caddy/Nginx, Cloudflare phía trước</td><td>Coolify/Dokploy trên VPS để CI/CD đơn giản, chi phí thấp — hợp quy mô site cộng đồng. <span class="muted">Thay thế: Vercel (FE) + Railway/Fly.io (BE+DB) nếu muốn giảm việc vận hành.</span></td></tr>
+            <tr><td>Hạ tầng &amp; Deploy</td><td class="mono">Vercel (frontend) + aaPanel/Docker Compose (backend)</td><td>Frontend hưởng CDN/SSL/CI-CD có sẵn của Vercel, không cần vận hành; backend giữ trên VPS riêng để kiểm soát trực tiếp DB/Redis/logic tiền — xem mục 11-12.</td></tr>
             <tr><td>Giám sát</td><td class="mono">Sentry · Uptime Kuma · Plausible/GA4</td><td>Theo dõi lỗi, uptime và hành vi người dùng mà không kéo nặng trang public.</td></tr>
             <tr><td>Kiểm thử</td><td class="mono">Vitest/Jest + Playwright</td><td>Bắt buộc test E2E cho 2 luồng trọng yếu: nạp tiền và tải game (ảnh hưởng trực tiếp doanh thu).</td></tr>
           </tbody>
@@ -850,105 +850,102 @@ sequenceDiagram
     <!-- 11 INFRA -->
     <section id="infra" class="wide">
       <h2><span class="num">11</span>Môi trường &amp; hạ tầng</h2>
-      <p class="section-intro">Ba môi trường tách biệt để không ai phải sửa lỗi trực tiếp trên site đang thu tiền thật.</p>
+      <p class="section-intro">Hosting tách đôi: <b>frontend trên Vercel</b> (build/CDN/SSL quản lý sẵn), <b>backend trên aaPanel</b> (kiểm soát trực tiếp VPS cho DB/Redis/logic nhạy cảm). Hai phía nói chuyện qua HTTPS cross-origin — xem lưu ý CORS/cookie ở mục 12.</p>
       <div class="env-cards">
         <div class="env-card">
           <span class="stage">Local — máy dev</span>
           <h4>Docker Compose</h4>
-          <ul><li>Toàn bộ service (web, api, postgres, redis) chạy local</li><li>R2/S3 dùng bucket "dev", SePay dùng sandbox key</li><li>Seed dữ liệu mẫu, không đụng dữ liệu thật</li></ul>
+          <ul><li>Toàn bộ service (frontend, backend, postgres, redis) chạy local — giống hệt Production về mặt kiến trúc app</li><li>R2/S3 dùng bucket "dev", SePay dùng sandbox key</li><li>Seed dữ liệu mẫu, không đụng dữ liệu thật</li></ul>
         </div>
         <div class="env-card">
           <span class="stage">Staging — trước khi phát hành</span>
-          <h4>aaPanel · VPS nhỏ</h4>
-          <ul><li>2 vCPU / 4GB RAM, cùng phiên bản OS với production</li><li>Domain phụ: staging.khomanguon.vn</li><li>SePay sandbox, R2 bucket "staging" — nơi QA/khách kiểm tra trước khi duyệt</li></ul>
+          <h4>Vercel Preview + aaPanel VPS nhỏ</h4>
+          <ul><li>Frontend: <b>Vercel tự tạo Preview URL cho mỗi Pull Request</b> — không cần server riêng</li><li>Backend: aaPanel VPS nhỏ (2 vCPU/4GB), domain phụ <span class="code">api-staging.khomanguon.vn</span></li><li>SePay sandbox, R2 bucket "staging"</li></ul>
         </div>
         <div class="env-card">
           <span class="stage">Production — site thật</span>
-          <h4>aaPanel · VPS chính + Cloudflare</h4>
-          <ul><li>Tối thiểu 4 vCPU / 8GB RAM, SSD NVMe (Postgres + build Next.js ăn RAM lúc build)</li><li>Cloudflare proxy phía trước (CDN/WAF/DDoS)</li><li>SePay production key, backup tự động hàng ngày</li></ul>
+          <h4>Vercel + aaPanel VPS chính</h4>
+          <ul><li>Frontend: Vercel Production (domain <span class="code">khomanguon.vn</span>, CDN/SSL tự động, không cần Cloudflare thêm)</li><li>Backend: aaPanel VPS ≥4 vCPU/8GB, domain <span class="code">api.khomanguon.vn</span> + Cloudflare (DNS/WAF cho riêng API)</li><li>SePay production key, backup Postgres tự động hàng ngày</li></ul>
         </div>
       </div>
       <h3>Pipeline phát hành</h3>
       <div class="diagram">
         <pre class="mermaid">
 flowchart LR
-  DEV["Local — Docker Compose"] --> GH["GitHub — pull request → main"]
-  GH -- "Actions: build, test, build image" --> REG[("GHCR — registry image")]
-  REG -- "docker compose pull" --> STG["Staging — aaPanel VPS nhỏ"]
-  STG -- "QA duyệt thủ công" --> PROD["Production — aaPanel VPS chính"]
-  CF["Cloudflare CDN / WAF"] --> PROD
+  DEV["Local — Docker Compose"] --> GH["GitHub — main branch"]
+  GH -- "Vercel tự build khi push" --> VFE["Vercel — Frontend<br/>Production + Preview tự động"]
+  GH -- "Actions: build, test, build image" --> REG[("GHCR — image backend")]
+  REG -- "docker compose pull (duyệt thủ công)" --> ABE["aaPanel — Backend Production"]
+  VFE -- "gọi API qua HTTPS (cross-origin)" --> ABE
         </pre>
-        <div class="cap">Mỗi lần merge vào <span class="code">main</span> tự động build &amp; deploy staging; lên production luôn cần một cú "Approve" thủ công — không auto-deploy thẳng ra site thật.</div>
+        <div class="cap">Frontend deploy gần như tức thời qua Vercel mỗi lần push — tách biệt hoàn toàn khỏi backend, không rủi ro kéo sập API khi chỉnh UI. Backend lên production vẫn cần duyệt thủ công vì đụng tới DB/tiền thật.</div>
       </div>
     </section>
 
     <!-- 12 AAPANEL -->
     <section id="aapanel" class="wide">
-      <h2><span class="num">12</span>Deploy lên aaPanel</h2>
-      <p class="section-intro">Hai cách triển khai trên aaPanel — chọn theo cấu hình VPS thực tế của bạn.</p>
-      <div class="warn-box"><b>Giả định:</b> VPS chạy Ubuntu 22.04, đã cài sẵn aaPanel, có quyền root/sudo qua SSH. Nếu VPS của bạn khác (CentOS, đã có site khác dùng chung cổng 80/443…), báo lại để tôi điều chỉnh câu lệnh.</div>
+      <h2><span class="num">12</span>Deploy: Vercel (frontend) + aaPanel (backend)</h2>
+      <p class="section-intro">Hai hệ thống độc lập, deploy riêng, nói chuyện qua HTTPS. Đọc mục 12.3 trước khi deploy thật — có 2 điểm dễ vỡ khi frontend/backend khác domain (CORS, cookie refresh token).</p>
 
-      <h3>Cách A — Docker Compose qua aaPanel <span class="tag">khuyến nghị</span></h3>
-      <p style="color:var(--muted);font-size:13.5px;margin-top:-4px">Dùng lại đúng <span class="code">Dockerfile</span>/<span class="code">docker-compose.yml</span> đã build ở môi trường dev — tránh lệch môi trường. Cần VPS tối thiểu 4GB RAM.</p>
+      <h3>12.1 Frontend trên Vercel</h3>
+      <div class="steps">
+        <div class="step"><h4>Import project</h4><p>Đăng nhập <a href="https://vercel.com" target="_blank" rel="noopener">vercel.com</a> bằng tài khoản GitHub cùng tổ chức với repo → <b>Add New → Project</b> → chọn <span class="code">nhockool1002/khomanguon-v2</span>.</p></div>
+        <div class="step"><h4>Cấu hình build</h4><p>Vercel quét monorepo và hỏi thư mục gốc — chọn <b>Root Directory: <span class="code">frontend</span></b>. Framework Next.js tự nhận diện, package manager tự nhận <span class="code">pnpm</span> qua <span class="code">pnpm-lock.yaml</span>. Không cần sửa build command mặc định.</p></div>
+        <div class="step"><h4>Biến môi trường</h4><p>Project Settings → Environment Variables, thêm cho cả 3 môi trường (Production/Preview/Development):</p>
+          <div class="codeblock">NEXT_PUBLIC_API_URL=https://api.khomanguon.vn</div>
+          <p style="margin-top:6px">Đặt trong Vercel dashboard — <b>không</b> có file <span class="code">.env</span> nào trong repo áp dụng cho Vercel.</p>
+        </div>
+        <div class="step"><h4>Deploy</h4><p>Bấm Deploy lần đầu. Từ đó về sau: push vào <span class="code">main</span> → tự deploy Production; mở Pull Request → Vercel tự tạo <b>Preview URL riêng</b> cho nhánh đó — coi như staging frontend miễn phí, không cần VPS riêng.</p></div>
+        <div class="step"><h4>Gắn domain thật</h4><p>Project → Domains → thêm <span class="code">khomanguon.vn</span> (và <span class="code">www</span> nếu cần) → Vercel cho DNS record cần trỏ (thường <span class="code">A 76.76.21.21</span> hoặc <span class="code">CNAME cname.vercel-dns.com</span>).</p></div>
+        <div class="step"><h4>Nếu DNS đang quản lý ở Cloudflare</h4><p>Tắt proxy (chuyển sang <b>DNS only</b> — icon mây xám) cho record trỏ vào Vercel. Bật đồng thời Cloudflare proxy (mây cam) lẫn Vercel dễ gây lỗi bắt tay SSL vì cả hai đều muốn làm edge/CDN — chỉ chọn một, Vercel đã tự có CDN + SSL riêng nên không cần Cloudflare phía trước nữa.</p></div>
+      </div>
+
+      <div class="warn-box"><b>Giả định cho phần 12.2:</b> VPS chạy Ubuntu 22.04, đã cài sẵn aaPanel, có quyền root/sudo qua SSH. Nếu VPS của bạn khác (CentOS, đã có site khác dùng chung cổng 80/443…), báo lại để tôi điều chỉnh câu lệnh.</div>
+
+      <h3 style="margin-top:34px">12.2 Backend trên aaPanel</h3>
+
+      <h4 style="margin:18px 0 6px;font-size:14px">Cách A — Docker Compose <span class="tag">khuyến nghị</span></h4>
+      <p style="color:var(--muted);font-size:13.5px;margin-top:-4px">Dùng lại đúng <span class="code">backend/Dockerfile</span>/<span class="code">docker-compose.prod.yml</span> đã build ở môi trường dev. Cần VPS tối thiểu 4GB RAM.</p>
       <div class="steps">
         <div class="step"><h4>Cài aaPanel &amp; khoá panel</h4><p>Chạy script cài chính thức từ aapanel.com. Sau khi cài xong: đổi cổng panel mặc định (8888), bật xác thực 2 lớp, đổi URL panel ngẫu nhiên.</p></div>
         <div class="step"><h4>Cài Docker Manager từ App Store</h4><p>Vào <b>App Store → Docker Manager</b> (kèm hỗ trợ Compose) và cài đặt. Nginx thường đã có sẵn theo LNMP mặc định.</p></div>
         <div class="step"><h4>Đưa mã nguồn lên server</h4><p>Qua SSH hoặc File Manager của aaPanel:</p>
           <div class="codeblock"><span class="c"># SSH vào VPS</span>
 cd /www/wwwroot
-git clone https://github.com/&lt;org&gt;/khomanguon-v2.git
+git clone https://github.com/nhockool1002/khomanguon-v2.git
 cd khomanguon-v2</div>
         </div>
-        <div class="step"><h4>Tạo file secrets production</h4><p>Tạo <span class="code">.env.production</span> ngoài tầm truy cập public (quyền 600), chứa DB password, JWT_SECRET, R2/S3 Access &amp; Secret Key, SEPAY_API_KEY, SEPAY_WEBHOOK_SECRET. Không commit file này vào Git.</p></div>
-        <div class="step"><h4>Deploy bằng Compose</h4><p>Trong app Docker của aaPanel, chọn <b>Compose → Add</b>, trỏ tới <span class="code">docker-compose.prod.yml</span>. File này chỉ bind cổng ra <span class="code">127.0.0.1</span>, không public cổng container ra ngoài:</p>
-          <div class="codeblock">services:
-  web:
-    build: .
-    env_file: .env.production
-    ports: ["127.0.0.1:3000:3000"]
-    restart: always
-  api:
-    build: ./apps/api
-    env_file: .env.production
-    ports: ["127.0.0.1:4000:4000"]
-    restart: always
-  postgres:
-    image: postgres:16
-    volumes: ["pgdata:/var/lib/postgresql/data"]
-    restart: always
-  redis:
-    image: redis:7
-    restart: always
-volumes:
-  pgdata:</div>
-        </div>
-        <div class="step"><h4>Tạo site &amp; reverse proxy trong aaPanel</h4><p><b>Website → Add site</b> với domain <span class="code">khomanguon.vn</span> (không cần PHP). Vào site vừa tạo → <b>Reverse Proxy</b> → thêm 2 proxy:</p>
-          <div class="codeblock">location /api/ {
+        <div class="step"><h4>Tạo file secrets production</h4><p>Tạo <span class="code">.env.production</span> ở gốc repo (ngoài tầm truy cập public, quyền 600) từ mẫu <span class="code">.env.production.example</span> — chứa DB password, <span class="code">JWT_ACCESS_SECRET</span>/<span class="code">JWT_REFRESH_SECRET</span>, <span class="code">FRONTEND_URL</span> (domain Vercel thật), R2/S3 &amp; SePay key. Không commit file này vào Git.</p></div>
+        <div class="step"><h4>Deploy bằng Compose</h4><p>Trong app Docker của aaPanel, chọn <b>Compose → Add</b>, trỏ tới <span class="code">docker-compose.prod.yml</span> ở gốc repo. File này chỉ có <span class="code">postgres</span>/<span class="code">redis</span>/<span class="code">backend</span> — không có frontend nữa — và chỉ bind cổng backend ra <span class="code">127.0.0.1:4000</span>, không public trực tiếp.</p></div>
+        <div class="step"><h4>Tạo site &amp; reverse proxy trong aaPanel</h4><p><b>Website → Add site</b> với domain <b><span class="code">api.khomanguon.vn</span></b> (không cần PHP) — subdomain riêng cho API, tách khỏi domain chính đang trỏ Vercel. Vào site vừa tạo → <b>Reverse Proxy</b>:</p>
+          <div class="codeblock">location / {
     proxy_pass http://127.0.0.1:4000/;
     proxy_set_header Host $host;
     proxy_set_header X-Real-IP $remote_addr;
-}
-location / {
-    proxy_pass http://127.0.0.1:3000/;
-    proxy_set_header Host $host;
-    proxy_set_header X-Real-IP $remote_addr;
-    proxy_set_header Upgrade $http_upgrade;   <span class="c"># cho WebSocket (ví realtime)</span>
+    proxy_set_header Upgrade $http_upgrade;   <span class="c"># cho WebSocket (ví realtime, Phase 3)</span>
     proxy_set_header Connection "upgrade";
 }</div>
         </div>
-        <div class="step"><h4>Bật SSL</h4><p>Tab <b>SSL</b> của site → Let's Encrypt → chọn domain → Apply → bật "Force HTTPS". Miễn phí, tự gia hạn.</p></div>
-        <div class="step"><h4>Nối Cloudflare</h4><p>DNS record <span class="code">A</span> trỏ về IP VPS, bật proxy (mây cam) để có CDN/WAF/chặn DDoS lớp mạng. SSL mode ở Cloudflare đặt <b>Full (strict)</b>.</p></div>
-        <div class="step"><h4>Khoá firewall</h4><p>aaPanel → Security: chỉ mở 80, 443 và cổng panel đã đổi. Đóng hẳn 5432 (Postgres), 6379 (Redis), 3000, 4000 khỏi Internet — vì đã bind 127.0.0.1 nên mặc định không lộ, nhưng vẫn nên chặn tường lửa ở tầng OS/nhà cung cấp VPS để chắc chắn.</p></div>
+        <div class="step"><h4>Bật SSL</h4><p>Tab <b>SSL</b> của site <span class="code">api.khomanguon.vn</span> → Let's Encrypt → Apply → bật "Force HTTPS". Bắt buộc — cookie cross-site (mục 12.3) chỉ hoạt động qua HTTPS.</p></div>
+        <div class="step"><h4>Nối Cloudflare cho subdomain API</h4><p>DNS record <span class="code">A</span> của <span class="code">api.khomanguon.vn</span> trỏ về IP VPS, bật proxy (mây cam) để có WAF/chặn DDoS cho API. SSL mode ở Cloudflare đặt <b>Full (strict)</b>. (Domain chính <span class="code">khomanguon.vn</span> thì để DNS only trỏ Vercel như mục 12.1.)</p></div>
+        <div class="step"><h4>Khoá firewall</h4><p>aaPanel → Security: chỉ mở 80, 443 và cổng panel đã đổi. Đóng hẳn 5432 (Postgres), 6379 (Redis), 4000 khỏi Internet — đã bind 127.0.0.1 nên mặc định không lộ, nhưng vẫn nên chặn tường lửa ở tầng OS/nhà cung cấp VPS để chắc chắn.</p></div>
         <div class="step"><h4>Đặt lịch Cron</h4><p><b>Cron</b> trong aaPanel: (1) huỷ giao dịch SePay "pending" quá 30 phút, (2) dọn log presigned URL hết hạn, (3) backup PostgreSQL hàng ngày lúc ít traffic (VD 3h sáng).</p></div>
       </div>
 
-      <h3 style="margin-top:34px">Cách B — Native (không Docker) <span class="tag">VPS RAM thấp &lt; 2GB</span></h3>
+      <h4 style="margin:26px 0 6px;font-size:14px">Cách B — Native (không Docker) <span class="tag">VPS RAM thấp &lt; 2GB</span></h4>
       <p style="color:var(--muted);font-size:13.5px;margin-top:-4px">Nhẹ hơn nhưng dễ lệch môi trường dev/prod hơn — chỉ chọn khi VPS không kham nổi overhead Docker.</p>
       <ul class="plain">
-        <li>App Store cài <b>Node.js Version Manager</b> + <b>PM2 Manager</b> (chọn Node 20 LTS), <b>PostgreSQL</b>, <b>Redis</b> — cả ba chạy trực tiếp trên host thay vì trong container.</li>
-        <li>Build rồi chạy qua PM2: <span class="code">pm2 start ecosystem.config.js</span> với 2 tiến trình <span class="code">web</span> (<span class="code">next start -p 3000</span>) và <span class="code">api</span> (<span class="code">node dist/main.js</span>, cổng 4000).</li>
-        <li>Reverse proxy Nginx trong aaPanel cấu hình giống hệt Cách A (proxy_pass tới 127.0.0.1:3000 / :4000).</li>
+        <li>App Store cài <b>Node.js Version Manager</b> + <b>PM2 Manager</b> (chọn Node 22), <b>PostgreSQL</b>, <b>Redis</b> — cả ba chạy trực tiếp trên host thay vì trong container.</li>
+        <li>Build backend rồi chạy qua PM2: <span class="code">pm2 start dist/main.js --name khomanguon-api</span>, cổng 4000.</li>
+        <li>Reverse proxy Nginx trong aaPanel cấu hình giống hệt Cách A (chỉ 1 <span class="code">location /</span> trỏ <span class="code">127.0.0.1:4000</span>).</li>
         <li>PM2 tự restart khi crash (<span class="code">pm2 startup</span> + <span class="code">pm2 save</span>) — tương đương <span class="code">restart: always</span> của Docker.</li>
+      </ul>
+
+      <h3 style="margin-top:34px">12.3 CORS &amp; cookie cross-origin — bắt buộc đọc</h3>
+      <p style="color:var(--muted);font-size:13.5px;margin-top:-4px">Frontend (<span class="code">khomanguon.vn</span> trên Vercel) và backend (<span class="code">api.khomanguon.vn</span> trên aaPanel) là hai domain khác nhau trong mắt trình duyệt — khác hẳn lúc dev local (cùng <span class="code">localhost</span>). Hai chỗ code đã xử lý sẵn, chỉ cần cấu hình đúng biến môi trường:</p>
+      <ul class="plain">
+        <li><b>CORS</b> (<span class="code">backend/src/main.ts</span>): danh sách origin được phép đọc từ <span class="code">ALLOWED_ORIGINS</span> (phân cách dấu phẩy), mặc định fallback về <span class="code">FRONTEND_URL</span> nếu không đặt. Muốn test tạm một Preview URL của Vercel (subdomain đổi mỗi lần) với backend production, thêm URL đó vào <span class="code">ALLOWED_ORIGINS</span> rồi restart container — đừng để mặc định mở cho mọi domain.</li>
+        <li><b>Cookie refresh token</b> (<span class="code">backend/src/auth/auth.controller.ts</span>): khi <span class="code">NODE_ENV=production</span>, cookie tự chuyển sang <span class="code">SameSite=None; Secure</span> — bắt buộc để trình duyệt vẫn gửi cookie kèm request <span class="code">/auth/refresh</span> dù khác domain. Thiếu <span class="code">Secure</span> (tức chạy HTTP thay vì HTTPS) thì <span class="code">SameSite=None</span> sẽ bị trình duyệt từ chối hoàn toàn — đây là lý do SSL ở mục 12.2 bắt buộc, không phải tuỳ chọn.</li>
       </ul>
     </section>
 
@@ -957,14 +954,15 @@ location / {
       <h2><span class="num">13</span>Go-live &amp; vận hành</h2>
       <h3>Checklist trước khi mở cho người dùng thật</h3>
       <div class="checklist">
-        <div class="item"><span class="box"></span><span><b>DNS &amp; SSL</b> — domain trỏ đúng IP, https hoạt động, http tự redirect https.</span></div>
-        <div class="item"><span class="box"></span><span><b>Secrets production</b> — đã đổi toàn bộ key sandbox (SePay, R2/S3) sang key thật, không còn key dev trong <span class="code">.env.production</span>.</span></div>
+        <div class="item"><span class="box"></span><span><b>DNS &amp; SSL cả 2 domain</b> — <span class="code">khomanguon.vn</span> (Vercel) và <span class="code">api.khomanguon.vn</span> (aaPanel) đều trỏ đúng, https hoạt động, http tự redirect https.</span></div>
+        <div class="item"><span class="box"></span><span><b>CORS &amp; cookie</b> — <span class="code">FRONTEND_URL</span>/<span class="code">ALLOWED_ORIGINS</span> trên backend trỏ đúng domain Vercel thật; đăng nhập thử trên domain production, xác nhận reload trang vẫn giữ phiên (mục 12.3).</span></div>
+        <div class="item"><span class="box"></span><span><b>Secrets production</b> — đã đổi toàn bộ key sandbox (SePay, R2/S3) sang key thật ở <span class="code">.env.production</span> (backend) và biến môi trường Vercel (frontend), không còn key dev.</span></div>
         <div class="item"><span class="box"></span><span><b>Test nạp tiền thật</b> — chuyển khoản số tiền nhỏ qua SePay, xác nhận webhook cộng đúng $P và đúng người.</span></div>
         <div class="item"><span class="box"></span><span><b>Test tải file thật</b> — mua 1 link trên bucket R2/S3 production, xác nhận trừ tiền đúng, presigned URL tải được và hết hạn đúng TTL.</span></div>
         <div class="item"><span class="box"></span><span><b>Backup đã kiểm chứng</b> — chạy thử restore từ bản backup PostgreSQL ít nhất 1 lần, không chỉ tin vào việc "cron đã chạy".</span></div>
         <div class="item"><span class="box"></span><span><b>Firewall &amp; panel</b> — cổng quản trị aaPanel đã đổi khỏi mặc định, 2FA bật, các cổng DB/Redis không lộ ra ngoài.</span></div>
-        <div class="item"><span class="box"></span><span><b>Giám sát</b> — Sentry nhận được lỗi test, Uptime Kuma/monitor báo trạng thái site đúng.</span></div>
-        <div class="item"><span class="box"></span><span><b>Kế hoạch rollback</b> — giữ lại image/tag bản trước; nếu lỗi nghiêm trọng, <span class="code">docker compose up -d</span> lại tag cũ trong vài phút.</span></div>
+        <div class="item"><span class="box"></span><span><b>Giám sát</b> — Sentry nhận được lỗi test, Uptime Kuma/monitor báo trạng thái đúng cho cả frontend lẫn backend.</span></div>
+        <div class="item"><span class="box"></span><span><b>Kế hoạch rollback</b> — Backend: giữ lại image/tag bản trước, <span class="code">docker compose up -d</span> lại tag cũ trong vài phút. Frontend: Vercel → tab Deployments → "Promote to Production" một bản deploy cũ, tức thời, không cần build lại.</span></div>
       </div>
 
       <h3>Nhịp vận hành sau khi lên hàng</h3>
@@ -976,6 +974,6 @@ location / {
       </ul>
     </section>
 
-    <footer class="end">khomanguon v2 — đặc tả kỹ thuật, wireframe, kế hoạch triển khai &amp; deploy aaPanel · biên soạn dựa trên khảo sát trực tiếp khomanguon.org (v1)</footer>
+    <footer class="end">khomanguon v2 — đặc tả kỹ thuật, wireframe, kế hoạch triển khai &amp; deploy Vercel + aaPanel · biên soạn dựa trên khảo sát trực tiếp khomanguon.org (v1)</footer>
   </main>
 </div>

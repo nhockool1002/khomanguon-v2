@@ -164,11 +164,13 @@ Quy ước: mỗi phase có **Definition of Done (DoD)** rõ ràng — không sa
 - [ ] Rate limit toàn bộ API công khai (đăng nhập, tìm kiếm, tải)
 - [ ] Audit log cho thao tác nhạy cảm: đổi quyền, điều chỉnh ví thủ công, đổi key R2/S3
 
-### 4.4 Hạ tầng Production
-- [ ] Setup aaPanel Production theo mục 12 tài liệu (Cách A: Docker Compose) — cài panel, khoá 2FA, Docker Manager, reverse proxy, SSL, Cloudflare, firewall, cron
-- [ ] CI/CD: GitHub Actions build/test → image lên GHCR → deploy staging tự động → deploy production cần duyệt thủ công (mục 11 tài liệu)
+### 4.4 Hạ tầng Production — Vercel (frontend) + aaPanel (backend)
+- [ ] Import repo lên Vercel (Root Directory `frontend`), gắn domain `khomanguon.vn`, đặt `NEXT_PUBLIC_API_URL` — theo mục 12.1 tài liệu
+- [ ] Setup aaPanel cho backend theo mục 12.2 tài liệu (Cách A: Docker Compose, chỉ postgres/redis/backend) — cài panel, khoá 2FA, Docker Manager, reverse proxy domain `api.khomanguon.vn`, SSL, Cloudflare, firewall, cron
+- [ ] Cấu hình CORS/cookie cross-origin đúng (`ALLOWED_ORIGINS`/`FRONTEND_URL` trên backend trỏ domain Vercel thật) — xem mục 12.3 tài liệu, test đăng nhập + reload giữ phiên trên domain production
+- [ ] CI/CD backend: GitHub Actions build/test → image lên GHCR → deploy production cần duyệt thủ công. Frontend deploy tự động qua Vercel (không cần workflow riêng) — mục 11 tài liệu
 - [ ] Backup PostgreSQL tự động hàng ngày + đã thử restore ít nhất 1 lần
-- [ ] Giám sát: Sentry (lỗi), Uptime Kuma (uptime), theo dõi tài nguyên aaPanel
+- [ ] Giám sát: Sentry (lỗi, cả frontend lẫn backend), Uptime Kuma (uptime cả 2 domain), theo dõi tài nguyên VPS aaPanel
 
 ### 4.5 Dữ liệu & nội dung
 - [ ] 🔴 Migrate dữ liệu từ WordPress v1 sang v2 — kế hoạch chi tiết, mapping bảng, các quyết định kỹ thuật (mật khẩu, ảnh/file, ví `@CASH` cũ, comment khách...) nằm ở [`Migration_Plan.md`](Migration_Plan.md). Đang chờ file SQL export đầy đủ từ WordPress — khâu khảo sát/viết script ETL có thể bắt đầu ngay khi có SQL, **không cần chờ tới Phase 4**, chỉ việc chạy thật lên Production mới nên để sát Go-live.

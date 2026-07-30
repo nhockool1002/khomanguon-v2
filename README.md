@@ -47,7 +47,7 @@ pnpm exec prisma migrate dev --name <mo-ta-thay-doi>
 
 ## Deploy
 
-Xem mục 11–13 trong [`docs/khomanguon-v2-spec.html`](docs/khomanguon-v2-spec.html) — môi trường Local/Staging/Production, hướng dẫn deploy aaPanel từng bước (`docker-compose.prod.yml`), và checklist go-live.
+Frontend deploy trên **Vercel** (root directory `frontend/`), backend deploy trên **aaPanel** (`docker-compose.prod.yml`, chỉ postgres/redis/backend). Vì 2 domain khác nhau, backend cần đúng `ALLOWED_ORIGINS`/`FRONTEND_URL` để CORS và cookie refresh token hoạt động — xem mục 11–13 trong [`docs/khomanguon-v2-spec.html`](docs/khomanguon-v2-spec.html) (hướng dẫn từng bước + checklist go-live).
 
 ## Bảo mật
 

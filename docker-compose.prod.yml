@@ -1,5 +1,8 @@
-# Dùng khi deploy lên aaPanel (mục 12 docs/khomanguon-v2-spec.html) — image build multi-stage,
-# chỉ bind ra 127.0.0.1, Nginx của aaPanel đứng trước làm reverse proxy + SSL.
+# Backend production trên aaPanel (mục 12 docs/khomanguon-v2-spec.html) — image build multi-stage,
+# chỉ bind ra 127.0.0.1, Nginx của aaPanel đứng trước làm reverse proxy + SSL cho subdomain api.
+#
+# Frontend KHÔNG chạy ở đây — deploy trên Vercel (build từ thư mục frontend/, xem mục 12).
+# frontend/Dockerfile vẫn giữ lại để dùng cho docker-compose.yml (dev) hoặc tự host lại sau này nếu cần.
 
 services:
   postgres:
@@ -26,18 +29,6 @@ services:
     depends_on:
       - postgres
       - redis
-
-  frontend:
-    build:
-      context: ./frontend
-      args:
-        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL}
-    restart: always
-    env_file: .env.production
-    ports:
-      - "127.0.0.1:3000:3000"
-    depends_on:
-      - backend
 
 volumes:
   pgdata:
