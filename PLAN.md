@@ -58,10 +58,10 @@ Quy ước: mỗi phase có **Definition of Done (DoD)** rõ ràng — không sa
 - [x] `GET /users` (list, cần `user.manage`), `POST/DELETE /users/:id/roles` (gán/gỡ role, cần `user.assign_role`) — UC18, đã test admin gán role thành công + member bị chặn
 
 ### 1.4 CMS bài viết (khung cơ bản)
-- [ ] Model Post, Category (chưa có Tag/SEO nâng cao)
-- [ ] API CRUD bài viết (chưa có WYSIWYG, chỉ textarea tạm)
-- [ ] UI trang chủ (wireframe #01), trang danh mục (wireframe #02), chi tiết bài viết (wireframe #03) — bản khung, chưa có link tải/bình luận
-- [ ] Layout public bám bản sắc v1 (navbar tối, thẻ bài viết, gạch chân gradient — mục 02 tài liệu thiết kế)
+- [x] Model Post, Category (chưa có Tag/SEO nâng cao) — đã có sẵn từ ERD Phase 0, không cần migration mới
+- [x] API CRUD bài viết (chưa có WYSIWYG, chỉ textarea tạm) — `backend/src/posts`, `backend/src/categories`; phân quyền `post.create`/`post.edit.own`/`post.edit.any`/`post.publish`/`post.delete`
+- [x] UI trang chủ (wireframe #01), trang danh mục (wireframe #02), chi tiết bài viết (wireframe #03) — bản khung, chưa có link tải/bình luận
+- [x] Layout public bám bản sắc v1 (navbar tối, thẻ bài viết, gạch chân gradient — mục 02 tài liệu thiết kế)
 
 ### 1.5 Kiểm thử
 - [ ] Test unit cho Auth (đăng ký/đăng nhập/reset mật khẩu) — luồng trọng yếu, ưu tiên coverage cao
