@@ -36,7 +36,7 @@ export function Navbar({ categories = [] }: { categories?: Category[] }) {
                 href="/quan-tri/bai-viet"
                 className="rounded-md px-3 py-1.5 text-sm text-zinc-200 hover:bg-white/10"
               >
-                Quản lý bài viết
+                Quản trị
               </Link>
               <Link
                 href="/tai-khoan"
