@@ -16,11 +16,15 @@ async function publicFetch<T>(path: string): Promise<T | null> {
 
 export async function fetchPosts(params: {
   categorySlug?: string;
+  q?: string;
+  sort?: "newest" | "popular";
   page?: number;
   limit?: number;
 }): Promise<PostListResponse> {
   const query = new URLSearchParams();
   if (params.categorySlug) query.set("category", params.categorySlug);
+  if (params.q) query.set("q", params.q);
+  if (params.sort) query.set("sort", params.sort);
   if (params.page) query.set("page", String(params.page));
   if (params.limit) query.set("limit", String(params.limit));
   const result = await publicFetch<PostListResponse>(`/posts?${query.toString()}`);

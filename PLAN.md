@@ -85,16 +85,16 @@ Quy ước: mỗi phase có **Definition of Done (DoD)** rõ ràng — không sa
 - [x] UI kéo-thả bằng dnd-kit, gán hiển thị theo vai trò — UC16, wireframe #10. Lọc menu công khai theo vai trò user cụ thể (không chỉ "công khai/không công khai") để dành bản sau — `AuthUser` context chưa mang theo `roles`.
 
 ### 2.3 Bình luận
-- [ ] Model comment (threaded — `parent_id`), API tạo/trả lời/thích
-- [ ] UI bình luận trên trang chi tiết bài viết — UC07, wireframe #03
-- [ ] Chức năng kiểm duyệt (ẩn/xoá/ghim, chặn user spam) cho Moderator — UC08
+- [x] Model comment (threaded — `parent_id`), API tạo/trả lời/thích — thêm `Comment.pinned` + model `CommentLike` (migration `20260731100000_comment_likes_and_pin`)
+- [x] UI bình luận trên trang chi tiết bài viết — UC07, wireframe #03
+- [x] Chức năng kiểm duyệt (ẩn/xoá/ghim, chặn user spam) cho Moderator — UC08. "Chặn user" dùng `PATCH /users/:id/status` (thu hồi refresh token, enforce ở login/refresh) — chưa có UI riêng để mở khoá lại (BE hỗ trợ, tạm thời phải gọi API tay).
 
 ### 2.4 Tìm kiếm & danh mục
-- [ ] Tìm kiếm full-text (Postgres `tsvector` hoặc Meilisearch nếu traffic lớn) — UC05
-- [ ] Lọc theo danh mục/tag, sắp xếp mới nhất/phổ biến — wireframe #02
+- [x] Tìm kiếm full-text (Postgres `tsvector` hoặc Meilisearch nếu traffic lớn) — UC05. **Đơn giản hoá:** dùng `ILIKE` (case-insensitive `contains`) trên title/excerpt thay vì tsvector/Meilisearch — đủ dùng ở quy mô hiện tại, nâng cấp sau khi traffic lớn.
+- [x] Lọc theo danh mục/tag, sắp xếp mới nhất/phổ biến — wireframe #02. **Chưa làm lọc theo tag** (model `Tag`/`PostTag` có sẵn nhưng chưa có UI gắn tag cho bài viết) — để dành phase sau.
 
 ### 2.5 Custom Role đầy đủ
-- [ ] UI ma trận quyền tick chọn theo module (tạo custom role) — UC17, wireframe #11
+- [x] UI ma trận quyền tick chọn theo module (tạo custom role) — UC17, wireframe #11
 
 ### 2.6 SEO toàn site
 - [ ] Sinh `sitemap.xml` tự động khi publish, `robots.txt`

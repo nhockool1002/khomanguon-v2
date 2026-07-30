@@ -35,6 +35,7 @@ model User {
   wallet                 Wallet?
   posts                  Post[]
   comments               Comment[]
+  commentLikes           CommentLike[]
   downloadGrants         DownloadGrant[]
   downloadEvents         DownloadEvent[]
   refreshTokens          RefreshToken[]
@@ -247,9 +248,25 @@ model Comment {
   replies   Comment[]     @relation("CommentTree")
   content   String
   status    CommentStatus @default(PUBLISHED)
+  pinned    Boolean       @default(false) // Moderator ghim — UC08
   createdAt DateTime      @default(now())
 
+  likes CommentLike[]
+
   @@map("comments")
+}
+
+// "Thích" bình luận (UC07) — unique theo user+comment để không thích 2 lần.
+model CommentLike {
+  id        String   @id @default(cuid())
+  commentId String
+  comment   Comment  @relation(fields: [commentId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@unique([commentId, userId])
+  @@map("comment_likes")
 }
 
 // ───────────────────────── Lưu trữ file & link tải trả phí (Phase 3) ─────────────────────────

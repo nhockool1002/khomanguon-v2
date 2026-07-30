@@ -5,6 +5,7 @@ import {
   UnauthorizedException,
 } from '@nestjs/common';
 import * as argon2 from 'argon2';
+import { UserStatus } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { RolesService } from '../roles/roles.service';
 import { UpdateProfileDto } from './dto/update-profile.dto';
@@ -108,6 +109,26 @@ export class UsersService {
       })),
       total,
     };
+  }
+
+  // Khoá/mở tài khoản (UC08 — chặn user spam bình luận) — khoá xong thu hồi hết refresh
+  // token đang hoạt động để có hiệu lực ngay, không phải đợi access token hết hạn.
+  async updateStatus(userId: string, status: UserStatus) {
+    const user = await this.prisma.user.findUnique({ where: { id: userId } });
+    if (!user) throw new NotFoundException('Không tìm thấy người dùng');
+
+    await this.prisma.$transaction([
+      this.prisma.user.update({ where: { id: userId }, data: { status } }),
+      ...(status === UserStatus.BANNED
+        ? [
+            this.prisma.refreshToken.updateMany({
+              where: { userId, revokedAt: null },
+              data: { revokedAt: new Date() },
+            }),
+          ]
+        : []),
+    ]);
+    return { id: userId, status };
   }
 
   async assignRole(userId: string, roleSlug: string) {

@@ -11,6 +11,7 @@ import { CategoriesModule } from './categories/categories.module';
 import { PostsModule } from './posts/posts.module';
 import { UploadsModule } from './uploads/uploads.module';
 import { MenusModule } from './menus/menus.module';
+import { CommentsModule } from './comments/comments.module';
 
 @Module({
   imports: [
@@ -24,6 +25,7 @@ import { MenusModule } from './menus/menus.module';
     PostsModule,
     UploadsModule,
     MenusModule,
+    CommentsModule,
   ],
   controllers: [AppController],
   providers: [AppService],

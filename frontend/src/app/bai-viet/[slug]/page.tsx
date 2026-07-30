@@ -3,6 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { fetchPostBySlug } from "@/lib/public-api";
 import { GradientUnderline } from "@/components/gradient-underline";
+import { CommentSection } from "@/components/comment-section";
 import { formatDate, formatViewCount } from "@/lib/format";
 
 type Props = {
@@ -80,6 +81,8 @@ export default async function PostDetailPage({ params }: Props) {
         className="prose prose-sm max-w-none text-zinc-800 [&_img]:rounded-md"
         dangerouslySetInnerHTML={{ __html: post.contentHtml }}
       />
+
+      <CommentSection postId={post.id} />
     </main>
   );
 }

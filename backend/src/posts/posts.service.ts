@@ -56,18 +56,36 @@ export class PostsService {
     private readonly roles: RolesService,
   ) {}
 
-  async listPublic(query: PageQuery & { categorySlug?: string }) {
+  // "sort=popular" sắp theo viewCount — tìm kiếm dùng ILIKE trên title/excerpt (đơn giản, đủ
+  // dùng ở quy mô hiện tại; nâng cấp tsvector/Meilisearch khi traffic lớn — xem PLAN.md 2.4).
+  async listPublic(
+    query: PageQuery & {
+      categorySlug?: string;
+      q?: string;
+      sort?: 'newest' | 'popular';
+    },
+  ) {
     const { skip, take } = toPagination(query);
     const where: Prisma.PostWhereInput = {
       status: PostStatus.PUBLISHED,
       ...(query.categorySlug && { category: { slug: query.categorySlug } }),
+      ...(query.q && {
+        OR: [
+          { title: { contains: query.q, mode: 'insensitive' } },
+          { excerpt: { contains: query.q, mode: 'insensitive' } },
+        ],
+      }),
     };
+    const orderBy: Prisma.PostOrderByWithRelationInput =
+      query.sort === 'popular'
+        ? { viewCount: 'desc' }
+        : { publishedAt: 'desc' };
     const [items, total] = await this.prisma.$transaction([
       this.prisma.post.findMany({
         where,
         skip,
         take,
-        orderBy: { publishedAt: 'desc' },
+        orderBy,
         select: listSelect,
       }),
       this.prisma.post.count({ where }),

@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { fetchCategories, fetchPosts } from "@/lib/public-api";
 import { PostRow } from "@/components/post-row";
 import { Pagination } from "@/components/pagination";
+import { SortLinks } from "@/components/sort-links";
 
 const PAGE_SIZE = 10;
 
@@ -11,11 +12,12 @@ export default async function CategoryPage({
   searchParams,
 }: {
   params: Promise<{ slug: string }>;
-  searchParams: Promise<{ page?: string }>;
+  searchParams: Promise<{ page?: string; sort?: "newest" | "popular" }>;
 }) {
   const { slug } = await params;
-  const { page: pageParam } = await searchParams;
+  const { page: pageParam, sort: sortParam } = await searchParams;
   const page = Math.max(Number(pageParam) || 1, 1);
+  const sort = sortParam === "popular" ? "popular" : "newest";
 
   const categories = await fetchCategories();
   const category = categories.find((c) => c.slug === slug);
@@ -23,6 +25,7 @@ export default async function CategoryPage({
 
   const { items: posts, total } = await fetchPosts({
     categorySlug: slug,
+    sort,
     page,
     limit: PAGE_SIZE,
   });
@@ -39,7 +42,10 @@ export default async function CategoryPage({
         <span className="text-zinc-800">{category.name}</span>
       </nav>
 
-      <h1 className="text-xl font-semibold text-zinc-900">{category.name}</h1>
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <h1 className="text-xl font-semibold text-zinc-900">{category.name}</h1>
+        <SortLinks baseHref={`/danh-muc/${slug}`} sort={sort} />
+      </div>
 
       {siblingCategories.length > 1 && (
         <div className="flex flex-wrap gap-1.5">
@@ -69,7 +75,12 @@ export default async function CategoryPage({
         )}
       </div>
 
-      <Pagination baseHref={`/danh-muc/${slug}`} page={page} totalPages={totalPages} />
+      <Pagination
+        baseHref={`/danh-muc/${slug}`}
+        page={page}
+        totalPages={totalPages}
+        extraQuery={{ sort }}
+      />
     </main>
   );
 }

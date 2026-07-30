@@ -48,6 +48,21 @@ export default async function Home({
         </div>
 
         <aside className="flex flex-col gap-4 lg:flex-1">
+          <form action="/tim-kiem" className="flex gap-2">
+            <input
+              type="text"
+              name="q"
+              placeholder="Tìm kiếm bài viết..."
+              className="flex-1 rounded-md border border-zinc-300 px-3 py-2 text-sm outline-none focus:border-[#1d3557] focus:ring-1 focus:ring-[#1d3557]"
+            />
+            <button
+              type="submit"
+              className="rounded-md bg-[#1d3557] px-3 py-2 text-sm font-medium text-white hover:bg-[#16294a]"
+            >
+              Tìm
+            </button>
+          </form>
+
           <div className="rounded-lg border border-zinc-200 bg-white p-4">
             <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-zinc-500">
               Danh mục

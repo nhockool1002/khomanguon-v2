@@ -32,15 +32,19 @@ function parsePageQuery(page?: string, limit?: string) {
 export class PostsController {
   constructor(private readonly postsService: PostsService) {}
 
-  // Danh sách công khai — chỉ bài PUBLISHED (wireframe #01/#02).
+  // Danh sách công khai — chỉ bài PUBLISHED (wireframe #01/#02), hỗ trợ tìm kiếm + sắp xếp (UC05).
   @Get()
   list(
     @Query('category') categorySlug?: string,
+    @Query('q') q?: string,
+    @Query('sort') sort?: 'newest' | 'popular',
     @Query('page') page?: string,
     @Query('limit') limit?: string,
   ) {
     return this.postsService.listPublic({
       categorySlug,
+      q,
+      sort,
       ...parsePageQuery(page, limit),
     });
   }
