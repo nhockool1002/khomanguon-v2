@@ -3,7 +3,6 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { fetchPostBySlug } from "@/lib/public-api";
 import { GradientUnderline } from "@/components/gradient-underline";
-import { CommentSection } from "@/components/comment-section";
 import { DownloadBox } from "@/components/download-box";
 import { WidgetArea } from "@/components/widget-area";
 import { formatDate, formatViewCount } from "@/lib/format";
@@ -90,8 +89,7 @@ export default async function PostDetailPage({ params }: Props) {
         </div>
 
         <div className="flex flex-col gap-4 lg:flex-1">
-          <WidgetArea area="sidebar" />
-          <CommentSection postId={post.id} />
+          <WidgetArea area="sidebar" postId={post.id} />
         </div>
       </div>
     </main>
