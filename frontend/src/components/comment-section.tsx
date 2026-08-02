@@ -40,11 +40,16 @@ export function CommentSection({
   const { user, loading: authLoading } = useAuth();
   const [open, setOpen] = useState(true);
   const [comments, setComments] = useState<Comment[] | null>(null);
+  const [loadingComments, setLoadingComments] = useState(true);
   const [isModerator, setIsModerator] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [content, setContent] = useState("");
   const [replyingTo, setReplyingTo] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  // Mặc định lấy từ config widget (Admin đặt ở /quan-tri/widget) — người xem có thể tự đổi lại.
+  const [activeSort, setActiveSort] = useState<"newest" | "oldest">(
+    sortOrder === "oldest" ? "oldest" : "newest",
+  );
 
   async function fetchComments(): Promise<{ moderator: boolean; comments: Comment[] }> {
     let moderator = false;
@@ -56,8 +61,7 @@ export function CommentSection({
         moderator = false;
       }
     }
-    const params = new URLSearchParams({ postId });
-    if (sortOrder) params.set("sort", sortOrder);
+    const params = new URLSearchParams({ postId, sort: activeSort });
     if (filterUserId) params.set("authorId", filterUserId);
     const path = moderator
       ? `/comments/moderation?${params.toString()}`
@@ -73,6 +77,8 @@ export function CommentSection({
       setComments(comments);
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "Có lỗi xảy ra");
+    } finally {
+      setLoadingComments(false);
     }
   }
 
@@ -83,9 +89,10 @@ export function CommentSection({
         setIsModerator(moderator);
         setComments(comments);
       })
-      .catch((err) => setError(err instanceof ApiError ? err.message : "Có lỗi xảy ra"));
+      .catch((err) => setError(err instanceof ApiError ? err.message : "Có lỗi xảy ra"))
+      .finally(() => setLoadingComments(false));
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [authLoading, user]);
+  }, [authLoading, user, activeSort]);
 
   const tree = useMemo(() => buildTree(comments ?? []), [comments]);
 
@@ -131,16 +138,35 @@ export function CommentSection({
 
   return (
     <section className="flex flex-col gap-3 rounded-lg border border-zinc-200 bg-white p-4">
-      <button
-        type="button"
-        onClick={() => setOpen((o) => !o)}
-        className="flex items-center justify-between text-sm font-semibold text-zinc-900"
-      >
-        <span>
-          Bình luận {comments ? `(${comments.length})` : ""}
-        </span>
-        <span className="text-xs font-normal text-zinc-400">{open ? "▲ Ẩn" : "▼ Hiện"}</span>
-      </button>
+      <div className="flex items-center justify-between gap-2">
+        <button
+          type="button"
+          onClick={() => setOpen((o) => !o)}
+          className="flex items-center gap-1.5 text-sm font-semibold text-zinc-900"
+        >
+          <span>
+            Bình luận {comments ? `(${comments.length})` : ""}
+          </span>
+          <span className="text-xs font-normal text-zinc-400">{open ? "▲ Ẩn" : "▼ Hiện"}</span>
+        </button>
+        {open && (
+          <label className="flex items-center gap-1.5 text-xs text-zinc-500">
+            Sắp xếp
+            <select
+              value={activeSort}
+              onChange={(e) => {
+                setLoadingComments(true);
+                setActiveSort(e.target.value as "newest" | "oldest");
+              }}
+              disabled={loadingComments}
+              className="rounded border border-zinc-300 bg-white px-1.5 py-1 text-xs text-zinc-700 outline-none focus:border-[#1d3557] disabled:opacity-50"
+            >
+              <option value="newest">Mới nhất</option>
+              <option value="oldest">Cũ nhất</option>
+            </select>
+          </label>
+        )}
+      </div>
 
       {open && (
         <>
@@ -173,6 +199,15 @@ export function CommentSection({
           </Link>{" "}
           để bình luận.
         </p>
+      )}
+
+      {comments === null && (
+        <div className="flex flex-col gap-2" aria-live="polite">
+          <span className="text-xs text-zinc-400">Đang tải bình luận...</span>
+          {[0, 1].map((i) => (
+            <div key={i} className="h-14 animate-pulse rounded-md bg-zinc-100" />
+          ))}
+        </div>
       )}
 
       {tree.length === 0 && comments && (
