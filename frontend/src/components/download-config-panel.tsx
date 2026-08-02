@@ -104,7 +104,7 @@ export function DownloadConfigPanel({ postId }: { postId?: string }) {
           </label>
 
           <label className="flex flex-col gap-1 text-sm text-zinc-700">
-            @Cash
+            $P
             <input
               type="number"
               min={0}

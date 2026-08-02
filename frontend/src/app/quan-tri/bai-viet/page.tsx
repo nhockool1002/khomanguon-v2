@@ -60,7 +60,7 @@ export default function AdminPostsPage() {
   }
 
   return (
-    <div className="flex w-full max-w-4xl flex-col gap-4 px-8 py-8">
+    <div className="flex w-full flex-col gap-4 px-8 py-8">
       <div className="flex items-center justify-between">
         <h1 className="text-xl font-semibold text-zinc-900">Quản lý bài viết</h1>
         <Link

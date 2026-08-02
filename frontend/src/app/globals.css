@@ -23,3 +23,17 @@ body {
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
 }
+
+/*
+ * @tailwindcss/typography mặc định "display: block" cho mọi <img> trong .prose — đúng cho ảnh đơn,
+ * nhưng làm vỡ layout các bài đã migrate từ WordPress, nơi nhiều <img> đứng liền kề nhau trong cùng
+ * một <div>/<p> (không có gallery block riêng) để hiển thị thành 1 hàng như bản v1. Chỉ override
+ * những ảnh có ảnh liền kề (img + img / img:has(+ img)) sang inline-block — ảnh đơn lẻ giữ nguyên
+ * hành vi mặc định (block, căn giữa).
+ */
+.prose img + img,
+.prose img:has(+ img) {
+  display: inline-block;
+  margin: 0.25rem;
+  vertical-align: top;
+}
