@@ -141,4 +141,7 @@ jobs:
             # Seed idempotent (upsert permission/role/admin, chỉ tạo widget mặc định nếu bảng đang
             # rỗng) — chạy lại mỗi lần deploy để permission/seed data mới (vd "widget.manage") luôn
             # có ngay, không phải nhớ chạy tay như bước "lần đầu" trong Deploy_Checklist.md.
-            docker compose --env-file .env.production -f docker-compose.prod.yml exec -T backend ./node_modules/.bin/prisma db seed
+            # "prisma db seed" tự spawn "ts-node" theo tên trần (không phải đường dẫn) dựa vào PATH —
+            # cần thêm node_modules/.bin vào PATH của lệnh exec, nếu không sẽ báo "spawn ts-node ENOENT"
+            # (khác lệnh migrate deploy ở trên, tự thân không spawn thêm process con nào khác).
+            docker compose --env-file .env.production -f docker-compose.prod.yml exec -T -e PATH="/app/node_modules/.bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin" backend ./node_modules/.bin/prisma db seed
