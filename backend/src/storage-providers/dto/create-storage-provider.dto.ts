@@ -8,8 +8,8 @@ import {
 } from 'class-validator';
 
 export class CreateStorageProviderDto {
-  @IsIn(['R2', 'S3'])
-  type: 'R2' | 'S3';
+  @IsIn(['R2', 'S3', 'MAILJET'])
+  type: 'R2' | 'S3' | 'MAILJET';
 
   @IsString()
   @MinLength(2)
@@ -26,21 +26,25 @@ export class CreateStorageProviderDto {
   @IsString()
   region?: string;
 
+  // Bắt buộc cho R2/S3, không áp dụng cho MAILJET (validate ở service theo type).
+  @IsOptional()
   @IsString()
   @MinLength(1)
   @MaxLength(255)
-  bucket: string;
+  bucket?: string;
 
   @IsOptional()
   @IsString()
   @MaxLength(255)
   uploadPrefix?: string;
 
+  // R2/S3: Access Key ID. MAILJET: API Key.
   @IsString()
   @MinLength(1)
   accessKeyId: string;
 
   // Nhận plaintext ở DTO — service mã hoá trước khi ghi DB (xem storage-providers.service.ts).
+  // R2/S3: Secret Access Key. MAILJET: Secret Key.
   @IsString()
   @MinLength(1)
   secretAccessKey: string;

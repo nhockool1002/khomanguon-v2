@@ -34,6 +34,9 @@ export class StorageProvidersService {
   }
 
   async create(dto: CreateStorageProviderDto) {
+    if (dto.type !== 'MAILJET' && !dto.bucket) {
+      throw new BadRequestException('Bucket là bắt buộc với R2/S3');
+    }
     if (dto.isDefault) await this.clearExistingDefault();
 
     return this.prisma.storageProvider.create({

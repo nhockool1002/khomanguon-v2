@@ -9,8 +9,8 @@ import {
 
 export class UpdateStorageProviderDto {
   @IsOptional()
-  @IsIn(['R2', 'S3'])
-  type?: 'R2' | 'S3';
+  @IsIn(['R2', 'S3', 'MAILJET'])
+  type?: 'R2' | 'S3' | 'MAILJET';
 
   @IsOptional()
   @IsString()
