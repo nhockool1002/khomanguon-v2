@@ -29,6 +29,9 @@ COPY --from=build /app/prisma ./prisma
 # được trong image production, không chỉ ở máy dev.
 COPY --from=build /app/src ./src
 COPY --from=build /app/tsconfig.json ./tsconfig.json
+# scripts/migrate-wordpress chạy qua "tsx" (không qua dist) — cần copy để "pnpm run migrate:wp"
+# chạy được trong image production khi cần seed dữ liệu WordPress lên môi trường thật.
+COPY --from=build /app/scripts ./scripts
 # Prisma Client (query engine) được sinh dựa trên node_modules cụ thể của stage này.
 RUN pnpm exec prisma generate
 ENV NODE_ENV=production
