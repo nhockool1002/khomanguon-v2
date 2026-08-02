@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
+import { ScheduleModule } from '@nestjs/schedule';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { PrismaModule } from './prisma/prisma.module';
@@ -12,10 +13,18 @@ import { PostsModule } from './posts/posts.module';
 import { UploadsModule } from './uploads/uploads.module';
 import { MenusModule } from './menus/menus.module';
 import { CommentsModule } from './comments/comments.module';
+import { StorageProvidersModule } from './storage-providers/storage-providers.module';
+import { WalletModule } from './wallet/wallet.module';
+import { DownloadLinksModule } from './download-links/download-links.module';
+import { SepayModule } from './sepay/sepay.module';
+import { RealtimeModule } from './realtime/realtime.module';
+import { CloudFilesModule } from './cloud-files/cloud-files.module';
+import { WidgetsModule } from './widgets/widgets.module';
 
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
+    ScheduleModule.forRoot(),
     PrismaModule,
     MailModule,
     RolesModule,
@@ -26,6 +35,13 @@ import { CommentsModule } from './comments/comments.module';
     UploadsModule,
     MenusModule,
     CommentsModule,
+    StorageProvidersModule,
+    WalletModule,
+    DownloadLinksModule,
+    SepayModule,
+    RealtimeModule,
+    CloudFilesModule,
+    WidgetsModule,
   ],
   controllers: [AppController],
   providers: [AppService],

@@ -41,6 +41,7 @@ model User {
   refreshTokens          RefreshToken[]
   emailVerificationTokens EmailVerificationToken[]
   passwordResetTokens    PasswordResetToken[]
+  topupOrders            TopupOrder[]
 
   @@map("users")
 }
@@ -97,6 +98,7 @@ model Role {
   users       UserRole[]
   permissions RolePermission[]
   menus       MenuRole[]
+  widgets     WidgetRole[]
 
   @@map("roles")
 }
@@ -229,6 +231,41 @@ model MenuRole {
 
   @@id([menuId, roleId])
   @@map("menu_roles")
+}
+
+enum WidgetType {
+  SEARCH
+  CATEGORIES
+  RECENT_POSTS
+  HTML
+}
+
+// Widget sidebar kiểu WordPress — danh sách phẳng (không cây như Menu), thứ tự cập nhật qua kéo-thả.
+// `area` để dành mở rộng thêm vùng khác (footer...) sau này, hiện chỉ dùng "sidebar".
+model Widget {
+  id        String     @id @default(cuid())
+  type      WidgetType
+  title     String // để trống = không hiện tiêu đề khối
+  area      String     @default("sidebar")
+  order     Int        @default(0)
+  isActive  Boolean    @default(true)
+  config    Json? // {limit} cho RECENT_POSTS, {html} cho HTML — rỗng với SEARCH/CATEGORIES
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+
+  visibleTo WidgetRole[] // rỗng = hiển thị công khai, giống MenuRole
+
+  @@map("widgets")
+}
+
+model WidgetRole {
+  widgetId String
+  roleId   String
+  widget   Widget @relation(fields: [widgetId], references: [id], onDelete: Cascade)
+  role     Role   @relation(fields: [roleId], references: [id], onDelete: Cascade)
+
+  @@id([widgetId, roleId])
+  @@map("widget_roles")
 }
 
 enum CommentStatus {
@@ -379,8 +416,33 @@ model WalletTransaction {
   createdAt     DateTime       @default(now())
 
   sepayTransaction SepayTransaction?
+  topupOrder       TopupOrder?
 
   @@map("wallet_transactions")
+}
+
+enum TopupOrderStatus {
+  PENDING
+  SUCCESS
+  EXPIRED
+}
+
+// "Yêu cầu nạp tiền" — khác WalletTransaction (chỉ ghi giao dịch ĐÃ xảy ra, bắt buộc balanceAfter).
+// TopupOrder biểu diễn trạng thái "đang chờ chuyển khoản" có hạn (expiresAt) trước khi webhook xác nhận.
+model TopupOrder {
+  id                  String             @id @default(cuid())
+  userId              String
+  user                User               @relation(fields: [userId], references: [id])
+  code                String             @unique // nội dung CK đối soát, vd "GD482134"
+  amountVnd           Int
+  amountP             Int // số $P sẽ cộng nếu khớp đúng amountVnd, tính theo tỉ giá/gói tại thời điểm tạo
+  status              TopupOrderStatus   @default(PENDING)
+  expiresAt           DateTime
+  walletTransactionId String?            @unique
+  walletTransaction   WalletTransaction? @relation(fields: [walletTransactionId], references: [id])
+  createdAt           DateTime           @default(now())
+
+  @@map("topup_orders")
 }
 
 // Đối soát webhook SePay — unique theo mã giao dịch để chống cộng tiền trùng khi webhook gọi lại (UC23)

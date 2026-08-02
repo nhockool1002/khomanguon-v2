@@ -8,6 +8,9 @@ node_modules/
 !.env.example
 !.env.*.example
 
+# override port remap cục bộ khi port dev mặc định bị chiếm — máy-cụ-thể, không commit
+docker-compose.override.yml
+
 # frontend (Next.js)
 frontend/.next/
 frontend/out/

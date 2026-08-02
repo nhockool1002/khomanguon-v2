@@ -1,0 +1,51 @@
+import {
+  IsBoolean,
+  IsIn,
+  IsOptional,
+  IsString,
+  MaxLength,
+  MinLength,
+} from 'class-validator';
+
+export class CreateStorageProviderDto {
+  @IsIn(['R2', 'S3'])
+  type: 'R2' | 'S3';
+
+  @IsString()
+  @MinLength(2)
+  @MaxLength(100)
+  label: string;
+
+  // R2: chỉ cần Account ID (không phải URL đầy đủ) — R2ClientService tự suy ra
+  // "https://{endpoint}.r2.cloudflarestorage.com". S3 dùng region thay vì trường này.
+  @IsOptional()
+  @IsString()
+  endpoint?: string;
+
+  @IsOptional()
+  @IsString()
+  region?: string;
+
+  @IsString()
+  @MinLength(1)
+  @MaxLength(255)
+  bucket: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(255)
+  uploadPrefix?: string;
+
+  @IsString()
+  @MinLength(1)
+  accessKeyId: string;
+
+  // Nhận plaintext ở DTO — service mã hoá trước khi ghi DB (xem storage-providers.service.ts).
+  @IsString()
+  @MinLength(1)
+  secretAccessKey: string;
+
+  @IsOptional()
+  @IsBoolean()
+  isDefault?: boolean;
+}

@@ -1,0 +1,182 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<mxfile host="app.diagrams.net" agent="claude-code" version="24.0.0">
+<diagram name="1. Nap tien $P qua SePay" id="1._Nap_tien_$P_qua_SePay">
+<mxGraphModel dx="1400" dy="900" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1400" pageHeight="2400" math="0" shadow="0">
+<root>
+<mxCell id="0"/>
+<mxCell id="1" parent="0"/>
+<mxCell id="o1" value="" style="rounded=0;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1"><mxGeometry x="1040" y="40" width="18" height="18" as="geometry"/></mxCell>
+<mxCell id="o2" value="Nguoi dung (trinh duyet)" style="text;html=1;align=left;verticalAlign=middle;fontSize=11;" vertex="1" parent="1"><mxGeometry x="1064" y="37" width="180" height="24" as="geometry"/></mxCell>
+<mxCell id="o3" value="" style="rounded=0;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="1"><mxGeometry x="1040" y="65" width="18" height="18" as="geometry"/></mxCell>
+<mxCell id="o4" value="Frontend (Next.js)" style="text;html=1;align=left;verticalAlign=middle;fontSize=11;" vertex="1" parent="1"><mxGeometry x="1064" y="62" width="180" height="24" as="geometry"/></mxCell>
+<mxCell id="o5" value="" style="rounded=0;fillColor=#ffe6cc;strokeColor=#d79b00;" vertex="1" parent="1"><mxGeometry x="1040" y="90" width="18" height="18" as="geometry"/></mxCell>
+<mxCell id="o6" value="Backend (NestJS API)" style="text;html=1;align=left;verticalAlign=middle;fontSize=11;" vertex="1" parent="1"><mxGeometry x="1064" y="87" width="180" height="24" as="geometry"/></mxCell>
+<mxCell id="o7" value="" style="rounded=0;fillColor=#e1d5e7;strokeColor=#9673a6;" vertex="1" parent="1"><mxGeometry x="1040" y="115" width="18" height="18" as="geometry"/></mxCell>
+<mxCell id="o8" value="Database (Postgres)" style="text;html=1;align=left;verticalAlign=middle;fontSize=11;" vertex="1" parent="1"><mxGeometry x="1064" y="112" width="180" height="24" as="geometry"/></mxCell>
+<mxCell id="o9" value="" style="rounded=0;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="1"><mxGeometry x="1040" y="140" width="18" height="18" as="geometry"/></mxCell>
+<mxCell id="o10" value="Ngan hang / SePay" style="text;html=1;align=left;verticalAlign=middle;fontSize=11;" vertex="1" parent="1"><mxGeometry x="1064" y="137" width="180" height="24" as="geometry"/></mxCell>
+<mxCell id="o11" value="Bat dau: User mo /tai-khoan/vi" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=12;" vertex="1" parent="1"><mxGeometry x="140" y="40" width="340" height="50" as="geometry"/></mxCell>
+<mxCell id="o12" value="Chon goi nap nhanh hoac nhap so tien tuy chon (VND)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=12;" vertex="1" parent="1"><mxGeometry x="140" y="130" width="340" height="60" as="geometry"/></mxCell>
+<mxCell id="o13" value="Bam 'Tao yeu cau nap'" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=12;" vertex="1" parent="1"><mxGeometry x="140" y="230" width="340" height="50" as="geometry"/></mxCell>
+<mxCell id="o14" value="FE: POST /wallet/topup { amountVnd }" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=12;" vertex="1" parent="1"><mxGeometry x="140" y="320" width="340" height="50" as="geometry"/></mxCell>
+<mxCell id="o15" value="BE: SepayService.createTopupOrder()" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;fontSize=12;" vertex="1" parent="1"><mxGeometry x="140" y="410" width="340" height="60" as="geometry"/></mxCell>
+<mxCell id="o16" value="SePay da duoc cau hinh
+(STK/ten ngan hang)?" style="rhombus;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;fontSize=12;" vertex="1" parent="1"><mxGeometry x="170" y="510" width="280" height="90" as="geometry"/></mxCell>
+<mxCell id="o17" value="Tra loi 400: 'SePay chua duoc cau hinh' -&gt; Admin can vao Cai dat SePay" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=12;" vertex="1" parent="1"><mxGeometry x="640" y="520" width="340" height="60" as="geometry"/></mxCell>
+<mxCell id="o18" value="Tinh amountP theo preset hoac ti gia co ban, sinh ma code ngau nhien (GDxxxxxx)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;fontSize=12;" vertex="1" parent="1"><mxGeometry x="140" y="640" width="340" height="60" as="geometry"/></mxCell>
+<mxCell id="o19" value="Tao TopupOrder (status=PENDING, expiresAt = now+30 phut)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=12;" vertex="1" parent="1"><mxGeometry x="140" y="740" width="340" height="60" as="geometry"/></mxCell>
+<mxCell id="o20" value="Cron moi phut (EVERY_MINUTE): quet TopupOrder PENDING qua expiresAt -&gt; set EXPIRED" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;fontSize=12;dashed=1;" vertex="1" parent="1"><mxGeometry x="640" y="740" width="340" height="80" as="geometry"/></mxCell>
+<mxCell id="o21" value="Tra ve { order, qrUrl } cho FE" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;fontSize=12;" vertex="1" parent="1"><mxGeometry x="140" y="840" width="340" height="50" as="geometry"/></mxCell>
+<mxCell id="o22" value="FE hien thi anh QR VietQR + ma noi dung CK + dem nguoc thoi gian" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=12;" vertex="1" parent="1"><mxGeometry x="140" y="930" width="340" height="60" as="geometry"/></mxCell>
+<mxCell id="o23" value="User chuyen khoan ngan hang theo QR (noi dung CK = ma code)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=12;" vertex="1" parent="1"><mxGeometry x="140" y="1030" width="340" height="60" as="geometry"/></mxCell>
+<mxCell id="o24" value="Ngan hang xu ly giao dich chuyen tien" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=12;" vertex="1" parent="1"><mxGeometry x="140" y="1130" width="340" height="50" as="geometry"/></mxCell>
+<mxCell id="o25" value="SePay phat hien giao dich tien vao tai khoan" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=12;" vertex="1" parent="1"><mxGeometry x="140" y="1220" width="340" height="50" as="geometry"/></mxCell>
+<mxCell id="o26" value="SePay POST /sepay/webhook (header Authorization: Apikey)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=12;" vertex="1" parent="1"><mxGeometry x="140" y="1310" width="340" height="60" as="geometry"/></mxCell>
+<mxCell id="o27" value="API key trong header co
+hop le khong?" style="rhombus;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;fontSize=12;" vertex="1" parent="1"><mxGeometry x="170" y="1410" width="280" height="90" as="geometry"/></mxCell>
+<mxCell id="o28" value="Tra 401 Unauthorized (SePay se tu dong retry toi da 7 lan trong 5 gio)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=12;" vertex="1" parent="1"><mxGeometry x="640" y="1425" width="340" height="60" as="geometry"/></mxCell>
+<mxCell id="o29" value="sepayTransactionCode (webhook.id)
+da duoc xu ly truoc do chua?
+(chong webhook goi trung)" style="rhombus;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;fontSize=12;" vertex="1" parent="1"><mxGeometry x="150" y="1540" width="320" height="100" as="geometry"/></mxCell>
+<mxCell id="o30" value="Tra { success:true } ngay, KHONG xu ly lai -&gt; chong cong tien 2 lan" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=12;" vertex="1" parent="1"><mxGeometry x="640" y="1560" width="340" height="60" as="geometry"/></mxCell>
+<mxCell id="o31" value="transferType == 'in'
+(tien vao)?" style="rhombus;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;fontSize=12;" vertex="1" parent="1"><mxGeometry x="170" y="1680" width="280" height="90" as="geometry"/></mxCell>
+<mxCell id="o32" value="Luu SepayTransaction(status=FAILED), bo qua, van tra { success:true }" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=12;" vertex="1" parent="1"><mxGeometry x="640" y="1695" width="340" height="70" as="geometry"/></mxCell>
+<mxCell id="o33" value="Tim TopupOrder dang PENDING co ma code xuat hien trong noi dung CK (content/code)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;fontSize=12;" vertex="1" parent="1"><mxGeometry x="140" y="1810" width="340" height="60" as="geometry"/></mxCell>
+<mxCell id="o34" value="Khop dung 1 order va
+transferAmount == amountVnd
+cua order do?" style="rhombus;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;fontSize=12;" vertex="1" parent="1"><mxGeometry x="150" y="1910" width="320" height="100" as="geometry"/></mxCell>
+<mxCell id="o35" value="Luu SepayTransaction(FAILED) de Admin doi soat tay qua quyen WALLET_ADJUST, khong tu dong cong" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=12;" vertex="1" parent="1"><mxGeometry x="640" y="1930" width="340" height="80" as="geometry"/></mxCell>
+<mxCell id="o36" value="Transaction DB (1 lan):
+- Wallet.balance += amountP
+- tao WalletTransaction(TOPUP, SUCCESS)
+- TopupOrder -&gt; SUCCESS
+- tao SepayTransaction(SUCCESS)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=12;" vertex="1" parent="1"><mxGeometry x="140" y="2050" width="340" height="110" as="geometry"/></mxCell>
+<mxCell id="o37" value="WalletGateway.emitWalletUpdated() qua WebSocket (room wallet:{userId})" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;fontSize=12;" vertex="1" parent="1"><mxGeometry x="140" y="2200" width="340" height="60" as="geometry"/></mxCell>
+<mxCell id="o38" value="FE nhan su kien 'wallet.updated' -&gt; cap nhat so du + trang thai don realtime, KHONG can F5" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=12;" vertex="1" parent="1"><mxGeometry x="140" y="2300" width="340" height="60" as="geometry"/></mxCell>
+<mxCell id="o39" value="BE tra { success:true } cho SePay (hoan tat trong 30 giay theo yeu cau SePay)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;fontSize=12;" vertex="1" parent="1"><mxGeometry x="140" y="2400" width="340" height="50" as="geometry"/></mxCell>
+<mxCell id="o40" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=11;" edge="1" parent="1" source="o11" target="o12"><mxGeometry relative="1" as="geometry"/></mxCell>
+<mxCell id="o41" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=11;" edge="1" parent="1" source="o12" target="o13"><mxGeometry relative="1" as="geometry"/></mxCell>
+<mxCell id="o42" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=11;" edge="1" parent="1" source="o13" target="o14"><mxGeometry relative="1" as="geometry"/></mxCell>
+<mxCell id="o43" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=11;" edge="1" parent="1" source="o14" target="o15"><mxGeometry relative="1" as="geometry"/></mxCell>
+<mxCell id="o44" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=11;" edge="1" parent="1" source="o15" target="o16"><mxGeometry relative="1" as="geometry"/></mxCell>
+<mxCell id="o45" value="Chua" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=11;" edge="1" parent="1" source="o16" target="o17"><mxGeometry relative="1" as="geometry"/></mxCell>
+<mxCell id="o46" value="Roi" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=11;" edge="1" parent="1" source="o16" target="o18"><mxGeometry relative="1" as="geometry"/></mxCell>
+<mxCell id="o47" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=11;" edge="1" parent="1" source="o18" target="o19"><mxGeometry relative="1" as="geometry"/></mxCell>
+<mxCell id="o48" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=11;dashed=1;" edge="1" parent="1" source="o19" target="o20"><mxGeometry relative="1" as="geometry"/></mxCell>
+<mxCell id="o49" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=11;" edge="1" parent="1" source="o19" target="o21"><mxGeometry relative="1" as="geometry"/></mxCell>
+<mxCell id="o50" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=11;" edge="1" parent="1" source="o21" target="o22"><mxGeometry relative="1" as="geometry"/></mxCell>
+<mxCell id="o51" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=11;" edge="1" parent="1" source="o22" target="o23"><mxGeometry relative="1" as="geometry"/></mxCell>
+<mxCell id="o52" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=11;" edge="1" parent="1" source="o23" target="o24"><mxGeometry relative="1" as="geometry"/></mxCell>
+<mxCell id="o53" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=11;" edge="1" parent="1" source="o24" target="o25"><mxGeometry relative="1" as="geometry"/></mxCell>
+<mxCell id="o54" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=11;" edge="1" parent="1" source="o25" target="o26"><mxGeometry relative="1" as="geometry"/></mxCell>
+<mxCell id="o55" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=11;" edge="1" parent="1" source="o26" target="o27"><mxGeometry relative="1" as="geometry"/></mxCell>
+<mxCell id="o56" value="Sai" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=11;" edge="1" parent="1" source="o27" target="o28"><mxGeometry relative="1" as="geometry"/></mxCell>
+<mxCell id="o57" value="Dung" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=11;" edge="1" parent="1" source="o27" target="o29"><mxGeometry relative="1" as="geometry"/></mxCell>
+<mxCell id="o58" value="Da xu ly" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=11;" edge="1" parent="1" source="o29" target="o30"><mxGeometry relative="1" as="geometry"/></mxCell>
+<mxCell id="o59" value="Chua" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=11;" edge="1" parent="1" source="o29" target="o31"><mxGeometry relative="1" as="geometry"/></mxCell>
+<mxCell id="o60" value="Khong (out)" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=11;" edge="1" parent="1" source="o31" target="o32"><mxGeometry relative="1" as="geometry"/></mxCell>
+<mxCell id="o61" value="Co (in)" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=11;" edge="1" parent="1" source="o31" target="o33"><mxGeometry relative="1" as="geometry"/></mxCell>
+<mxCell id="o62" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=11;" edge="1" parent="1" source="o33" target="o34"><mxGeometry relative="1" as="geometry"/></mxCell>
+<mxCell id="o63" value="Khong khop" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=11;" edge="1" parent="1" source="o34" target="o35"><mxGeometry relative="1" as="geometry"/></mxCell>
+<mxCell id="o64" value="Khop" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=11;" edge="1" parent="1" source="o34" target="o36"><mxGeometry relative="1" as="geometry"/></mxCell>
+<mxCell id="o65" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=11;" edge="1" parent="1" source="o36" target="o37"><mxGeometry relative="1" as="geometry"/></mxCell>
+<mxCell id="o66" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=11;" edge="1" parent="1" source="o37" target="o38"><mxGeometry relative="1" as="geometry"/></mxCell>
+<mxCell id="o67" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=11;" edge="1" parent="1" source="o38" target="o39"><mxGeometry relative="1" as="geometry"/></mxCell>
+</root>
+</mxGraphModel>
+</diagram>
+<diagram name="2. Mua link tai bang $P" id="2._Mua_link_tai_bang_$P">
+<mxGraphModel dx="1400" dy="900" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1400" pageHeight="2400" math="0" shadow="0">
+<root>
+<mxCell id="0"/>
+<mxCell id="1" parent="0"/>
+<mxCell id="o1" value="" style="rounded=0;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1"><mxGeometry x="1040" y="40" width="18" height="18" as="geometry"/></mxCell>
+<mxCell id="o2" value="Nguoi dung (trinh duyet)" style="text;html=1;align=left;verticalAlign=middle;fontSize=11;" vertex="1" parent="1"><mxGeometry x="1064" y="37" width="180" height="24" as="geometry"/></mxCell>
+<mxCell id="o3" value="" style="rounded=0;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="1"><mxGeometry x="1040" y="65" width="18" height="18" as="geometry"/></mxCell>
+<mxCell id="o4" value="Frontend (Next.js)" style="text;html=1;align=left;verticalAlign=middle;fontSize=11;" vertex="1" parent="1"><mxGeometry x="1064" y="62" width="180" height="24" as="geometry"/></mxCell>
+<mxCell id="o5" value="" style="rounded=0;fillColor=#ffe6cc;strokeColor=#d79b00;" vertex="1" parent="1"><mxGeometry x="1040" y="90" width="18" height="18" as="geometry"/></mxCell>
+<mxCell id="o6" value="Backend (NestJS API)" style="text;html=1;align=left;verticalAlign=middle;fontSize=11;" vertex="1" parent="1"><mxGeometry x="1064" y="87" width="180" height="24" as="geometry"/></mxCell>
+<mxCell id="o7" value="" style="rounded=0;fillColor=#e1d5e7;strokeColor=#9673a6;" vertex="1" parent="1"><mxGeometry x="1040" y="115" width="18" height="18" as="geometry"/></mxCell>
+<mxCell id="o8" value="Database (Postgres)" style="text;html=1;align=left;verticalAlign=middle;fontSize=11;" vertex="1" parent="1"><mxGeometry x="1064" y="112" width="180" height="24" as="geometry"/></mxCell>
+<mxCell id="o9" value="" style="rounded=0;fillColor=#fff2cc;strokeColor=#d6b656;" vertex="1" parent="1"><mxGeometry x="1040" y="140" width="18" height="18" as="geometry"/></mxCell>
+<mxCell id="o10" value="Cloudflare R2" style="text;html=1;align=left;verticalAlign=middle;fontSize=11;" vertex="1" parent="1"><mxGeometry x="1064" y="137" width="180" height="24" as="geometry"/></mxCell>
+<mxCell id="o11" value="Bat dau: User xem trang chi tiet bai viet" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=12;" vertex="1" parent="1"><mxGeometry x="140" y="40" width="340" height="50" as="geometry"/></mxCell>
+<mxCell id="o12" value="FE: GET /posts/:id/download-link" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=12;" vertex="1" parent="1"><mxGeometry x="140" y="130" width="340" height="50" as="geometry"/></mxCell>
+<mxCell id="o13" value="BE tra ve: ten file, gia $P, danh sach nguoi da tai, hasAccess" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;fontSize=12;" vertex="1" parent="1"><mxGeometry x="140" y="220" width="340" height="70" as="geometry"/></mxCell>
+<mxCell id="o14" value="FE hien thi khoi 'Tai ve sieu toc'" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=12;" vertex="1" parent="1"><mxGeometry x="140" y="330" width="340" height="50" as="geometry"/></mxCell>
+<mxCell id="o15" value="User bam 'Mo khoa lien ket tai ngay'" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=12;" vertex="1" parent="1"><mxGeometry x="140" y="420" width="340" height="50" as="geometry"/></mxCell>
+<mxCell id="o16" value="Da dang nhap?" style="rhombus;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;fontSize=12;" vertex="1" parent="1"><mxGeometry x="170" y="510" width="280" height="80" as="geometry"/></mxCell>
+<mxCell id="o17" value="Chuyen huong sang /dang-nhap" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=12;" vertex="1" parent="1"><mxGeometry x="640" y="520" width="340" height="50" as="geometry"/></mxCell>
+<mxCell id="o18" value="FE: POST /posts/:id/download-link/unlock" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=12;" vertex="1" parent="1"><mxGeometry x="140" y="630" width="340" height="50" as="geometry"/></mxCell>
+<mxCell id="o19" value="BE: DownloadLinksService.unlock()" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;fontSize=12;" vertex="1" parent="1"><mxGeometry x="140" y="720" width="340" height="60" as="geometry"/></mxCell>
+<mxCell id="o20" value="Da co DownloadGrant
+con hieu luc (da mua
+truoc do) khong?" style="rhombus;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;fontSize=12;" vertex="1" parent="1"><mxGeometry x="150" y="820" width="320" height="100" as="geometry"/></mxCell>
+<mxCell id="o21" value="priceP = 0 (mien phi)
+HOAC Wallet.balance
+&gt;= priceP?" style="rhombus;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;fontSize=12;" vertex="1" parent="1"><mxGeometry x="150" y="960" width="320" height="100" as="geometry"/></mxCell>
+<mxCell id="o22" value="Trong 1 transaction: neu du dieu kien thi tra loi 402 'So du $P khong du'" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f8cecc;strokeColor=#b85450;fontSize=12;" vertex="1" parent="1"><mxGeometry x="640" y="975" width="340" height="70" as="geometry"/></mxCell>
+<mxCell id="o23" value="FE hien thong bao + nut dan sang /tai-khoan/vi de nap them $P" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=12;" vertex="1" parent="1"><mxGeometry x="1020" y="975" width="300" height="70" as="geometry"/></mxCell>
+<mxCell id="o24" value="Transaction DB (1 lan):
+- Wallet.balance -= priceP
+- tao WalletTransaction(PURCHASE, so am)
+- tao DownloadGrant (quyen tai lai mien phi)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=12;" vertex="1" parent="1"><mxGeometry x="140" y="1100" width="340" height="110" as="geometry"/></mxCell>
+<mxCell id="o25" value="Ghi DownloadEvent (log luot tai + dia chi IP)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=12;" vertex="1" parent="1"><mxGeometry x="140" y="1250" width="340" height="50" as="geometry"/></mxCell>
+<mxCell id="o26" value="Sinh presigned URL tu R2 (R2ClientService, het han sau 10 phut)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2cc;strokeColor=#d6b656;fontSize=12;" vertex="1" parent="1"><mxGeometry x="140" y="1340" width="340" height="60" as="geometry"/></mxCell>
+<mxCell id="o27" value="BE tra { url } cho FE" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;fontSize=12;" vertex="1" parent="1"><mxGeometry x="140" y="1440" width="340" height="50" as="geometry"/></mxCell>
+<mxCell id="o28" value="FE mo URL tai file / doi nut thanh 'Tai xuong ngay'" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=12;" vertex="1" parent="1"><mxGeometry x="140" y="1530" width="340" height="60" as="geometry"/></mxCell>
+<mxCell id="o29" value="User tai file thanh cong" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=12;" vertex="1" parent="1"><mxGeometry x="140" y="1630" width="340" height="50" as="geometry"/></mxCell>
+<mxCell id="o30" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=11;" edge="1" parent="1" source="o11" target="o12"><mxGeometry relative="1" as="geometry"/></mxCell>
+<mxCell id="o31" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=11;" edge="1" parent="1" source="o12" target="o13"><mxGeometry relative="1" as="geometry"/></mxCell>
+<mxCell id="o32" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=11;" edge="1" parent="1" source="o13" target="o14"><mxGeometry relative="1" as="geometry"/></mxCell>
+<mxCell id="o33" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=11;" edge="1" parent="1" source="o14" target="o15"><mxGeometry relative="1" as="geometry"/></mxCell>
+<mxCell id="o34" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=11;" edge="1" parent="1" source="o15" target="o16"><mxGeometry relative="1" as="geometry"/></mxCell>
+<mxCell id="o35" value="Chua" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=11;" edge="1" parent="1" source="o16" target="o17"><mxGeometry relative="1" as="geometry"/></mxCell>
+<mxCell id="o36" value="Roi" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=11;" edge="1" parent="1" source="o16" target="o18"><mxGeometry relative="1" as="geometry"/></mxCell>
+<mxCell id="o37" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=11;" edge="1" parent="1" source="o18" target="o19"><mxGeometry relative="1" as="geometry"/></mxCell>
+<mxCell id="o38" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=11;" edge="1" parent="1" source="o19" target="o20"><mxGeometry relative="1" as="geometry"/></mxCell>
+<mxCell id="o39" value="Co (bo qua thanh toan)" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=11;" edge="1" parent="1" source="o20" target="o26"><mxGeometry relative="1" as="geometry"/></mxCell>
+<mxCell id="o40" value="Chua co" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=11;" edge="1" parent="1" source="o20" target="o21"><mxGeometry relative="1" as="geometry"/></mxCell>
+<mxCell id="o41" value="Khong du tien" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=11;" edge="1" parent="1" source="o21" target="o22"><mxGeometry relative="1" as="geometry"/></mxCell>
+<mxCell id="o42" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=11;" edge="1" parent="1" source="o22" target="o23"><mxGeometry relative="1" as="geometry"/></mxCell>
+<mxCell id="o43" value="Du dieu kien" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=11;" edge="1" parent="1" source="o21" target="o24"><mxGeometry relative="1" as="geometry"/></mxCell>
+<mxCell id="o44" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=11;" edge="1" parent="1" source="o24" target="o25"><mxGeometry relative="1" as="geometry"/></mxCell>
+<mxCell id="o45" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=11;" edge="1" parent="1" source="o25" target="o26"><mxGeometry relative="1" as="geometry"/></mxCell>
+<mxCell id="o46" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=11;" edge="1" parent="1" source="o26" target="o27"><mxGeometry relative="1" as="geometry"/></mxCell>
+<mxCell id="o47" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=11;" edge="1" parent="1" source="o27" target="o28"><mxGeometry relative="1" as="geometry"/></mxCell>
+<mxCell id="o48" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=11;" edge="1" parent="1" source="o28" target="o29"><mxGeometry relative="1" as="geometry"/></mxCell>
+</root>
+</mxGraphModel>
+</diagram>
+<diagram name="3. Lich su su dung $P" id="3._Lich_su_su_dung_$P">
+<mxGraphModel dx="1400" dy="900" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1400" pageHeight="2400" math="0" shadow="0">
+<root>
+<mxCell id="0"/>
+<mxCell id="1" parent="0"/>
+<mxCell id="o1" value="" style="rounded=0;fillColor=#dae8fc;strokeColor=#6c8ebf;" vertex="1" parent="1"><mxGeometry x="700" y="40" width="18" height="18" as="geometry"/></mxCell>
+<mxCell id="o2" value="Nguoi dung (trinh duyet)" style="text;html=1;align=left;verticalAlign=middle;fontSize=11;" vertex="1" parent="1"><mxGeometry x="724" y="37" width="180" height="24" as="geometry"/></mxCell>
+<mxCell id="o3" value="" style="rounded=0;fillColor=#d5e8d4;strokeColor=#82b366;" vertex="1" parent="1"><mxGeometry x="700" y="65" width="18" height="18" as="geometry"/></mxCell>
+<mxCell id="o4" value="Frontend (Next.js)" style="text;html=1;align=left;verticalAlign=middle;fontSize=11;" vertex="1" parent="1"><mxGeometry x="724" y="62" width="180" height="24" as="geometry"/></mxCell>
+<mxCell id="o5" value="" style="rounded=0;fillColor=#ffe6cc;strokeColor=#d79b00;" vertex="1" parent="1"><mxGeometry x="700" y="90" width="18" height="18" as="geometry"/></mxCell>
+<mxCell id="o6" value="Backend (NestJS API)" style="text;html=1;align=left;verticalAlign=middle;fontSize=11;" vertex="1" parent="1"><mxGeometry x="724" y="87" width="180" height="24" as="geometry"/></mxCell>
+<mxCell id="o7" value="" style="rounded=0;fillColor=#e1d5e7;strokeColor=#9673a6;" vertex="1" parent="1"><mxGeometry x="700" y="115" width="18" height="18" as="geometry"/></mxCell>
+<mxCell id="o8" value="Database (Postgres)" style="text;html=1;align=left;verticalAlign=middle;fontSize=11;" vertex="1" parent="1"><mxGeometry x="724" y="112" width="180" height="24" as="geometry"/></mxCell>
+<mxCell id="o9" value="User mo tab 'Vi &amp; Nap tien' (/tai-khoan/vi)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontSize=12;" vertex="1" parent="1"><mxGeometry x="140" y="40" width="360" height="50" as="geometry"/></mxCell>
+<mxCell id="o10" value="FE: GET /wallet/transactions?page=&amp;limit=" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=12;" vertex="1" parent="1"><mxGeometry x="140" y="130" width="360" height="50" as="geometry"/></mxCell>
+<mxCell id="o11" value="BE: SepayService.listTransactions() - lay Wallet cua user, phan trang" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;fontSize=12;" vertex="1" parent="1"><mxGeometry x="140" y="220" width="360" height="70" as="geometry"/></mxCell>
+<mxCell id="o12" value="DB: truy van WalletTransaction (TOPUP / PURCHASE / ADMIN_ADJUST / REFUND) sap xep createdAt giam dan" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e1d5e7;strokeColor=#9673a6;fontSize=12;" vertex="1" parent="1"><mxGeometry x="140" y="330" width="360" height="80" as="geometry"/></mxCell>
+<mxCell id="o13" value="BE tra { items, total } cho FE" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ffe6cc;strokeColor=#d79b00;fontSize=12;" vertex="1" parent="1"><mxGeometry x="140" y="450" width="360" height="50" as="geometry"/></mxCell>
+<mxCell id="o14" value="FE hien thi bang lich su: loai giao dich, thoi gian, +/- $P" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d5e8d4;strokeColor=#82b366;fontSize=12;" vertex="1" parent="1"><mxGeometry x="140" y="540" width="360" height="70" as="geometry"/></mxCell>
+<mxCell id="o15" value="Moi lan nap tien thanh cong (flow 1), mua link tai (flow 2), hoac Admin dieu chinh tay deu tao DUNG 1 dong WalletTransaction kem balanceAfter.
+Day la nguon du lieu DUY NHAT cho lich su -&gt; khong bao gio bi lech so voi Wallet.balance thuc te." style="shape=note;whiteSpace=wrap;html=1;fillColor=#fff9b1;strokeColor=#d6b656;fontSize=11;align=left;verticalAlign=top;spacing=6;size=16;" vertex="1" parent="1"><mxGeometry x="140" y="650" width="360" height="110" as="geometry"/></mxCell>
+<mxCell id="o16" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=11;" edge="1" parent="1" source="o9" target="o10"><mxGeometry relative="1" as="geometry"/></mxCell>
+<mxCell id="o17" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=11;" edge="1" parent="1" source="o10" target="o11"><mxGeometry relative="1" as="geometry"/></mxCell>
+<mxCell id="o18" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=11;" edge="1" parent="1" source="o11" target="o12"><mxGeometry relative="1" as="geometry"/></mxCell>
+<mxCell id="o19" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=11;" edge="1" parent="1" source="o12" target="o13"><mxGeometry relative="1" as="geometry"/></mxCell>
+<mxCell id="o20" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=11;" edge="1" parent="1" source="o13" target="o14"><mxGeometry relative="1" as="geometry"/></mxCell>
+<mxCell id="o21" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;fontSize=11;" edge="1" parent="1" source="o14" target="o15"><mxGeometry relative="1" as="geometry"/></mxCell>
+</root>
+</mxGraphModel>
+</diagram>
+</mxfile>
