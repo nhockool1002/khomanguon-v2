@@ -144,6 +144,11 @@ export interface Permission {
   description: string;
 }
 
+export interface AdminWalletTransaction extends WalletTransaction {
+  note: string | null;
+  user: { id: string; email: string; displayName: string };
+}
+
 export type StorageProviderType = "R2" | "S3" | "MAILJET";
 
 export interface StorageProvider {

@@ -420,8 +420,9 @@ model WalletTransaction {
   amount        Int // dương = cộng, âm = trừ
   balanceAfter  Int
   status        WalletTxStatus @default(PENDING)
-  referenceType String? // "sepay_topup" | "download_link" | ...
+  referenceType String? // "sepay_topup" | "download_link" | "admin_adjust" | ...
   referenceId   String?
+  note          String? // Lý do Admin điều chỉnh tay (WALLET_ADJUST) — đối soát khi webhook SePay không khớp
   createdAt     DateTime       @default(now())
 
   sepayTransaction SepayTransaction?

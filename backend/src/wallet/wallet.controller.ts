@@ -7,6 +7,7 @@ import {
   Query,
   UseGuards,
 } from '@nestjs/common';
+import { WalletTxStatus, WalletTxType } from '@prisma/client';
 import { WalletService } from './wallet.service';
 import { SepayService } from '../sepay/sepay.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
@@ -15,6 +16,10 @@ import { Permissions } from '../roles/decorators/permissions.decorator';
 import { PERMISSIONS } from '../roles/permissions.constant';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { CreateTopupOrderDto } from '../sepay/dto/create-topup-order.dto';
+import { AdjustWalletDto } from './dto/adjust-wallet.dto';
+
+const WALLET_TX_TYPES = Object.values(WalletTxType) as string[];
+const WALLET_TX_STATUSES = Object.values(WalletTxStatus) as string[];
 
 interface AuthUser {
   id: string;
@@ -74,5 +79,47 @@ export class WalletController {
   @Get('topup/:id')
   getTopup(@CurrentUser() user: AuthUser, @Param('id') id: string) {
     return this.sepayService.getTopupOrder(user.id, id);
+  }
+
+  // Sổ giao dịch $P toàn hệ thống — trang "Quản lý giao dịch" của Admin/Super Moderator (UC22-adjacent).
+  @UseGuards(JwtAuthGuard, PermissionsGuard)
+  @Permissions(PERMISSIONS.WALLET_VIEW_ANY)
+  @Get('admin/transactions')
+  listAllTransactions(
+    @Query('page') page = '1',
+    @Query('limit') limit = '20',
+    @Query('type') type?: string,
+    @Query('status') status?: string,
+    @Query('q') q?: string,
+  ) {
+    const take = Math.min(Number(limit) || 20, 100);
+    const skip = (Math.max(Number(page) || 1, 1) - 1) * take;
+    return this.walletService.listAll({
+      skip,
+      take,
+      type:
+        type && WALLET_TX_TYPES.includes(type)
+          ? (type as WalletTxType)
+          : undefined,
+      status:
+        status && WALLET_TX_STATUSES.includes(status)
+          ? (status as WalletTxStatus)
+          : undefined,
+      q: q?.trim() || undefined,
+    });
+  }
+
+  // Điều chỉnh số dư tay theo email — dùng khi đối soát webhook SePay lệch (xem comment
+  // sepay.service.ts matchAndCredit) hoặc các trường hợp cộng/trừ $P thủ công khác.
+  @UseGuards(JwtAuthGuard, PermissionsGuard)
+  @Permissions(PERMISSIONS.WALLET_ADJUST)
+  @Post('admin/adjust')
+  adjustBalance(@CurrentUser() admin: AuthUser, @Body() dto: AdjustWalletDto) {
+    return this.walletService.adjustBalance(
+      dto.userEmail,
+      admin.id,
+      dto.amount,
+      dto.note,
+    );
   }
 }
