@@ -21,6 +21,11 @@ const commentSelect = {
 
 type CommentRow = Prisma.CommentGetPayload<{ select: typeof commentSelect }>;
 
+const adminCommentSelect = {
+  ...commentSelect,
+  post: { select: { id: true, title: true, slug: true } },
+} satisfies Prisma.CommentSelect;
+
 @Injectable()
 export class CommentsService {
   constructor(private readonly prisma: PrismaService) {}
@@ -43,6 +48,29 @@ export class CommentsService {
       select: commentSelect,
     });
     return this.attachLikedByMe(comments, currentUserId);
+  }
+
+  // Trang quản trị "Quản lý bình luận" — kiểm duyệt xuyên suốt tất cả bài viết, khác
+  // listForModeration() vốn chỉ xem được từng bài viết một (dùng ngay trên trang bài viết đó).
+  async listAllForModeration(
+    page: number,
+    limit: number,
+    status?: CommentStatus,
+  ) {
+    const take = Math.min(Math.max(limit, 1), 50);
+    const skip = (Math.max(page, 1) - 1) * take;
+    const where = status ? { status } : undefined;
+    const [rows, total] = await this.prisma.$transaction([
+      this.prisma.comment.findMany({
+        where,
+        orderBy: { createdAt: 'desc' },
+        skip,
+        take,
+        select: adminCommentSelect,
+      }),
+      this.prisma.comment.count({ where }),
+    ]);
+    return { items: rows.map((c) => this.stripCount(c)), total };
   }
 
   async create(userId: string, dto: CreateCommentDto) {
@@ -124,7 +152,7 @@ export class CommentsService {
     if (!exists) throw new NotFoundException('Không tìm thấy bình luận');
   }
 
-  private stripCount(comment: CommentRow) {
+  private stripCount<T extends { _count: { likes: number } }>(comment: T) {
     const { _count, ...rest } = comment;
     return { ...rest, likeCount: _count.likes };
   }
