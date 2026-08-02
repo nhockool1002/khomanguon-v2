@@ -1,0 +1,6 @@
+-- AlterTable
+ALTER TABLE "roles" ADD COLUMN "title" TEXT,
+ADD COLUMN "color" TEXT,
+ADD COLUMN "bold" BOOLEAN NOT NULL DEFAULT false,
+ADD COLUMN "italic" BOOLEAN NOT NULL DEFAULT false,
+ADD COLUMN "fontFamily" TEXT;

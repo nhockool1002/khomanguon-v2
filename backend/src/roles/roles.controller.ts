@@ -31,6 +31,13 @@ export class RolesController {
     return this.rolesService.listRoles();
   }
 
+  // Công khai — badge role hiện cạnh bình luận/byline bài viết, khách vãng lai cũng cần thấy đúng
+  // style (title/color/bold/italic/font).
+  @Get('roles/badges')
+  listBadges() {
+    return this.rolesService.listBadges();
+  }
+
   @UseGuards(JwtAuthGuard, PermissionsGuard)
   @Permissions(PERMISSIONS.ROLE_MANAGE)
   @Get('permissions')
@@ -42,14 +49,22 @@ export class RolesController {
   @Permissions(PERMISSIONS.ROLE_MANAGE)
   @Post('roles')
   create(@Body() dto: CreateRoleDto) {
-    return this.rolesService.createRole(dto);
+    const { title, color, bold, italic, fontFamily, ...rest } = dto;
+    return this.rolesService.createRole({
+      ...rest,
+      style: { title, color, bold, italic, fontFamily },
+    });
   }
 
   @UseGuards(JwtAuthGuard, PermissionsGuard)
   @Permissions(PERMISSIONS.ROLE_MANAGE)
   @Patch('roles/:id')
   update(@Param('id') id: string, @Body() dto: UpdateRoleDto) {
-    return this.rolesService.updateRole(id, dto);
+    const { title, color, bold, italic, fontFamily, ...rest } = dto;
+    return this.rolesService.updateRole(id, {
+      ...rest,
+      style: { title, color, bold, italic, fontFamily },
+    });
   }
 
   @UseGuards(JwtAuthGuard, PermissionsGuard)

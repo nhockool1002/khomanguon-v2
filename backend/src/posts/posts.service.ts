@@ -23,7 +23,14 @@ const listSelect = {
   publishedAt: true,
   createdAt: true,
   category: { select: { id: true, name: true, slug: true } },
-  author: { select: { id: true, displayName: true, avatarUrl: true } },
+  author: {
+    select: {
+      id: true,
+      displayName: true,
+      avatarUrl: true,
+      roles: { select: { role: { select: { slug: true } } } },
+    },
+  },
 } satisfies Prisma.PostSelect;
 
 const detailSelect = {
@@ -38,6 +45,8 @@ const detailSelect = {
   updatedAt: true,
 } satisfies Prisma.PostSelect;
 
+type PostListRow = Prisma.PostGetPayload<{ select: typeof listSelect }>;
+
 interface PageQuery {
   page?: number;
   limit?: number;
@@ -47,6 +56,15 @@ function toPagination({ page = 1, limit = 12 }: PageQuery) {
   const take = Math.min(Math.max(limit, 1), 50);
   const skip = (Math.max(page, 1) - 1) * take;
   return { skip, take };
+}
+
+// Flatten author.roles -> author.roleSlugs cho FE render badge role cạnh byline (RoleBadge).
+function mapAuthor<T extends { author: PostListRow['author'] }>(post: T) {
+  const { roles, ...authorRest } = post.author;
+  return {
+    ...post,
+    author: { ...authorRest, roleSlugs: roles.map((r) => r.role.slug) },
+  };
 }
 
 @Injectable()
@@ -90,7 +108,7 @@ export class PostsService {
       }),
       this.prisma.post.count({ where }),
     ]);
-    return { items, total };
+    return { items: items.map(mapAuthor), total };
   }
 
   async getBySlugPublic(slug: string) {
@@ -104,7 +122,7 @@ export class PostsService {
       where: { id: post.id },
       data: { viewCount: { increment: 1 } },
     });
-    return { ...post, viewCount: post.viewCount + 1 };
+    return mapAuthor({ ...post, viewCount: post.viewCount + 1 });
   }
 
   async listAdmin(
@@ -125,7 +143,7 @@ export class PostsService {
       }),
       this.prisma.post.count({ where }),
     ]);
-    return { items, total };
+    return { items: items.map(mapAuthor), total };
   }
 
   async getByIdAdmin(id: string) {
@@ -134,7 +152,7 @@ export class PostsService {
       select: detailSelect,
     });
     if (!post) throw new NotFoundException('Không tìm thấy bài viết');
-    return post;
+    return mapAuthor(post);
   }
 
   async create(authorId: string, dto: CreatePostDto) {
@@ -147,7 +165,7 @@ export class PostsService {
           this.slugTaken(candidate),
         );
 
-    return this.prisma.post.create({
+    const created = await this.prisma.post.create({
       data: {
         title: dto.title,
         slug,
@@ -165,6 +183,7 @@ export class PostsService {
       },
       select: detailSelect,
     });
+    return mapAuthor(created);
   }
 
   async update(userId: string, id: string, dto: UpdatePostDto) {
@@ -187,7 +206,7 @@ export class PostsService {
         ? await this.resolveStatus(userId, dto.status)
         : undefined;
 
-    return this.prisma.post.update({
+    const updated = await this.prisma.post.update({
       where: { id },
       data: {
         ...(dto.title !== undefined && { title: dto.title }),
@@ -214,6 +233,7 @@ export class PostsService {
       },
       select: detailSelect,
     });
+    return mapAuthor(updated);
   }
 
   async remove(id: string): Promise<void> {

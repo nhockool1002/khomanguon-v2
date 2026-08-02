@@ -36,6 +36,7 @@ export interface PostAuthor {
   id: string;
   displayName: string;
   avatarUrl: string | null;
+  roleSlugs: string[];
 }
 
 export interface PostSummary {
@@ -98,6 +99,7 @@ export interface CommentAuthor {
   id: string;
   displayName: string;
   avatarUrl: string | null;
+  roleSlugs: string[];
 }
 
 export interface Comment {
@@ -142,7 +144,22 @@ export interface Role {
   name: string;
   slug: string;
   isSystem: boolean;
+  title: string | null;
+  color: string | null;
+  bold: boolean;
+  italic: boolean;
+  fontFamily: string | null;
   permissionKeys: string[];
+}
+
+export interface RoleBadgeInfo {
+  slug: string;
+  name: string;
+  title: string | null;
+  color: string | null;
+  bold: boolean;
+  italic: boolean;
+  fontFamily: string | null;
 }
 
 export type UserStatus = "ACTIVE" | "BANNED";

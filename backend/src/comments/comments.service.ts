@@ -25,7 +25,14 @@ const commentSelect = {
   status: true,
   pinned: true,
   createdAt: true,
-  user: { select: { id: true, displayName: true, avatarUrl: true } },
+  user: {
+    select: {
+      id: true,
+      displayName: true,
+      avatarUrl: true,
+      roles: { select: { role: { select: { slug: true } } } },
+    },
+  },
   _count: { select: { likes: true } },
 } satisfies Prisma.CommentSelect;
 
@@ -220,9 +227,19 @@ export class CommentsService {
     if (!exists) throw new NotFoundException('Không tìm thấy bình luận');
   }
 
-  private stripCount<T extends { _count: { likes: number } }>(comment: T) {
-    const { _count, ...rest } = comment;
-    return { ...rest, likeCount: _count.likes };
+  private stripCount<
+    T extends {
+      _count: { likes: number };
+      user: { roles: { role: { slug: string } }[] };
+    },
+  >(comment: T) {
+    const { _count, user, ...rest } = comment;
+    const { roles, ...userRest } = user;
+    return {
+      ...rest,
+      likeCount: _count.likes,
+      user: { ...userRest, roleSlugs: roles.map((r) => r.role.slug) },
+    };
   }
 
   private async attachLikedByMe(
