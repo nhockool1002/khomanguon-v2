@@ -21,7 +21,9 @@ import { UpdateStorageProviderDto } from './dto/update-storage-provider.dto';
 // không thể đặt 1 lần dùng chung ở class như @UseGuards.
 @Controller('storage-providers')
 export class StorageProvidersController {
-  constructor(private readonly storageProvidersService: StorageProvidersService) {}
+  constructor(
+    private readonly storageProvidersService: StorageProvidersService,
+  ) {}
 
   // Chỉ trả field không nhạy cảm (xem publicSelect trong service) — cho phép ai quản lý được link tải
   // của bài viết (DOWNLOAD_MANAGE_LINKS) cũng thấy để chọn provider, không cần full quyền storage key.

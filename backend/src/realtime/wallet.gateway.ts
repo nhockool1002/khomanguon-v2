@@ -57,7 +57,10 @@ export class WalletGateway implements OnGatewayConnection, OnGatewayDisconnect {
     // Không cần dọn gì thêm — socket.io tự rời hết room khi disconnect.
   }
 
-  emitWalletUpdated(userId: string, payload: { balance: number; topupOrderId?: string }): void {
+  emitWalletUpdated(
+    userId: string,
+    payload: { balance: number; topupOrderId?: string },
+  ): void {
     this.server?.to(`wallet:${userId}`).emit('wallet.updated', payload);
   }
 }

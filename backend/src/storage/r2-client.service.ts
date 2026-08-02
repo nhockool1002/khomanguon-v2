@@ -26,8 +26,11 @@ export class R2ClientService {
   constructor(private readonly prisma: PrismaService) {}
 
   private async getProvider(providerId: string) {
-    const provider = await this.prisma.storageProvider.findUnique({ where: { id: providerId } });
-    if (!provider) throw new NotFoundException('Không tìm thấy storage provider');
+    const provider = await this.prisma.storageProvider.findUnique({
+      where: { id: providerId },
+    });
+    if (!provider)
+      throw new NotFoundException('Không tìm thấy storage provider');
     return provider;
   }
 
@@ -35,9 +38,13 @@ export class R2ClientService {
   // R2 của v1: chỉ hỏi Account ID, không hỏi endpoint), endpoint S3-compatible luôn có dạng cố định
   // "https://{accountId}.r2.cloudflarestorage.com". Cột `endpoint` vẫn lưu Account ID (chuỗi ngắn),
   // suy ra URL đầy đủ ở đây — không cần thêm cột DB mới. Nếu ai lỡ dán nguyên URL thì vẫn nhận diện được.
-  private buildEndpoint(provider: { type: string; endpoint: string | null }): string | undefined {
+  private buildEndpoint(provider: {
+    type: string;
+    endpoint: string | null;
+  }): string | undefined {
     if (!provider.endpoint) return undefined;
-    if (provider.type !== 'R2' || provider.endpoint.startsWith('http')) return provider.endpoint;
+    if (provider.type !== 'R2' || provider.endpoint.startsWith('http'))
+      return provider.endpoint;
     return `https://${provider.endpoint}.r2.cloudflarestorage.com`;
   }
 
@@ -62,17 +69,30 @@ export class R2ClientService {
 
   // Object key logic ("con") <-> key thật trong bucket (có uploadPrefix) — DownloadLink.objectKey
   // luôn lưu dạng "con" để không phụ thuộc prefix cấu hình sau này đổi.
-  private toPrefixedKey(provider: { uploadPrefix: string | null }, key: string): string {
+  private toPrefixedKey(
+    provider: { uploadPrefix: string | null },
+    key: string,
+  ): string {
     return provider.uploadPrefix ? `${provider.uploadPrefix}/${key}` : key;
   }
 
-  private fromPrefixedKey(provider: { uploadPrefix: string | null }, prefixedKey: string): string {
+  private fromPrefixedKey(
+    provider: { uploadPrefix: string | null },
+    prefixedKey: string,
+  ): string {
     if (!provider.uploadPrefix) return prefixedKey;
     const withSlash = `${provider.uploadPrefix}/`;
-    return prefixedKey.startsWith(withSlash) ? prefixedKey.slice(withSlash.length) : prefixedKey;
+    return prefixedKey.startsWith(withSlash)
+      ? prefixedKey.slice(withSlash.length)
+      : prefixedKey;
   }
 
-  async putObject(providerId: string, key: string, body: Buffer, contentType?: string): Promise<void> {
+  async putObject(
+    providerId: string,
+    key: string,
+    body: Buffer,
+    contentType?: string,
+  ): Promise<void> {
     const provider = await this.getProvider(providerId);
     const client = this.buildClient(provider);
     await client.send(
@@ -103,14 +123,21 @@ export class R2ClientService {
 
   // Liệt kê file thật trong bucket — dùng cho trang Quản lý File Cloud (đối chiếu với DownloadLink
   // đã cấu hình). subPrefix (tuỳ chọn) lọc thêm 1 thư mục con bên trong uploadPrefix của provider.
-  async listObjects(providerId: string, subPrefix?: string): Promise<CloudObjectSummary[]> {
+  async listObjects(
+    providerId: string,
+    subPrefix?: string,
+  ): Promise<CloudObjectSummary[]> {
     const provider = await this.getProvider(providerId);
     const client = this.buildClient(provider);
     const basePrefix = provider.uploadPrefix ? `${provider.uploadPrefix}/` : '';
     const prefix = subPrefix ? `${basePrefix}${subPrefix}` : basePrefix;
 
     const result = await client.send(
-      new ListObjectsV2Command({ Bucket: provider.bucket, Prefix: prefix || undefined, MaxKeys: LIST_MAX_KEYS }),
+      new ListObjectsV2Command({
+        Bucket: provider.bucket,
+        Prefix: prefix || undefined,
+        MaxKeys: LIST_MAX_KEYS,
+      }),
     );
 
     return (result.Contents ?? [])
@@ -126,7 +153,10 @@ export class R2ClientService {
     const provider = await this.getProvider(providerId);
     const client = this.buildClient(provider);
     await client.send(
-      new DeleteObjectCommand({ Bucket: provider.bucket, Key: this.toPrefixedKey(provider, key) }),
+      new DeleteObjectCommand({
+        Bucket: provider.bucket,
+        Key: this.toPrefixedKey(provider, key),
+      }),
     );
   }
 }

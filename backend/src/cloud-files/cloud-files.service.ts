@@ -22,14 +22,22 @@ export class CloudFilesService {
     private readonly r2Client: R2ClientService,
   ) {}
 
-  async listFiles(providerId: string, subPrefix?: string): Promise<CloudFileRow[]> {
+  async listFiles(
+    providerId: string,
+    subPrefix?: string,
+  ): Promise<CloudFileRow[]> {
     const objects = await this.r2Client.listObjects(providerId, subPrefix);
     if (objects.length === 0) return [];
 
     const keys = objects.map((o) => o.key);
     const links = await this.prisma.downloadLink.findMany({
       where: { storageProviderId: providerId, objectKey: { in: keys } },
-      select: { id: true, objectKey: true, priceP: true, post: { select: { title: true } } },
+      select: {
+        id: true,
+        objectKey: true,
+        priceP: true,
+        post: { select: { title: true } },
+      },
     });
     const linkIds = links.map((l) => l.id);
 
@@ -38,18 +46,29 @@ export class CloudFilesService {
     const [grants, eventCounts] = linkIds.length
       ? await Promise.all([
           this.prisma.downloadGrant.findMany({
-            where: { downloadLinkId: { in: linkIds }, ...EXCLUDE_ADMIN_USER_WHERE },
-            select: { downloadLinkId: true, user: { select: { displayName: true } } },
+            where: {
+              downloadLinkId: { in: linkIds },
+              ...EXCLUDE_ADMIN_USER_WHERE,
+            },
+            select: {
+              downloadLinkId: true,
+              user: { select: { displayName: true } },
+            },
           }),
           this.prisma.downloadEvent.groupBy({
             by: ['downloadLinkId'],
-            where: { downloadLinkId: { in: linkIds }, ...EXCLUDE_ADMIN_USER_WHERE },
+            where: {
+              downloadLinkId: { in: linkIds },
+              ...EXCLUDE_ADMIN_USER_WHERE,
+            },
             _count: { _all: true },
           }),
         ])
       : [[], []];
 
-    const eventCountByLinkId = new Map(eventCounts.map((e) => [e.downloadLinkId, e._count._all]));
+    const eventCountByLinkId = new Map(
+      eventCounts.map((e) => [e.downloadLinkId, e._count._all]),
+    );
     const grantsByLinkId = new Map<string, { displayName: string }[]>();
     for (const g of grants) {
       const arr = grantsByLinkId.get(g.downloadLinkId) ?? [];

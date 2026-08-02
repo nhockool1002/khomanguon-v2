@@ -1,4 +1,11 @@
-import { Body, Controller, Headers, HttpCode, Post, UnauthorizedException } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Headers,
+  HttpCode,
+  Post,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { SepayService } from './sepay.service';
 import type { SepayWebhookPayload } from './sepay-webhook.types';
 
@@ -16,9 +23,12 @@ export class SepayWebhookController {
     @Headers('authorization') authorization: string | undefined,
     @Body() payload: SepayWebhookPayload,
   ) {
-    const providedKey = authorization?.startsWith('Apikey ') ? authorization.slice(7) : undefined;
+    const providedKey = authorization?.startsWith('Apikey ')
+      ? authorization.slice(7)
+      : undefined;
     const isValid = await this.sepayService.verifyWebhookApiKey(providedKey);
-    if (!isValid) throw new UnauthorizedException('Webhook API key không hợp lệ');
+    if (!isValid)
+      throw new UnauthorizedException('Webhook API key không hợp lệ');
 
     await this.sepayService.matchAndCredit(payload);
     return { success: true };

@@ -38,7 +38,9 @@ export class WidgetsService {
   }
 
   async create(dto: CreateWidgetDto) {
-    const maxOrder = await this.prisma.widget.aggregate({ _max: { order: true } });
+    const maxOrder = await this.prisma.widget.aggregate({
+      _max: { order: true },
+    });
 
     const widget = await this.prisma.widget.create({
       data: {
@@ -60,7 +62,9 @@ export class WidgetsService {
       where: { id },
       data: {
         ...(dto.title !== undefined && { title: dto.title }),
-        ...(dto.config !== undefined && { config: dto.config as Prisma.InputJsonValue }),
+        ...(dto.config !== undefined && {
+          config: dto.config as Prisma.InputJsonValue,
+        }),
         ...(dto.isActive !== undefined && { isActive: dto.isActive }),
       },
     });
@@ -77,13 +81,19 @@ export class WidgetsService {
   async reorder(dto: ReorderWidgetDto): Promise<void> {
     await this.prisma.$transaction(
       dto.items.map((item) =>
-        this.prisma.widget.update({ where: { id: item.id }, data: { order: item.order } }),
+        this.prisma.widget.update({
+          where: { id: item.id },
+          data: { order: item.order },
+        }),
       ),
     );
   }
 
   private async getOne(id: string) {
-    const widget = await this.prisma.widget.findUnique({ where: { id }, select: widgetSelect });
+    const widget = await this.prisma.widget.findUnique({
+      where: { id },
+      select: widgetSelect,
+    });
     if (!widget) throw new NotFoundException('Không tìm thấy widget');
     return toWidgetDto(widget);
   }
@@ -93,13 +103,18 @@ export class WidgetsService {
     if (!exists) throw new NotFoundException('Không tìm thấy widget');
   }
 
-  private async syncRoles(widgetId: string, roleSlugs: string[]): Promise<void> {
+  private async syncRoles(
+    widgetId: string,
+    roleSlugs: string[],
+  ): Promise<void> {
     const roles = roleSlugs.length
       ? await this.prisma.role.findMany({ where: { slug: { in: roleSlugs } } })
       : [];
     await this.prisma.$transaction([
       this.prisma.widgetRole.deleteMany({ where: { widgetId } }),
-      ...roles.map((role) => this.prisma.widgetRole.create({ data: { widgetId, roleId: role.id } })),
+      ...roles.map((role) =>
+        this.prisma.widgetRole.create({ data: { widgetId, roleId: role.id } }),
+      ),
     ]);
   }
 }

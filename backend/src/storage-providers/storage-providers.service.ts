@@ -1,4 +1,8 @@
-import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { encryptSecret } from '../common/secret-crypto.util';
 import { CreateStorageProviderDto } from './dto/create-storage-provider.dto';
@@ -60,7 +64,9 @@ export class StorageProvidersService {
         ...(dto.endpoint !== undefined && { endpoint: dto.endpoint }),
         ...(dto.region !== undefined && { region: dto.region }),
         ...(dto.bucket !== undefined && { bucket: dto.bucket }),
-        ...(dto.uploadPrefix !== undefined && { uploadPrefix: dto.uploadPrefix }),
+        ...(dto.uploadPrefix !== undefined && {
+          uploadPrefix: dto.uploadPrefix,
+        }),
         ...(dto.accessKeyId !== undefined && { accessKeyId: dto.accessKeyId }),
         ...(dto.secretAccessKey !== undefined && {
           secretAccessKeyEncrypted: encryptSecret(dto.secretAccessKey),
@@ -73,7 +79,9 @@ export class StorageProvidersService {
 
   async remove(id: string): Promise<void> {
     await this.getOrThrow(id);
-    const inUse = await this.prisma.downloadLink.count({ where: { storageProviderId: id } });
+    const inUse = await this.prisma.downloadLink.count({
+      where: { storageProviderId: id },
+    });
     if (inUse > 0) {
       throw new BadRequestException(
         `Không thể xoá — đang có ${inUse} link tải sử dụng storage provider này`,
@@ -83,8 +91,11 @@ export class StorageProvidersService {
   }
 
   private async getOrThrow(id: string) {
-    const provider = await this.prisma.storageProvider.findUnique({ where: { id } });
-    if (!provider) throw new NotFoundException('Không tìm thấy storage provider');
+    const provider = await this.prisma.storageProvider.findUnique({
+      where: { id },
+    });
+    if (!provider)
+      throw new NotFoundException('Không tìm thấy storage provider');
     return provider;
   }
 

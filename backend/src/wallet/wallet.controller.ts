@@ -1,4 +1,12 @@
-import { Body, Controller, Get, Param, Post, Query, UseGuards } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  Param,
+  Post,
+  Query,
+  UseGuards,
+} from '@nestjs/common';
 import { WalletService } from './wallet.service';
 import { SepayService } from '../sepay/sepay.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
@@ -37,7 +45,11 @@ export class WalletController {
     @Query('page') page = '1',
     @Query('limit') limit = '20',
   ) {
-    return this.sepayService.listTransactions(user.id, Number(page) || 1, Number(limit) || 20);
+    return this.sepayService.listTransactions(
+      user.id,
+      Number(page) || 1,
+      Number(limit) || 20,
+    );
   }
 
   // Tỉ giá + gói nạp nhanh cho trang /tai-khoan/vi — không lộ STK/API key (xem sepay-config.controller.ts).

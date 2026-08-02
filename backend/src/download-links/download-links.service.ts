@@ -65,7 +65,10 @@ export class DownloadLinksService {
     };
 
     const link = existing
-      ? await this.prisma.downloadLink.update({ where: { id: existing.id }, data })
+      ? await this.prisma.downloadLink.update({
+          where: { id: existing.id },
+          data,
+        })
       : await this.prisma.downloadLink.create({ data: { postId, ...data } });
 
     return toPublicShape(link);
@@ -130,7 +133,10 @@ export class DownloadLinksService {
             );
           }
           const balanceAfter = wallet.balance - link.priceP;
-          await tx.wallet.update({ where: { userId }, data: { balance: balanceAfter } });
+          await tx.wallet.update({
+            where: { userId },
+            data: { balance: balanceAfter },
+          });
           await tx.walletTransaction.create({
             data: {
               walletId: wallet.id,
@@ -143,7 +149,9 @@ export class DownloadLinksService {
             },
           });
         }
-        await tx.downloadGrant.create({ data: { userId, downloadLinkId: link.id } });
+        await tx.downloadGrant.create({
+          data: { userId, downloadLinkId: link.id },
+        });
       }
 
       await tx.downloadEvent.create({
@@ -151,7 +159,10 @@ export class DownloadLinksService {
       });
     });
 
-    const url = await this.r2Client.getPresignedDownloadUrl(link.storageProviderId, link.objectKey);
+    const url = await this.r2Client.getPresignedDownloadUrl(
+      link.storageProviderId,
+      link.objectKey,
+    );
     return { url };
   }
 
@@ -160,10 +171,13 @@ export class DownloadLinksService {
     if (!post) throw new NotFoundException('Không tìm thấy bài viết');
   }
 
-  private async assertStorageProviderExists(storageProviderId: string): Promise<void> {
+  private async assertStorageProviderExists(
+    storageProviderId: string,
+  ): Promise<void> {
     const provider = await this.prisma.storageProvider.findUnique({
       where: { id: storageProviderId },
     });
-    if (!provider) throw new BadRequestException('Storage provider không tồn tại');
+    if (!provider)
+      throw new BadRequestException('Storage provider không tồn tại');
   }
 }
