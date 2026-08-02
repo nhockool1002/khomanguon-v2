@@ -9,8 +9,14 @@ export async function WidgetArea({ area }: { area: string }) {
   const widgets = await fetchWidgets(area);
   if (widgets.length === 0) return null;
 
+  // Không tự đặt lg:flex-1 ở đây nữa — sizing theo hàng (row) là việc của nơi gọi component này,
+  // vì WidgetArea được lồng khác nhau tuỳ trang (trang chủ: con trực tiếp của hàng flex-row; trang
+  // bài viết: lồng thêm 1 cấp cùng CommentSection trong 1 cột flex-col). Từng để lg:flex-1 ở đây
+  // gây lỗi thật: trong ngữ cảnh flex-col, flex-1 nghĩa là "giãn theo chiều dọc" — khiến khối widget
+  // giãn hết chiều cao cột (bằng chiều cao nội dung chính, có thể hàng nghìn px), đẩy CommentSection
+  // tụt xuống tận đáy trang thay vì nằm ngay bên dưới widget.
   return (
-    <aside className="flex flex-col gap-4 lg:flex-1">
+    <aside className="flex flex-col gap-4">
       {widgets.map((widget) => (
         <WidgetRenderer key={widget.id} widget={widget} />
       ))}
