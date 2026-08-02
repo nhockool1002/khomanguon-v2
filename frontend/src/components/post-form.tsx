@@ -205,10 +205,10 @@ export function PostForm({
           />
 
           <ImageUploadField label="Ảnh OG (chia sẻ mạng xã hội)" value={ogImageUrl} onChange={setOgImageUrl} />
+
+          <DownloadConfigPanel postId={initial?.id} />
         </div>
       </div>
-
-      <DownloadConfigPanel postId={initial?.id} />
     </div>
   );
 }

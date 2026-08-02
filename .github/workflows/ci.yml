@@ -138,3 +138,7 @@ jobs:
             # mạng mỗi lần exec, dễ bị OOM-kill (137) trên VPS RAM nhỏ khi trùng lúc container
             # vừa khởi động lại tốn thêm bộ nhớ.
             docker compose --env-file .env.production -f docker-compose.prod.yml exec -T backend ./node_modules/.bin/prisma migrate deploy
+            # Seed idempotent (upsert permission/role/admin, chỉ tạo widget mặc định nếu bảng đang
+            # rỗng) — chạy lại mỗi lần deploy để permission/seed data mới (vd "widget.manage") luôn
+            # có ngay, không phải nhớ chạy tay như bước "lần đầu" trong Deploy_Checklist.md.
+            docker compose --env-file .env.production -f docker-compose.prod.yml exec -T backend ./node_modules/.bin/prisma db seed
