@@ -87,11 +87,12 @@ export default async function PostDetailPage({ params }: Props) {
           />
 
           <DownloadBox postId={post.id} />
-
-          <CommentSection postId={post.id} />
         </div>
 
-        <WidgetArea area="sidebar" />
+        <div className="flex flex-col gap-4 lg:flex-1">
+          <WidgetArea area="sidebar" />
+          <CommentSection postId={post.id} />
+        </div>
       </div>
     </main>
   );

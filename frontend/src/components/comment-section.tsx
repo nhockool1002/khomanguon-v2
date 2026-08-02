@@ -115,8 +115,8 @@ export function CommentSection({ postId }: { postId: string }) {
   }
 
   return (
-    <section className="flex flex-col gap-4 border-t border-zinc-200 pt-6">
-      <h2 className="text-lg font-semibold text-zinc-900">
+    <section className="flex flex-col gap-3 rounded-lg border border-zinc-200 bg-white p-4">
+      <h2 className="text-sm font-semibold text-zinc-900">
         Bình luận {comments ? `(${comments.length})` : ""}
       </h2>
 
@@ -156,7 +156,9 @@ export function CommentSection({ postId }: { postId: string }) {
         <p className="text-sm text-zinc-400">Chưa có bình luận nào.</p>
       )}
 
-      <div className="flex flex-col gap-3">
+      {/* Giới hạn chiều cao danh sách bình luận — sidebar hẹp, cuộn riêng bên trong thay vì kéo dài
+          cả cột widget, giữ ô viết bình luận ở trên luôn nhìn thấy được. */}
+      <div className="flex max-h-[520px] flex-col gap-3 overflow-y-auto pr-1">
         {tree.map((node) => (
           <CommentItem
             key={node.id}
