@@ -8,6 +8,7 @@ import * as argon2 from 'argon2';
 import { UserStatus } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { RolesService } from '../roles/roles.service';
+import { resolveStyleRoleSlug } from '../roles/style-role.util';
 import { UpdateProfileDto } from './dto/update-profile.dto';
 import { ChangePasswordDto } from './dto/change-password.dto';
 
@@ -29,15 +30,50 @@ export class UsersService {
         bio: true,
         emailVerifiedAt: true,
         createdAt: true,
+        primaryRoleId: true,
+        roles: {
+          select: {
+            roleId: true,
+            role: { select: { slug: true, name: true } },
+          },
+          orderBy: { role: { createdAt: 'asc' } },
+        },
       },
     });
-    const roleSlugs = await this.roles.getUserRoleSlugs(userId);
-    const { emailVerifiedAt, ...rest } = user;
+    const { emailVerifiedAt, primaryRoleId, roles, ...rest } = user;
     return {
       ...rest,
       emailVerified: emailVerifiedAt !== null,
-      roles: roleSlugs,
+      roles: roles.map((r) => r.role.slug),
+      // Vai trò user tự chọn để style tên hiển thị (comment-section, byline...) — chỉ trả về
+      // vai trò của chính họ + slug hiệu lực, trang Tài khoản dùng để hiện selector khi >1 role.
+      styleRoles: roles.map((r) => ({ slug: r.role.slug, name: r.role.name })),
+      primaryRoleSlug: resolveStyleRoleSlug(primaryRoleId, roles),
     };
+  }
+
+  // Chỉ áp dụng khi user thuộc >1 role — roleSlug rỗng/undefined nghĩa là xoá lựa chọn, quay về
+  // fallback role gán sớm nhất (xem style-role.util.ts).
+  async updateStyleRole(userId: string, roleSlug?: string) {
+    if (!roleSlug) {
+      await this.prisma.user.update({
+        where: { id: userId },
+        data: { primaryRoleId: null },
+      });
+    } else {
+      const userRole = await this.prisma.userRole.findFirst({
+        where: { userId, role: { slug: roleSlug } },
+        select: { roleId: true },
+      });
+      if (!userRole) {
+        throw new BadRequestException('Bạn không thuộc vai trò này');
+      }
+      await this.prisma.user.update({
+        where: { id: userId },
+        data: { primaryRoleId: userRole.roleId },
+      });
+    }
+    return this.getProfile(userId);
   }
 
   async updateProfile(userId: string, dto: UpdateProfileDto) {

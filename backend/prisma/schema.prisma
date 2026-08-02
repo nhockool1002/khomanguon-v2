@@ -31,6 +31,11 @@ model User {
   createdAt           DateTime   @default(now())
   updatedAt           DateTime   @updatedAt
 
+  // User thuộc nhiều role thì tự chọn 1 role để áp style hiển thị tên (màu/đậm/nghiêng/font) —
+  // để trống thì tự fallback về role gán sớm nhất (xem roles/style-role.util.ts resolveStyleRoleSlug).
+  primaryRoleId String?
+  primaryRole   Role?   @relation("UserPrimaryRole", fields: [primaryRoleId], references: [id], onDelete: SetNull)
+
   roles                  UserRole[]
   wallet                 Wallet?
   posts                  Post[]
@@ -105,10 +110,11 @@ model Role {
   italic     Boolean  @default(false)
   fontFamily String?
 
-  users       UserRole[]
-  permissions RolePermission[]
-  menus       MenuRole[]
-  widgets     WidgetRole[]
+  users            UserRole[]
+  permissions      RolePermission[]
+  menus            MenuRole[]
+  widgets          WidgetRole[]
+  primaryForUsers  User[]           @relation("UserPrimaryRole")
 
   @@map("roles")
 }

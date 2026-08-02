@@ -7,7 +7,7 @@ import { useAuth } from "@/context/auth-context";
 import { apiFetch, ApiError } from "@/lib/api";
 import type { Profile } from "@/lib/types";
 import { ErrorBanner, FormField, SubmitButton, SuccessBanner } from "@/components/ui";
-import { RoleBadge } from "@/components/role-badge";
+import { StyledUserName } from "@/components/styled-user-name";
 
 type Tab = "thong-tin" | "bao-mat";
 
@@ -83,6 +83,7 @@ function ProfileTab({ onSaved }: { onSaved: () => Promise<void> }) {
   const [message, setMessage] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [resending, setResending] = useState(false);
+  const [savingStyleRole, setSavingStyleRole] = useState(false);
 
   useEffect(() => {
     apiFetch<Profile>("/users/me").then((p) => {
@@ -91,6 +92,22 @@ function ProfileTab({ onSaved }: { onSaved: () => Promise<void> }) {
       setBio(p.bio ?? "");
     });
   }, []);
+
+  async function handleStyleRoleChange(roleSlug: string) {
+    setSavingStyleRole(true);
+    setError(null);
+    try {
+      const updated = await apiFetch<Profile>("/users/me/style-role", {
+        method: "PATCH",
+        body: JSON.stringify({ roleSlug }),
+      });
+      setProfile(updated);
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : "Có lỗi xảy ra");
+    } finally {
+      setSavingStyleRole(false);
+    }
+  }
 
   async function handleSave(e: React.FormEvent) {
     e.preventDefault();
@@ -136,8 +153,37 @@ function ProfileTab({ onSaved }: { onSaved: () => Promise<void> }) {
 
       <div className="flex flex-wrap items-center gap-2 text-sm">
         <span className="text-zinc-500">Vai trò:</span>
-        <RoleBadge roleSlugs={profile.roles} />
+        {profile.styleRoles.map((r) => (
+          <span key={r.slug} className="rounded-full bg-zinc-100 px-2 py-0.5 text-xs text-zinc-600">
+            {r.name}
+          </span>
+        ))}
       </div>
+
+      <div className="flex flex-wrap items-center gap-2 text-sm">
+        <span className="text-zinc-500">Tên hiển thị của bạn:</span>
+        <StyledUserName styleRoleSlug={profile.primaryRoleSlug} className="font-medium text-zinc-900">
+          {profile.displayName}
+        </StyledUserName>
+      </div>
+
+      {profile.styleRoles.length > 1 && (
+        <label className="flex items-center gap-2 text-sm text-zinc-700">
+          Hiển thị tên theo vai trò
+          <select
+            value={profile.primaryRoleSlug ?? ""}
+            onChange={(e) => handleStyleRoleChange(e.target.value)}
+            disabled={savingStyleRole}
+            className="rounded-md border border-zinc-300 px-2 py-1.5 text-sm outline-none focus:border-[#1d3557] focus:ring-1 focus:ring-[#1d3557] disabled:opacity-50"
+          >
+            {profile.styleRoles.map((r) => (
+              <option key={r.slug} value={r.slug}>
+                {r.name}
+              </option>
+            ))}
+          </select>
+        </label>
+      )}
 
       {!profile.emailVerified && (
         <div className="flex items-center justify-between rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800">

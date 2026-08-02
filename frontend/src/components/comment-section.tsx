@@ -9,7 +9,7 @@ import { formatDate } from "@/lib/format";
 import { renderMentionText } from "@/lib/mentions";
 import { ErrorBanner } from "@/components/ui";
 import { MentionTextarea } from "@/components/mention-textarea";
-import { RoleBadge } from "@/components/role-badge";
+import { StyledUserName } from "@/components/styled-user-name";
 
 const MODERATOR_ROLES = ["admin", "super-moderator", "moderator"];
 
@@ -336,8 +336,9 @@ function CommentItem({
           <span className="flex h-6 w-6 items-center justify-center rounded-full bg-[#2b3f5c] text-[10px] uppercase text-white">
             {node.user.displayName.charAt(0)}
           </span>
-          <span className="font-medium text-zinc-700">{node.user.displayName}</span>
-          <RoleBadge roleSlugs={node.user.roleSlugs} />
+          <StyledUserName styleRoleSlug={node.user.styleRoleSlug} className="font-medium text-zinc-700">
+            {node.user.displayName}
+          </StyledUserName>
           <span>·</span>
           <span>{formatDate(node.createdAt)}</span>
           {node.pinned && (
