@@ -6,7 +6,9 @@ import { useAuth } from "@/context/auth-context";
 import { apiFetch, ApiError } from "@/lib/api";
 import type { Comment, Profile } from "@/lib/types";
 import { formatDate } from "@/lib/format";
+import { renderMentionText } from "@/lib/mentions";
 import { ErrorBanner } from "@/components/ui";
+import { MentionTextarea } from "@/components/mention-textarea";
 
 const MODERATOR_ROLES = ["admin", "super-moderator", "moderator"];
 
@@ -25,7 +27,15 @@ function buildTree(comments: Comment[]): CommentNode[] {
   return attach(null);
 }
 
-export function CommentSection({ postId }: { postId: string }) {
+export function CommentSection({
+  postId,
+  sortOrder,
+  filterUserId,
+}: {
+  postId: string;
+  sortOrder?: "newest" | "oldest";
+  filterUserId?: string;
+}) {
   const { user, loading: authLoading } = useAuth();
   const [open, setOpen] = useState(true);
   const [comments, setComments] = useState<Comment[] | null>(null);
@@ -45,9 +55,12 @@ export function CommentSection({ postId }: { postId: string }) {
         moderator = false;
       }
     }
+    const params = new URLSearchParams({ postId });
+    if (sortOrder) params.set("sort", sortOrder);
+    if (filterUserId) params.set("authorId", filterUserId);
     const path = moderator
-      ? `/comments/moderation?postId=${postId}`
-      : `/comments?postId=${postId}`;
+      ? `/comments/moderation?${params.toString()}`
+      : `/comments?${params.toString()}`;
     const comments = await apiFetch<Comment[]>(path);
     return { moderator, comments };
   }
@@ -134,14 +147,13 @@ export function CommentSection({ postId }: { postId: string }) {
 
       {user ? (
         <form onSubmit={(e) => handleSubmit(e, null)} className="flex flex-col gap-2">
-          <textarea
+          <MentionTextarea
             value={replyingTo === null ? content : ""}
-            onChange={(e) => setContent(e.target.value)}
+            onChange={setContent}
             onFocus={() => setReplyingTo(null)}
-            placeholder="Viết bình luận..."
+            placeholder="Viết bình luận... (gõ @ để nhắc user)"
             rows={3}
             maxLength={2000}
-            className="rounded-md border border-zinc-300 px-3 py-2 text-sm outline-none focus:border-[#1d3557] focus:ring-1 focus:ring-[#1d3557]"
           />
           <div>
             <button
@@ -300,7 +312,7 @@ function CommentItem({
             </span>
           )}
         </div>
-        <p className="mt-1.5 whitespace-pre-wrap text-zinc-800">{node.content}</p>
+        <p className="mt-1.5 whitespace-pre-wrap text-zinc-800">{renderMentionText(node.content)}</p>
 
         <div className="mt-2 flex flex-wrap items-center gap-3 text-xs">
           <button
@@ -370,14 +382,13 @@ function CommentItem({
 
       {isReplying && (
         <form onSubmit={onSubmitReply} className="flex flex-col gap-2 pl-4">
-          <textarea
+          <MentionTextarea
             value={replyContent}
-            onChange={(e) => onReplyContentChange(e.target.value)}
-            placeholder={`Trả lời ${node.user.displayName}...`}
+            onChange={onReplyContentChange}
+            placeholder={`Trả lời ${node.user.displayName}... (gõ @ để nhắc user)`}
             rows={2}
             maxLength={2000}
             autoFocus
-            className="rounded-md border border-zinc-300 px-3 py-2 text-sm outline-none focus:border-[#1d3557] focus:ring-1 focus:ring-[#1d3557]"
           />
           <div className="flex gap-2">
             <button

@@ -59,6 +59,14 @@ export class UsersController {
     return this.usersService.list(skip, take);
   }
 
+  // Gợi ý @mention trong bình luận + chọn user lọc widget Bình luận (UC tương đương) — bất kỳ user
+  // đăng nhập nào cũng gọi được, không cần USER_MANAGE (chỉ trả field vốn đã public).
+  @UseGuards(JwtAuthGuard)
+  @Get('search')
+  search(@Query('q') q = '', @Query('limit') limit = '8') {
+    return this.usersService.search(q, Number(limit) || 8);
+  }
+
   // Chặn user spam bình luận (UC08) — cũng dùng chung cho khoá tài khoản nói chung.
   @UseGuards(JwtAuthGuard, PermissionsGuard)
   @Permissions(PERMISSIONS.USER_MANAGE)

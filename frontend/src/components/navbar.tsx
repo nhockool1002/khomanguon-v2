@@ -7,6 +7,7 @@ import { apiFetch } from "@/lib/api";
 import { useWalletSocket } from "@/lib/socket";
 import type { MenuItem, Wallet } from "@/lib/types";
 import { LogoMark } from "./logo-mark";
+import { NotificationBell } from "./notification-bell";
 
 export function Navbar({ menus = [] }: { menus?: MenuItem[] }) {
   // Chỉ hiển thị mục gốc, công khai (roleSlugs rỗng) — lọc theo vai trò user cụ thể
@@ -51,6 +52,7 @@ export function Navbar({ menus = [] }: { menus?: MenuItem[] }) {
         <nav className="flex items-center gap-3">
           {loading ? null : user ? (
             <>
+              <NotificationBell enabled={!!user} />
               {wallet && (
                 <Link
                   href="/tai-khoan/vi"

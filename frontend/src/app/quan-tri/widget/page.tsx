@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/auth-context";
 import { apiFetch, ApiError } from "@/lib/api";
-import type { Widget, WidgetType } from "@/lib/types";
+import type { UserSearchResult, Widget, WidgetType } from "@/lib/types";
 import { ErrorBanner } from "@/components/ui";
 import { WidgetListEditor, WIDGET_TYPE_LABEL } from "@/components/widget-list-editor";
 import { DEFAULT_ROLE_OPTIONS } from "@/components/menu-tree-editor";
@@ -185,6 +185,14 @@ function WidgetEditPanel({
   const [title, setTitle] = useState(widget.title);
   const [limit, setLimit] = useState(Number(widget.config.limit) || 5);
   const [html, setHtml] = useState(String(widget.config.html ?? ""));
+  const [sortOrder, setSortOrder] = useState<"newest" | "oldest">(
+    widget.config.sortOrder === "oldest" ? "oldest" : "newest",
+  );
+  const [filterUser, setFilterUser] = useState<UserSearchResult | null>(
+    typeof widget.config.filterUserId === "string" && widget.config.filterUserId
+      ? { id: widget.config.filterUserId, displayName: String(widget.config.filterUserName ?? "Đã chọn"), avatarUrl: null }
+      : null,
+  );
   const [roleSlugs, setRoleSlugs] = useState<string[]>(widget.roleSlugs);
   const [saving, setSaving] = useState(false);
 
@@ -197,7 +205,16 @@ function WidgetEditPanel({
     setSaving(true);
     try {
       const config: Record<string, unknown> =
-        widget.type === "RECENT_POSTS" ? { limit } : widget.type === "HTML" ? { html } : {};
+        widget.type === "RECENT_POSTS"
+          ? { limit }
+          : widget.type === "HTML"
+            ? { html }
+            : widget.type === "COMMENTS"
+              ? {
+                  sortOrder,
+                  ...(filterUser && { filterUserId: filterUser.id, filterUserName: filterUser.displayName }),
+                }
+              : {};
       await onSave({ title, config, roleSlugs });
     } finally {
       setSaving(false);
@@ -246,10 +263,27 @@ function WidgetEditPanel({
       )}
 
       {widget.type === "COMMENTS" && (
-        <p className="text-xs text-zinc-400">
-          Chỉ hiển thị trên trang chi tiết bài viết (cần biết bài viết đang xem) — sẽ không hiện ở
-          trang chủ hay các trang khác dù đang bật.
-        </p>
+        <>
+          <p className="text-xs text-zinc-400">
+            Chỉ hiển thị trên trang chi tiết bài viết (cần biết bài viết đang xem) — sẽ không hiện ở
+            trang chủ hay các trang khác dù đang bật.
+          </p>
+          <label className="flex flex-col gap-1 text-sm text-zinc-700">
+            Sắp xếp mặc định
+            <select
+              value={sortOrder}
+              onChange={(e) => setSortOrder(e.target.value as "newest" | "oldest")}
+              className="w-48 rounded-md border border-zinc-300 px-3 py-2 text-sm outline-none focus:border-[#1d3557] focus:ring-1 focus:ring-[#1d3557]"
+            >
+              <option value="newest">Mới nhất trước</option>
+              <option value="oldest">Cũ nhất trước</option>
+            </select>
+          </label>
+          <div className="flex flex-col gap-1 text-sm text-zinc-700">
+            Lọc theo user (để trống = tất cả)
+            <UserPicker value={filterUser} onChange={setFilterUser} />
+          </div>
+        </>
       )}
 
       <div className="flex flex-col gap-1.5">
@@ -287,5 +321,80 @@ function WidgetEditPanel({
         </button>
       </div>
     </form>
+  );
+}
+
+// Ô tìm-chọn 1 user (GET /users/search) — dùng để set filterUserId cho widget Bình luận.
+function UserPicker({
+  value,
+  onChange,
+}: {
+  value: UserSearchResult | null;
+  onChange: (user: UserSearchResult | null) => void;
+}) {
+  const [query, setQuery] = useState("");
+  const [results, setResults] = useState<UserSearchResult[]>([]);
+
+  useEffect(() => {
+    if (!query.trim()) return;
+    const handle = setTimeout(() => {
+      apiFetch<UserSearchResult[]>(`/users/search?q=${encodeURIComponent(query)}`)
+        .then(setResults)
+        .catch(() => setResults([]));
+    }, 200);
+    return () => clearTimeout(handle);
+  }, [query]);
+
+  if (value) {
+    return (
+      <div className="flex items-center gap-2 rounded-md border border-zinc-300 px-3 py-2 text-sm">
+        <span className="flex h-6 w-6 flex-none items-center justify-center rounded-full bg-[#2b3f5c] text-[10px] uppercase text-white">
+          {value.displayName.charAt(0)}
+        </span>
+        {value.displayName}
+        <button
+          type="button"
+          onClick={() => onChange(null)}
+          className="ml-auto text-xs font-medium text-red-600 hover:underline"
+        >
+          Bỏ chọn
+        </button>
+      </div>
+    );
+  }
+
+  return (
+    <div className="relative">
+      <input
+        value={query}
+        onChange={(e) => {
+          setQuery(e.target.value);
+          if (!e.target.value.trim()) setResults([]);
+        }}
+        placeholder="Gõ tên user..."
+        className="w-64 rounded-md border border-zinc-300 px-3 py-2 text-sm outline-none focus:border-[#1d3557] focus:ring-1 focus:ring-[#1d3557]"
+      />
+      {results.length > 0 && (
+        <div className="absolute z-10 mt-1 w-64 overflow-hidden rounded-md border border-zinc-200 bg-white shadow-lg">
+          {results.map((u) => (
+            <button
+              key={u.id}
+              type="button"
+              onClick={() => {
+                onChange(u);
+                setQuery("");
+                setResults([]);
+              }}
+              className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm hover:bg-zinc-50"
+            >
+              <span className="flex h-6 w-6 flex-none items-center justify-center rounded-full bg-[#2b3f5c] text-[10px] uppercase text-white">
+                {u.displayName.charAt(0)}
+              </span>
+              {u.displayName}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
   );
 }

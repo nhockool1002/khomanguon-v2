@@ -5,7 +5,17 @@ import {
 } from '@nestjs/common';
 import { CommentStatus, Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
+import { NotificationsService } from '../notifications/notifications.service';
+import { NotificationGateway } from '../realtime/notification.gateway';
 import { CreateCommentDto } from './dto/create-comment.dto';
+
+// Token @mention chèn bởi MentionTextarea ở FE: "@[Tên hiển thị](userId)" — chỉ token do FE tự
+// chèn khi chọn từ dropdown /users/search mới khớp pattern này, gõ "@" tay không tạo mention thật.
+const MENTION_PATTERN = /@\[[^\]]+\]\(([a-zA-Z0-9_-]+)\)/g;
+
+function extractMentionedUserIds(content: string): string[] {
+  return [...content.matchAll(MENTION_PATTERN)].map((m) => m[1]);
+}
 
 const commentSelect = {
   id: true,
@@ -26,25 +36,56 @@ const adminCommentSelect = {
   post: { select: { id: true, title: true, slug: true } },
 } satisfies Prisma.CommentSelect;
 
+interface ListFilters {
+  sort?: 'newest' | 'oldest';
+  authorId?: string;
+}
+
 @Injectable()
 export class CommentsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly notificationsService: NotificationsService,
+    private readonly notificationGateway: NotificationGateway,
+  ) {}
 
-  // Công khai — chỉ bình luận đã duyệt (UC07, wireframe #03).
-  async list(postId: string, currentUserId?: string) {
+  // Công khai — chỉ bình luận đã duyệt (UC07, wireframe #03). sort/authorId cấu hình được qua
+  // config của widget Bình luận (mặc định "newest" theo yêu cầu — xem widget-area.tsx).
+  async list(
+    postId: string,
+    currentUserId?: string,
+    filters: ListFilters = {},
+  ) {
     const comments = await this.prisma.comment.findMany({
-      where: { postId, status: CommentStatus.PUBLISHED },
-      orderBy: [{ pinned: 'desc' }, { createdAt: 'asc' }],
+      where: {
+        postId,
+        status: CommentStatus.PUBLISHED,
+        ...(filters.authorId && { userId: filters.authorId }),
+      },
+      orderBy: [
+        { pinned: 'desc' },
+        { createdAt: filters.sort === 'oldest' ? 'asc' : 'desc' },
+      ],
       select: commentSelect,
     });
     return this.attachLikedByMe(comments, currentUserId);
   }
 
   // Cho Moderator — thấy cả bình luận ẩn/chờ duyệt để kiểm duyệt ngay trên trang bài viết (UC08).
-  async listForModeration(postId: string, currentUserId?: string) {
+  async listForModeration(
+    postId: string,
+    currentUserId?: string,
+    filters: ListFilters = {},
+  ) {
     const comments = await this.prisma.comment.findMany({
-      where: { postId },
-      orderBy: [{ pinned: 'desc' }, { createdAt: 'asc' }],
+      where: {
+        postId,
+        ...(filters.authorId && { userId: filters.authorId }),
+      },
+      orderBy: [
+        { pinned: 'desc' },
+        { createdAt: filters.sort === 'oldest' ? 'asc' : 'desc' },
+      ],
       select: commentSelect,
     });
     return this.attachLikedByMe(comments, currentUserId);
@@ -97,6 +138,9 @@ export class CommentsService {
       },
       select: commentSelect,
     });
+
+    await this.notifyMentions(userId, comment.id, dto.postId, dto.content);
+
     return { ...this.stripCount(comment), likedByMe: false };
   }
 
@@ -145,6 +189,30 @@ export class CommentsService {
   async remove(id: string): Promise<void> {
     await this.assertExists(id);
     await this.prisma.comment.delete({ where: { id } });
+  }
+
+  // Best-effort — lỗi tạo/đẩy thông báo không được chặn việc đăng bình luận (đã thành công rồi).
+  private async notifyMentions(
+    actorId: string,
+    commentId: string,
+    postId: string,
+    content: string,
+  ): Promise<void> {
+    const mentionedUserIds = extractMentionedUserIds(content);
+    if (mentionedUserIds.length === 0) return;
+    try {
+      const created = await this.notificationsService.createMentions(
+        actorId,
+        commentId,
+        postId,
+        mentionedUserIds,
+      );
+      for (const notif of created) {
+        this.notificationGateway.emitNotification(notif.userId, notif);
+      }
+    } catch {
+      // Nuốt lỗi — không ảnh hưởng response tạo comment.
+    }
   }
 
   private async assertExists(id: string): Promise<void> {

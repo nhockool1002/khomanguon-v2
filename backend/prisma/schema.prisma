@@ -42,6 +42,8 @@ model User {
   emailVerificationTokens EmailVerificationToken[]
   passwordResetTokens    PasswordResetToken[]
   topupOrders            TopupOrder[]
+  notificationsReceived  Notification[] @relation("NotificationRecipient")
+  notificationsCaused    Notification[] @relation("NotificationActor")
 
   @@map("users")
 }
@@ -188,6 +190,7 @@ model Post {
   tags          PostTag[]
   comments      Comment[]
   downloadLinks DownloadLink[]
+  notifications Notification[]
 
   publishedAt DateTime?
   createdAt   DateTime  @default(now())
@@ -292,7 +295,8 @@ model Comment {
   pinned    Boolean       @default(false) // Moderator ghim — UC08
   createdAt DateTime      @default(now())
 
-  likes CommentLike[]
+  likes         CommentLike[]
+  notifications Notification[]
 
   @@map("comments")
 }
@@ -308,6 +312,30 @@ model CommentLike {
 
   @@unique([commentId, userId])
   @@map("comment_likes")
+}
+
+enum NotificationType {
+  MENTION
+}
+
+// Thông báo @mention trong bình luận — actorId là người gõ @, userId là người bị nhắc tới.
+// Chỉ 1 loại MENTION hiện tại; không làm thông báo cho like/reply (ngoài phạm vi yêu cầu).
+model Notification {
+  id        String           @id @default(cuid())
+  userId    String
+  user      User             @relation("NotificationRecipient", fields: [userId], references: [id], onDelete: Cascade)
+  type      NotificationType
+  actorId   String
+  actor     User             @relation("NotificationActor", fields: [actorId], references: [id], onDelete: Cascade)
+  commentId String?
+  comment   Comment?         @relation(fields: [commentId], references: [id], onDelete: Cascade)
+  postId    String?
+  post      Post?            @relation(fields: [postId], references: [id], onDelete: Cascade)
+  isRead    Boolean          @default(false)
+  createdAt DateTime         @default(now())
+
+  @@index([userId, isRead, createdAt])
+  @@map("notifications")
 }
 
 // ───────────────────────── Lưu trữ file & link tải trả phí (Phase 3) ─────────────────────────

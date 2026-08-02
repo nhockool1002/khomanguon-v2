@@ -20,6 +20,7 @@ import { SepayModule } from './sepay/sepay.module';
 import { RealtimeModule } from './realtime/realtime.module';
 import { CloudFilesModule } from './cloud-files/cloud-files.module';
 import { WidgetsModule } from './widgets/widgets.module';
+import { NotificationsModule } from './notifications/notifications.module';
 
 @Module({
   imports: [
@@ -42,6 +43,7 @@ import { WidgetsModule } from './widgets/widgets.module';
     RealtimeModule,
     CloudFilesModule,
     WidgetsModule,
+    NotificationsModule,
   ],
   controllers: [AppController],
   providers: [AppService],
