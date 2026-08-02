@@ -7,6 +7,7 @@ import { CommentStatus, Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { NotificationsService } from '../notifications/notifications.service';
 import { NotificationGateway } from '../realtime/notification.gateway';
+import { resolveStyleRoleSlug } from '../roles/style-role.util';
 import { CreateCommentDto } from './dto/create-comment.dto';
 
 // Token @mention chèn bởi MentionTextarea ở FE: "@[Tên hiển thị](userId)" — chỉ token do FE tự
@@ -30,7 +31,11 @@ const commentSelect = {
       id: true,
       displayName: true,
       avatarUrl: true,
-      roles: { select: { role: { select: { slug: true } } } },
+      primaryRoleId: true,
+      roles: {
+        select: { roleId: true, role: { select: { slug: true } } },
+        orderBy: { role: { createdAt: 'asc' } },
+      },
     },
   },
   _count: { select: { likes: true } },
@@ -230,15 +235,21 @@ export class CommentsService {
   private stripCount<
     T extends {
       _count: { likes: number };
-      user: { roles: { role: { slug: string } }[] };
+      user: {
+        primaryRoleId: string | null;
+        roles: { roleId: string; role: { slug: string } }[];
+      };
     },
   >(comment: T) {
     const { _count, user, ...rest } = comment;
-    const { roles, ...userRest } = user;
+    const { primaryRoleId, roles, ...userRest } = user;
     return {
       ...rest,
       likeCount: _count.likes,
-      user: { ...userRest, roleSlugs: roles.map((r) => r.role.slug) },
+      user: {
+        ...userRest,
+        styleRoleSlug: resolveStyleRoleSlug(primaryRoleId, roles),
+      },
     };
   }
 

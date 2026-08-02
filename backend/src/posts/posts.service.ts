@@ -8,6 +8,7 @@ import { Prisma, PostStatus } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { RolesService } from '../roles/roles.service';
 import { PERMISSIONS } from '../roles/permissions.constant';
+import { resolveStyleRoleSlug } from '../roles/style-role.util';
 import { buildUniqueSlug } from '../common/slugify';
 import { CreatePostDto } from './dto/create-post.dto';
 import { UpdatePostDto } from './dto/update-post.dto';
@@ -28,7 +29,11 @@ const listSelect = {
       id: true,
       displayName: true,
       avatarUrl: true,
-      roles: { select: { role: { select: { slug: true } } } },
+      primaryRoleId: true,
+      roles: {
+        select: { roleId: true, role: { select: { slug: true } } },
+        orderBy: { role: { createdAt: 'asc' } },
+      },
     },
   },
 } satisfies Prisma.PostSelect;
@@ -58,12 +63,16 @@ function toPagination({ page = 1, limit = 12 }: PageQuery) {
   return { skip, take };
 }
 
-// Flatten author.roles -> author.roleSlugs cho FE render badge role cạnh byline (RoleBadge).
+// Resolve author.roles + primaryRoleId -> author.styleRoleSlug cho FE style tên tác giả theo
+// đúng 1 role (xem components/styled-user-name.tsx).
 function mapAuthor<T extends { author: PostListRow['author'] }>(post: T) {
-  const { roles, ...authorRest } = post.author;
+  const { primaryRoleId, roles, ...authorRest } = post.author;
   return {
     ...post,
-    author: { ...authorRest, roleSlugs: roles.map((r) => r.role.slug) },
+    author: {
+      ...authorRest,
+      styleRoleSlug: resolveStyleRoleSlug(primaryRoleId, roles),
+    },
   };
 }
 

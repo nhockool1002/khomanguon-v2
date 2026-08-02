@@ -5,7 +5,7 @@ import { fetchPostBySlug } from "@/lib/public-api";
 import { GradientUnderline } from "@/components/gradient-underline";
 import { DownloadBox } from "@/components/download-box";
 import { WidgetArea } from "@/components/widget-area";
-import { RoleBadge } from "@/components/role-badge";
+import { StyledUserName } from "@/components/styled-user-name";
 import { formatDate, formatViewCount } from "@/lib/format";
 
 type Props = {
@@ -64,8 +64,9 @@ export default async function PostDetailPage({ params }: Props) {
             <span className="flex h-6 w-6 items-center justify-center rounded-full bg-[#2b3f5c] text-[10px] uppercase text-white">
               {post.author.displayName.charAt(0)}
             </span>
-            <span>{post.author.displayName}</span>
-            <RoleBadge roleSlugs={post.author.roleSlugs} />
+            <StyledUserName styleRoleSlug={post.author.styleRoleSlug}>
+              {post.author.displayName}
+            </StyledUserName>
             <span>·</span>
             <span>{formatDate(post.publishedAt ?? post.createdAt)}</span>
             <span>·</span>

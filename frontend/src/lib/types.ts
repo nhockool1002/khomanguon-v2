@@ -10,6 +10,10 @@ export interface Profile extends AuthUser {
   bio: string | null;
   createdAt: string;
   roles: string[];
+  // Vai trò của chính user này (kèm tên hiển thị) — dùng cho selector "hiển thị theo vai trò"
+  // ở trang Tài khoản khi user thuộc >1 role.
+  styleRoles: { slug: string; name: string }[];
+  primaryRoleSlug: string | null;
 }
 
 export interface AuthResponse {
@@ -36,7 +40,7 @@ export interface PostAuthor {
   id: string;
   displayName: string;
   avatarUrl: string | null;
-  roleSlugs: string[];
+  styleRoleSlug: string | null;
 }
 
 export interface PostSummary {
@@ -99,7 +103,7 @@ export interface CommentAuthor {
   id: string;
   displayName: string;
   avatarUrl: string | null;
-  roleSlugs: string[];
+  styleRoleSlug: string | null;
 }
 
 export interface Comment {

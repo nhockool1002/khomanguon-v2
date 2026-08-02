@@ -22,7 +22,8 @@ describe('PostsService.update — phân quyền sửa bài (post.edit.own / post
       id: 'author-1',
       displayName: 'Author',
       avatarUrl: null as string | null,
-      roles: [] as { role: { slug: string } }[],
+      primaryRoleId: null as string | null,
+      roles: [] as { roleId: string; role: { slug: string } }[],
     },
   };
 

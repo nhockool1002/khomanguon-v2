@@ -19,6 +19,7 @@ import { UpdateProfileDto } from './dto/update-profile.dto';
 import { ChangePasswordDto } from './dto/change-password.dto';
 import { AssignRoleDto } from './dto/assign-role.dto';
 import { UpdateStatusDto } from './dto/update-status.dto';
+import { UpdateStyleRoleDto } from './dto/update-style-role.dto';
 
 interface AuthUser {
   id: string;
@@ -48,6 +49,16 @@ export class UsersController {
     @Body() dto: ChangePasswordDto,
   ) {
     return this.usersService.changePassword(user.id, dto);
+  }
+
+  // User thuộc >1 role tự chọn role nào áp style tên hiển thị (comment, byline...) ở trang Tài khoản.
+  @UseGuards(JwtAuthGuard)
+  @Patch('me/style-role')
+  updateStyleRole(
+    @CurrentUser() user: AuthUser,
+    @Body() dto: UpdateStyleRoleDto,
+  ) {
+    return this.usersService.updateStyleRole(user.id, dto.roleSlug);
   }
 
   @UseGuards(JwtAuthGuard, PermissionsGuard)
