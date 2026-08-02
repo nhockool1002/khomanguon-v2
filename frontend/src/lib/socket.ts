@@ -31,3 +31,25 @@ export function useWalletSocket(enabled: boolean, onUpdate: (payload: WalletUpda
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [enabled]);
 }
+
+// Đẩy realtime thông báo @mention — room riêng "notif:{userId}" phía server (xem
+// backend/src/realtime/notification.gateway.ts), sao y cấu trúc useWalletSocket ở trên.
+export function useNotificationSocket<T>(enabled: boolean, onNew: (payload: T) => void) {
+  useEffect(() => {
+    if (!enabled) return;
+    const token = getAccessToken();
+    if (!token) return;
+
+    const socket: Socket = io(API_URL, {
+      auth: { token },
+      withCredentials: true,
+      transports: ["websocket"],
+    });
+    socket.on("notification.new", onNew);
+
+    return () => {
+      socket.disconnect();
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [enabled]);
+}

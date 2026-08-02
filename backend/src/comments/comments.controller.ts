@@ -33,10 +33,16 @@ export class CommentsController {
   constructor(private readonly commentsService: CommentsService) {}
 
   // Công khai — nhưng giải mã token nếu có để trả đúng likedByMe (UC07, wireframe #03).
+  // sort/authorId lấy từ config widget Bình luận (xem widget-area.tsx).
   @UseGuards(OptionalJwtAuthGuard)
   @Get()
-  list(@Query('postId') postId: string, @CurrentUser() user?: AuthUser) {
-    return this.commentsService.list(postId, user?.id);
+  list(
+    @Query('postId') postId: string,
+    @Query('sort') sort: 'newest' | 'oldest' | undefined,
+    @Query('authorId') authorId: string | undefined,
+    @CurrentUser() user?: AuthUser,
+  ) {
+    return this.commentsService.list(postId, user?.id, { sort, authorId });
   }
 
   // Moderator xem cả bình luận ẩn/chờ duyệt để kiểm duyệt ngay trên trang bài viết (UC08).
@@ -45,9 +51,14 @@ export class CommentsController {
   @Get('moderation')
   listForModeration(
     @Query('postId') postId: string,
+    @Query('sort') sort: 'newest' | 'oldest' | undefined,
+    @Query('authorId') authorId: string | undefined,
     @CurrentUser() user: AuthUser,
   ) {
-    return this.commentsService.listForModeration(postId, user.id);
+    return this.commentsService.listForModeration(postId, user.id, {
+      sort,
+      authorId,
+    });
   }
 
   // Trang quản trị "Quản lý bình luận" — kiểm duyệt xuyên suốt tất cả bài viết.

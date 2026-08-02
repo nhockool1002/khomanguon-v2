@@ -85,6 +85,22 @@ export class UsersService {
     ]);
   }
 
+  // Gợi ý @mention trong bình luận + chọn user lọc widget Bình luận — chỉ trả field vốn đã public
+  // qua comment/post (id/displayName/avatarUrl), không cần permission đặc biệt (JwtAuthGuard đủ).
+  async search(q: string, limit: number) {
+    const take = Math.min(Math.max(limit, 1), 20);
+    if (!q.trim()) return [];
+    return this.prisma.user.findMany({
+      where: {
+        displayName: { contains: q.trim(), mode: 'insensitive' },
+        status: UserStatus.ACTIVE,
+      },
+      take,
+      orderBy: { displayName: 'asc' },
+      select: { id: true, displayName: true, avatarUrl: true },
+    });
+  }
+
   async list(skip: number, take: number) {
     const [items, total] = await this.prisma.$transaction([
       this.prisma.user.findMany({

@@ -38,9 +38,16 @@ async function WidgetRenderer({ widget, postId }: { widget: Widget; postId?: str
       return <RecentPostsWidget title={widget.title} limit={Number(widget.config.limit) || 5} />;
     case "HTML":
       return <HtmlWidget title={widget.title} html={String(widget.config.html ?? "")} />;
-    case "COMMENTS":
+    case "COMMENTS": {
       // postId luôn có ở đây — widget-level filter phía trên đã loại bỏ trường hợp thiếu postId.
-      return postId ? <CommentSection postId={postId} /> : null;
+      if (!postId) return null;
+      const sortOrder = widget.config.sortOrder === "oldest" ? "oldest" : "newest";
+      const filterUserId =
+        typeof widget.config.filterUserId === "string" && widget.config.filterUserId
+          ? widget.config.filterUserId
+          : undefined;
+      return <CommentSection postId={postId} sortOrder={sortOrder} filterUserId={filterUserId} />;
+    }
     default:
       return null;
   }

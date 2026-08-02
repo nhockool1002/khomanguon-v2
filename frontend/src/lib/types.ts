@@ -113,6 +113,24 @@ export interface Comment {
   likedByMe: boolean;
 }
 
+export interface UserSearchResult {
+  id: string;
+  displayName: string;
+  avatarUrl: string | null;
+}
+
+export type NotificationType = "MENTION";
+
+export interface AppNotification {
+  id: string;
+  type: NotificationType;
+  isRead: boolean;
+  createdAt: string;
+  actor: UserSearchResult;
+  comment: { id: string; content: string } | null;
+  post: { id: string; title: string; slug: string } | null;
+}
+
 // Bản ghi bình luận cho trang quản trị "Quản lý bình luận" — kèm thông tin bài viết vì kiểm duyệt
 // xuyên suốt tất cả bài viết, không chỉ trong ngữ cảnh 1 bài như listForModeration(postId).
 export interface AdminComment extends Comment {
