@@ -6,6 +6,8 @@ Quy ước: mỗi phase có **Definition of Done (DoD)** rõ ràng — không sa
 
 **Môi trường theo từng giai đoạn:** Phase 0–3 chạy trên **Local (Docker Compose)**; cuối Phase 3 lần đầu đẩy lên **Staging (aaPanel VPS nhỏ)**; Phase 4 chuyển dần sang **Production (aaPanel VPS chính + Cloudflare)**.
 
+> **Cập nhật thực tế (xem chi tiết ở Phase 2.7):** bước Staging riêng đã bị bỏ qua trong triển khai thật — dự án đẩy thẳng lên hạ tầng Production (Vercel cho frontend, aaPanel cho backend) ngay từ sớm, deploy tự động mỗi lần merge vào `main`. Ghi nhận lại đây để không nhầm lẫn khi đọc các mục Phase 3/4 bên dưới.
+
 ---
 
 ## Tổng quan thời lượng
@@ -23,19 +25,83 @@ Quy ước: mỗi phase có **Definition of Done (DoD)** rõ ràng — không sa
 
 ---
 
+## Cấu trúc thư mục & quy ước coding hiện tại
+
+> Phần này mô tả kiến trúc **thật** của repo tại thời điểm cập nhật tài liệu này (không phải kế hoạch) — dùng làm tham chiếu bắt buộc khi viết code mới. Quy ước commit/branch/lint đã có sẵn ở [`CONTRIBUTING.md`](CONTRIBUTING.md), không lặp lại ở đây.
+
+### Cấu trúc thư mục
+
+**`backend/src/`** — NestJS, module hoá theo domain (mỗi thư mục = 1 `*.module.ts` + `*.controller.ts` + `*.service.ts` + `dto/`):
+
+| Module | Vai trò |
+|---|---|
+| `auth/` | Đăng ký/đăng nhập/refresh token, quên/đặt lại mật khẩu, xác minh email |
+| `users/` | Hồ sơ user, admin quản lý user, tìm user (autocomplete @mention/filter) |
+| `roles/` | RBAC: permissions, role CRUD, custom role, style badge role (title/màu/đậm/nghiêng/font) |
+| `posts/` | Bài viết CRUD, workflow xuất bản |
+| `categories/` | Danh mục bài viết |
+| `menus/` | Menu điều hướng đa cấp (kéo-thả) |
+| `comments/` | Bình luận (threaded) + kiểm duyệt + @mention |
+| `notifications/` | Thông báo trong app (mention...) + đẩy realtime |
+| `widgets/` | Widget sidebar (CMS: tìm kiếm, danh mục, bài mới, HTML tự do, bình luận) |
+| `wallet/` | Ví $P — API cho user tự xem + admin điều chỉnh tay (`wallet.adjust`) |
+| `sepay/` | Tích hợp SePay: cấu hình, tạo yêu cầu nạp + VietQR, webhook, cron hết hạn đơn |
+| `download-links/` | Link tải trả phí gắn bài viết (mua bằng $P, presigned URL) |
+| `storage-providers/` | Cấu hình nhiều provider R2/S3/Mailjet (secret mã hoá, chọn provider mặc định) |
+| `storage/` | `r2-client.service.ts` — client S3/R2 dùng chung (AWS SDK thật) cho mọi module cần |
+| `cloud-files/` | Duyệt/xoá file trong bucket qua trang admin |
+| `uploads/` | Upload file chung (ảnh bài viết, avatar...) |
+| `mail/` | Gửi email transactional (xác minh, đặt lại mật khẩu) |
+| `realtime/` | WebSocket gateway (`wallet.gateway.ts`, `notification.gateway.ts`) — mỗi user 1 room riêng, xác thực bằng JWT |
+| `prisma/` | `PrismaService`/`PrismaModule` — client DB dùng chung, `@Global()` |
+| `common/` | Tiện ích dùng chung: mã hoá secret, slugify, token util, filter ẩn tài khoản admin |
+
+**`frontend/src/`** — Next.js App Router:
+
+- `app/` — route theo tiếng Việt, URL thân thiện: `/dang-nhap`, `/dang-ky`, `/quen-mat-khau`, `/dat-lai-mat-khau`, `/xac-minh-email`, `/bai-viet/[slug]`, `/danh-muc/[slug]`, `/tim-kiem`, `/tai-khoan` (+ `/tai-khoan/vi`), `/quan-tri/*` (toàn bộ khu quản trị: `bai-viet`, `danh-muc`, `menu`, `widget`, `nguoi-dung`, `giao-dich`, `binh-luan`, `vai-tro`, `cai-dat/storage`, `cai-dat/sepay`, `tep-cloud`)
+- `components/` — component dùng chung (UI cơ bản, rich-text-editor, comment-section, mention-textarea, styled-user-name, notification-bell...)
+- `context/` — React context (`auth-context`, `role-badges-context`)
+- `lib/` — `api.ts` (client có token, tự refresh), `public-api.ts` (fetch phía server không token), `types.ts`, `format.ts`, `fonts.ts`, `socket.ts`
+
+### Quy ước coding đã áp dụng nhất quán — bắt buộc tuân thủ khi thêm code mới
+
+**Backend (NestJS + Prisma):**
+
+1. Mỗi domain là 1 module riêng (`*.module.ts` + `*.controller.ts` + `*.service.ts` + `dto/`) — không gộp nhiều domain vào 1 module, không đặt logic nghiệp vụ trong controller.
+2. `PermissionsGuard` chỉ đọc metadata ở **method-level** (`context.getHandler()`) — `@Permissions(...)` phải khai báo lại ở **từng handler**; đặt ở class sẽ bị bỏ qua và guard cho qua mọi user đã đăng nhập (lỗi thật đã gặp và sửa, xem comment đầu `roles.controller.ts`/`storage-providers.controller.ts`).
+3. Validate input bằng `class-validator` trong DTO (`@IsString`, `@IsOptional`...) — không validate tay trong service.
+4. Secret nhạy cảm (API key, secretAccessKey, webhook key...) luôn mã hoá qua `common/secret-crypto.util.ts` trước khi lưu DB, **không bao giờ lưu plaintext**.
+5. Thao tác trừ/cộng $P hoặc ghi nhiều bảng liên quan luôn nằm trong 1 `prisma.$transaction` (ACID) — không tách thành nhiều lệnh rời để tránh lệch số dư.
+6. Cấu hình hệ thống không cần bảng riêng thì lưu vào `SiteSetting` (key/value JSON, ví dụ `sepay_config`) thay vì tạo model mới — xem `sepay/sepay-config.types.ts` làm mẫu.
+7. Sửa `schema.prisma` thì viết tay migration khớp thay đổi (không chỉ chạy `prisma migrate dev`), đặt tên thư mục `<timestamp>_<mo_ta_ngan>`, luôn chạy `npx prisma generate` sau khi sửa. Trước khi coi một tính năng có đổi schema là xong: chạy `pnpm run build && pnpm run lint && pnpm run test && pnpm run test:e2e` — bài học thật từ dự án: 1 lần merge quên chạy `pnpm run test` đã làm CI đỏ trên `main` và chặn luôn `deploy-backend`.
+8. Comment tiếng Việt giải thích **lý do (why)** một quyết định kỹ thuật không hiển nhiên (đánh đổi, lỗi từng gặp, giới hạn cố ý) — không mô tả lại điều code đã tự nói lên.
+
+**Frontend (Next.js App Router):**
+
+1. Trang public (trang chủ, chi tiết bài viết, danh mục...) là **Server Component**, fetch qua `lib/public-api.ts` (`publicFetch` — không token, `cache: "no-store"`).
+2. Trang cần đăng nhập (toàn bộ `/quan-tri/*`, `/tai-khoan/*`) là **Client Component** (`"use client"`), fetch qua `lib/api.ts` (`apiFetch` — tự đính access token, tự refresh khi 401).
+3. Mọi trang `/quan-tri/*` và `/tai-khoan/*` theo cùng 1 pattern: `useAuth()` lấy `user`, `useEffect` redirect `/dang-nhap` nếu chưa đăng nhập; **không tự kiểm tra permission phía client** — dựa hoàn toàn vào lỗi 403 từ backend hiển thị qua `ErrorBanner` (menu quản trị hiện tại chưa lọc theo quyền, biết trước hạn chế này).
+4. Style tên user (màu/đậm/nghiêng/font theo role) luôn qua `StyledUserName` + `RoleBadgesProvider` context — không tự tính màu/font riêng lẻ ở từng nơi hiển thị tên.
+5. Màu chủ đạo: `#1d3557` (navy — nút chính/link), gradient `#ff5da2 → #ffcf3f` (chip $P), `zinc-*` (Tailwind) cho text/border trung tính.
+6. Không thêm thư viện UI framework mới (MUI, Chakra, shadcn...) — toàn bộ giao diện dùng Tailwind thuần + component tự viết trong `components/ui.tsx`.
+
+**Yêu cầu tuân thủ:** mọi PR thêm tính năng mới phải theo đúng cấu trúc module/route và các quy ước 1–8 (backend) / 1–6 (frontend) ở trên. Nếu bắt buộc phải lệch quy ước (thêm thư viện UI mới, đổi provider auth, đổi cách deploy...), phải nêu rõ lý do trong PR description và được review đồng ý trước khi merge — không tự ý đổi kiến trúc khi chỉ đang làm 1 feature nhỏ.
+
+---
+
 ## Phase 0 — Chuẩn bị & khởi tạo dự án
 **Thời lượng:** 1 tuần · **Môi trường:** Local
 
 - [x] Khởi tạo repo tại [github.com/nhockool1002/khomanguon-v2](https://github.com/nhockool1002/khomanguon-v2) — `frontend/` (Next.js 16) + `backend/` (NestJS + Prisma), chưa dùng workspace `packages/` dùng chung vì 2 app chưa cần share code
 - [x] Quy ước code: ESLint (frontend + backend), Prettier (backend) sạch; commit convention (Conventional Commits) + branch strategy trunk-based trong [`CONTRIBUTING.md`](CONTRIBUTING.md)
 - [x] Docker Compose dev: `postgres`, `redis`, `backend` (`:4000`, hot reload), `frontend` (`:3000`, hot reload) — `docker compose up` một lệnh, đã build & chạy thử thành công
-- [x] ERD chi tiết — thể hiện trực tiếp trong [`backend/prisma/schema.prisma`](backend/prisma/schema.prisma) (users, roles, permissions, role_permissions, posts, categories, menus, comments, wallets, wallet_transactions, download_links, download_grants, storage_providers, site_settings)
-- [x] Khởi tạo Prisma schema + migration đầu tiên (`prisma migrate dev --name init`) — đã áp dụng, tạo 20 bảng trên Postgres dev
+- [x] ERD chi tiết — thể hiện trực tiếp trong [`backend/prisma/schema.prisma`](backend/prisma/schema.prisma) (users, roles, permissions, role_permissions, posts, categories, menus, comments, wallets, wallet_transactions, download_links, download_grants, storage_providers, site_settings, notifications...)
+- [x] Khởi tạo Prisma schema + migration đầu tiên (`prisma migrate dev --name init`) — đã áp dụng, đã qua nhiều migration tiếp theo không lỗi
 - [x] CI skeleton (`.github/workflows/ci.yml`): lint + build + unit test + e2e test (kèm Postgres service) cho backend, lint + build cho frontend — chạy trên mọi PR/push `main`
-- [ ] 🔴 Đăng ký tài khoản dịch vụ ngoài: Cloudflare R2 + AWS S3 (đã có sẵn từ v1, cần trang Admin ở Phase 3 để nhập lại key), SePay (đăng ký merchant + xin sandbox key — đang tiến hành), Sentry, domain
-- [x] 🔴 VPS + aaPanel cho Staging/Production đã có sẵn (xác nhận từ chủ dự án)
+- [x] Đăng ký tài khoản dịch vụ ngoài — **R2/S3 và SePay: xong, tích hợp thật** (`backend/src/storage/r2-client.service.ts` dùng `@aws-sdk/client-s3` thật, `backend/src/sepay/*` gọi API SePay thật + VietQR). 🔴 **Còn thiếu: Sentry (chưa tích hợp ở đâu trong repo) và domain production riêng** — cần làm trước khi vào sâu Phase 4.3/4.4.
+- [x] 🔴 VPS + aaPanel cho Staging/Production đã có sẵn (xác nhận từ chủ dự án) — thực tế đã dùng thẳng cho Production (xem ghi chú Phase 2.7)
 
-**DoD:** `docker compose up` chạy được ✅, CI xanh trên PR rỗng ✅ (đã chạy tương đương local), schema/migration khớp ERD ✅, còn thiếu: sandbox key SePay + nhập lại key R2/S3 vào trang Admin (việc của Phase 3, không chặn Phase 1).
+**DoD:** `docker compose up` chạy được ✅, CI xanh trên PR ✅, schema/migration khớp ERD ✅, R2/S3 + SePay đã cắm thật vào trang Admin ✅. Còn thiếu: tài khoản Sentry (không chặn các phase sau, nhưng phải làm trước khi go-live thật — Phase 4.3/4.4).
 
 ---
 
@@ -49,11 +115,11 @@ Quy ước: mỗi phase có **Definition of Done (DoD)** rõ ràng — không sa
 - [x] UI Đăng nhập (`/dang-nhap`), Đăng ký (`/dang-ky`), Quên mật khẩu (`/quen-mat-khau`), Đặt lại mật khẩu (`/dat-lai-mat-khau`), Xác minh email (`/xac-minh-email`) — theo wireframe #04/#05, đã test qua trình duyệt thật
 
 ### 1.2 Hồ sơ người dùng
-- [x] API `GET/PATCH /users/me`, `PATCH /users/me/password` (đổi mật khẩu thu hồi hết session), `POST /auth/resend-verification` — UC04
+- [x] API `GET/PATCH /users/me`, `PATCH /users/me/password` (đổi mật khẩu thu hồi hết session), `POST /auth/resend-verification` — UC04. Bổ sung thêm `PATCH /users/me/style-role` (user thuộc nhiều role tự chọn role nào áp style tên hiển thị)
 - [x] UI trang `/tai-khoan` với tab Thông tin (tên hiển thị, bio, badge vai trò, banner + nút gửi lại email xác minh) và Bảo mật (đổi mật khẩu) — theo wireframe #06, đã test qua trình duyệt thật. Avatar upload thật (ảnh file) để dành Phase 3 khi có R2/S3 — hiện chỉ nhận `avatarUrl` dạng URL.
 
 ### 1.3 RBAC cơ bản
-- [x] Bảng `roles`, `permissions`, `role_permissions`, `user_roles`; seed 18 permission + 4 role mặc định (Admin/Super Mod/Mod/Member) đúng ma trận quyền mục 06 tài liệu thiết kế (`prisma/seed.ts`)
+- [x] Bảng `roles`, `permissions`, `role_permissions`, `user_roles`; seed permission + 4 role mặc định (Admin/Super Mod/Mod/Member) đúng ma trận quyền mục 06 tài liệu thiết kế (`prisma/seed.ts`)
 - [x] `PermissionsGuard` + `@Permissions(...)` kiểm tra theo mã quyền (không hard-code theo tên role) — đã test 403 đúng khi member gọi endpoint cần `user.manage`
 - [x] `GET /users` (list, cần `user.manage`), `POST/DELETE /users/:id/roles` (gán/gỡ role, cần `user.assign_role`) — UC18, đã test admin gán role thành công + member bị chặn
 
@@ -64,9 +130,9 @@ Quy ước: mỗi phase có **Definition of Done (DoD)** rõ ràng — không sa
 - [x] Layout public bám bản sắc v1 (navbar tối, thẻ bài viết, gạch chân gradient — mục 02 tài liệu thiết kế)
 
 ### 1.5 Kiểm thử
-- [ ] Test unit cho Auth (đăng ký/đăng nhập/reset mật khẩu) — luồng trọng yếu, ưu tiên coverage cao
+- [ ] Test unit cho Auth (đăng ký/đăng nhập/reset mật khẩu) — **vẫn chưa có** `auth.service.spec.ts`/`auth.controller.spec.ts` thật sự nào. Đã có thay thế một phần: `backend/test/auth.e2e-spec.ts` (Jest + supertest) phủ đăng ký, đăng nhập, refresh token xoay vòng, permission 403 — nhưng **chưa test luồng quên/đặt lại mật khẩu**. Ưu tiên bổ sung unit test thật trước khi coi mục này xong.
 
-**DoD:** User đăng ký/đăng nhập/sửa hồ sơ được; Admin đăng nhập thấy danh sách bài viết; phân quyền cơ bản chặn đúng theo role.
+**DoD:** User đăng ký/đăng nhập/sửa hồ sơ được ✅; Admin đăng nhập thấy danh sách bài viết ✅; phân quyền cơ bản chặn đúng theo role ✅. Nợ kỹ thuật còn lại: chưa có unit test riêng cho Auth (không chặn các phase sau vì đã có e2e coverage một phần).
 
 ---
 
@@ -85,8 +151,8 @@ Quy ước: mỗi phase có **Definition of Done (DoD)** rõ ràng — không sa
 - [x] UI kéo-thả bằng dnd-kit, gán hiển thị theo vai trò — UC16, wireframe #10. Lọc menu công khai theo vai trò user cụ thể (không chỉ "công khai/không công khai") để dành bản sau — `AuthUser` context chưa mang theo `roles`.
 
 ### 2.3 Bình luận
-- [x] Model comment (threaded — `parent_id`), API tạo/trả lời/thích — thêm `Comment.pinned` + model `CommentLike` (migration `20260731100000_comment_likes_and_pin`)
-- [x] UI bình luận trên trang chi tiết bài viết — UC07, wireframe #03
+- [x] Model comment (threaded — `parent_id`), API tạo/trả lời/thích — thêm `Comment.pinned` + model `CommentLike`
+- [x] UI bình luận trên trang chi tiết bài viết — UC07, wireframe #03. Bổ sung sau: sort mới nhất/cũ nhất tự chọn được ngay trên UI, filter theo 1 user (cấu hình qua widget Bình luận), @mention kèm gợi ý autocomplete + thông báo realtime, trạng thái loading khi tải bình luận.
 - [x] Chức năng kiểm duyệt (ẩn/xoá/ghim, chặn user spam) cho Moderator — UC08. "Chặn user" dùng `PATCH /users/:id/status` (thu hồi refresh token, enforce ở login/refresh) — chưa có UI riêng để mở khoá lại (BE hỗ trợ, tạm thời phải gọi API tay).
 
 ### 2.4 Tìm kiếm & danh mục
@@ -95,97 +161,100 @@ Quy ước: mỗi phase có **Definition of Done (DoD)** rõ ràng — không sa
 
 ### 2.5 Custom Role đầy đủ
 - [x] UI ma trận quyền tick chọn theo module (tạo custom role) — UC17, wireframe #11
+- [x] Bổ sung sau: mỗi role tự chỉnh style hiển thị tên user thuộc role đó (màu/đậm/nghiêng/font, chọn 1 trong 20 font) — style áp thẳng lên tên ở bình luận + byline bài viết, không phải badge riêng. Field `title` (nhãn công khai riêng biệt) đã có trong schema/form nhưng **chưa hiển thị ở đâu** — để dành yêu cầu sau.
 
 ### 2.6 SEO toàn site
-- [ ] Sinh `sitemap.xml` tự động khi publish, `robots.txt`
-- [ ] Xác minh Google Search Console, gắn mã Analytics — UC15
+- [ ] Sinh `sitemap.xml` tự động khi publish, `robots.txt` — **chưa làm**, không có route/file nào trong `frontend/src/app`
+- [ ] Xác minh Google Search Console, gắn mã Analytics — UC15 — **chưa làm**, không có thẻ meta xác minh hay script Analytics nào trong layout
 
 ### 2.7 Deploy thử Staging
-- [ ] Chuẩn bị VPS staging trên aaPanel (Docker Manager, site, SSL) — theo mục 12 tài liệu, Cách A
-- [ ] Deploy bản build đầu tiên lên staging, review nội bộ
+- [x] ~~Chuẩn bị VPS staging trên aaPanel~~ — **thực tế bị bỏ qua**: dự án dùng aaPanel VPS làm thẳng hạ tầng Production, không tách môi trường Staging riêng như kế hoạch ban đầu.
+- [x] ~~Deploy bản build đầu tiên lên staging~~ — thay vào đó deploy thẳng: frontend qua Vercel (`khomanguon-v2.vercel.app`), backend qua aaPanel + Docker (`kmn2api.nhutnm.id.vn`), cả hai đã chạy thật và được xác nhận healthy. Chi tiết CI/CD ở Phase 4.4.
 
-**DoD:** Mod đăng bài đầy đủ SEO, Admin duyệt bài, menu kéo-thả hoạt động đúng thứ tự, user bình luận/kiểm duyệt được, custom role tạo được từ UI, bản staging chạy được qua domain phụ.
+**DoD:** Mod đăng bài đầy đủ SEO ✅, Admin duyệt bài ✅, menu kéo-thả hoạt động đúng thứ tự ✅, user bình luận/kiểm duyệt được ✅, custom role tạo được từ UI ✅, bản deploy thật chạy được qua domain (bỏ qua bước staging, đi thẳng production — xem ghi chú 2.7). Còn thiếu trước khi chuyển hẳn sang Phase 2.6: sitemap/robots.txt, Search Console/Analytics.
 
 ---
 
 ## Phase 3 — Kinh tế nội bộ: Ví $P, SePay, Download trả phí
-**Thời lượng:** 4–5 tuần · **Môi trường:** Staging (không test trên production)
+**Thời lượng:** 4–5 tuần · **Môi trường:** đã deploy thẳng lên Production (xem ghi chú Phase 2.7), không qua Staging riêng
 
 > Phase nhạy cảm nhất — mọi thao tác trừ/cộng tiền phải nằm trong 1 DB transaction, có test E2E riêng.
 
 ### 3.1 Ví $P
-- [ ] Model `wallets`, `wallet_transactions` (ACID)
-- [ ] UI trang Ví & lịch sử giao dịch — UC10, wireframe #07
+- [x] Model `wallets`, `wallet_transactions` (ACID) — mọi thao tác cộng/trừ nằm trong `prisma.$transaction`
+- [x] UI trang Ví & lịch sử giao dịch — UC10, wireframe #07 (`/tai-khoan/vi`), cập nhật số dư realtime qua WebSocket
+- [x] Bổ sung sau: trang Admin "Quản lý giao dịch" (`/quan-tri/giao-dich`) — xem toàn bộ giao dịch mọi user, lọc theo loại/trạng thái/email, điều chỉnh số dư tay theo email (dùng đúng quyền `wallet.adjust` đã khai báo sẵn nhưng chưa dùng tới trước đó)
 
 ### 3.2 Nạp tiền qua SePay
-- [ ] API tạo yêu cầu nạp tiền + sinh mã QR VietQR (trạng thái `pending`)
-- [ ] Webhook nhận xác nhận từ SePay: xác thực chữ ký HMAC, chống gọi trùng (unique theo mã giao dịch) — UC09, UC23
-- [ ] Đẩy realtime số dư mới qua WebSocket sau khi webhook xử lý xong
-- [ ] Cron huỷ giao dịch `pending` quá hạn (30 phút)
+- [x] API tạo yêu cầu nạp tiền + sinh mã QR VietQR (trạng thái `pending`)
+- [x] Webhook nhận xác nhận từ SePay: chống gọi trùng (unique theo mã giao dịch SePay, đã test idempotent) — UC09, UC23. **Lệch với kế hoạch ban đầu:** xác thực bằng API Key header (`Authorization: Apikey ...`, đúng chế độ webhook thật của SePay) thay vì chữ ký HMAC như dự tính lúc đầu — đây là lựa chọn có chủ đích, không phải thiếu sót.
+- [x] Đẩy realtime số dư mới qua WebSocket sau khi webhook xử lý xong (`realtime/wallet.gateway.ts`)
+- [x] Cron huỷ giao dịch `pending` quá hạn (30 phút) — `sepay-cron.service.ts`, chạy mỗi phút
 
 ### 3.3 Link tải & giá $P
-- [ ] Model `download_links` (gắn Post, provider R2/S3, object key, giá $P)
-- [ ] UI quản lý link tải trong trình soạn bài (nhiều link/bài, mỗi link 1 giá) — wireframe #09
-- [ ] API mua + sinh presigned URL: kiểm tra số dư → trừ tiền (1 transaction) → gọi SDK R2/S3 → TTL 5–15 phút — UC11, UC24
-- [ ] Model `download_grants` cho phép tải lại miễn phí trong X ngày sau khi đã mua (tránh thu tiền 2 lần vô lý)
+- [x] Model `download_links` (gắn Post, provider R2/S3, object key, giá $P)
+- [x] UI quản lý link tải trong trình soạn bài — wireframe #09. **Giới hạn hiện tại:** mỗi bài viết chỉ hỗ trợ 1 link tải "chính" (model đã sẵn sàng cho nhiều link/bài nhưng service chỉ thao tác trên bản ghi sớm nhất) — nếu cần nhiều link/bài thật, phải mở rộng `download-links.service.ts`.
+- [x] API mua + sinh presigned URL: kiểm tra số dư → trừ tiền (1 transaction) → gọi SDK R2/S3 thật → TTL 10 phút — UC11, UC24
+- [x] Model `download_grants` cho phép tải lại miễn phí trong X ngày sau khi đã mua (tránh thu tiền 2 lần vô lý)
 
 ### 3.4 Cài đặt hệ thống liên quan
-- [ ] Trang cài đặt Key R2/S3 (nhiều provider, nút test kết nối, chọn mặc định) — UC20, wireframe #12
-- [ ] Trang cài đặt SePay (API key, webhook secret) + tỉ giá VNĐ↔$P, gói nạp khuyến mãi — UC21
+- [ ] Trang cài đặt Key R2/S3 (nhiều provider, nút test kết nối, chọn mặc định) — UC20, wireframe #12. **Đã có:** CRUD nhiều provider + chọn mặc định (`isDefault`). **Còn thiếu:** nút "Test kết nối" (không có endpoint/route nào cho việc này ở `storage-providers`, khác với SePay đã có `testApiConnection` thật).
+- [x] Trang cài đặt SePay (API key, webhook secret) + tỉ giá VNĐ↔$P, gói nạp khuyến mãi — UC21, đầy đủ kèm nút "Test kết nối API" thật
 
 ### 3.5 Chống lạm dụng
-- [ ] Rate limit lượt tải/IP, log IP mỗi lần tải
-- [ ] Chức năng báo lỗi link die → hàng chờ xử lý của Moderator — UC25
+- [x] Log IP mỗi lần tải — `DownloadEvent.ipAddress` ghi mỗi lần `unlock()`
+- [ ] Rate limit lượt tải/IP — **chưa làm**, chưa có `@nestjs/throttler` hay rate-limit tự viết ở bất kỳ endpoint nào trong backend
+- [ ] Chức năng báo lỗi link die → hàng chờ xử lý của Moderator — UC25 — **chưa làm**
 
 ### 3.6 Kiểm thử bắt buộc
-- [ ] Test E2E (Playwright) luồng nạp tiền: tạo yêu cầu → webhook giả lập → số dư cập nhật đúng
-- [ ] Test E2E luồng tải file: đủ/không đủ số dư, trừ đúng 1 lần dù bấm nhiều lần (idempotency)
-- [ ] Test webhook bị gọi lại (replay) không cộng tiền 2 lần
+- [ ] Test E2E (Playwright) luồng nạp tiền: tạo yêu cầu → webhook giả lập → số dư cập nhật đúng — **chưa làm, chưa cài Playwright ở đâu trong repo**
+- [ ] Test E2E luồng tải file: đủ/không đủ số dư, trừ đúng 1 lần dù bấm nhiều lần (idempotency) — **chưa làm**
+- [ ] Test webhook bị gọi lại (replay) không cộng tiền 2 lần — **chưa có test tự động**, cơ chế chống trùng đã có trong code (`SepayTransaction.sepayTransactionCode` unique) nhưng chưa được test bằng 1 e2e-spec cụ thể
 
-**DoD:** Nạp tiền qua SePay sandbox thành công và cộng đúng $P; mua link tải trừ đúng tiền, tải được file qua presigned URL còn hạn; webhook gọi trùng không gây cộng/trừ tiền sai.
+**DoD:** Nạp tiền qua SePay thành công và cộng đúng $P ✅ (đã chạy thật trên production, xem lịch sử giao dịch thật đã có dữ liệu); mua link tải trừ đúng tiền, tải được file qua presigned URL còn hạn ✅; webhook gọi trùng không gây cộng/trừ tiền sai ✅ (theo code, chưa có test tự động xác nhận). Còn nợ: rate limit, báo lỗi link die, nút test kết nối R2/S3, toàn bộ bộ test E2E Playwright của phase này.
 
 ---
 
 ## Phase 4 — Tối ưu, bảo mật & Go-live
-**Thời lượng:** 2–3 tuần · **Môi trường:** Staging → Production
+**Thời lượng:** 2–3 tuần · **Môi trường:** đã ở Production (xem ghi chú Phase 2.7 — bước Staging→Production coi như đã gộp làm một)
 
 ### 4.1 Dashboard quản trị
-- [ ] Thống kê doanh thu, user mới, bài viết chờ duyệt, lượt tải — UC22, wireframe #08
+- [ ] Thống kê doanh thu, user mới, bài viết chờ duyệt, lượt tải — UC22, wireframe #08 — **chưa làm**, `/quan-tri` chưa có trang landing/dashboard nào (chỉ có `layout.tsx`, các trang con phải vào thẳng URL cụ thể)
 
 ### 4.2 Tối ưu tốc độ (theo mục 09 tài liệu thiết kế)
-- [ ] SSR/ISR cho trang bài viết/danh mục, revalidate khi publish
-- [ ] Cache Cloudflare Edge cho trang public + asset tĩnh
-- [ ] Redis cache cho query nóng (bài mới, đếm lượt tải)
-- [ ] Pipeline ảnh: resize + WebP/AVIF khi upload, lazy-load
-- [ ] Giảm JS client: tối đa hoá React Server Components
+- [ ] SSR/ISR cho trang bài viết/danh mục, revalidate khi publish — **chưa làm**, chưa có `revalidate` nào trong `frontend/src/app`
+- [ ] Cache Cloudflare Edge cho trang public + asset tĩnh — **chưa làm**
+- [ ] Redis cache cho query nóng (bài mới, đếm lượt tải) — **chưa làm**: `REDIS_URL` đã cấu hình sẵn trong env nhưng chưa có code nào thật sự đọc/ghi Redis để cache
+- [ ] Pipeline ảnh: resize + WebP/AVIF khi upload, lazy-load — **chưa làm**, chưa có `sharp` hay thư viện xử lý ảnh nào trong backend
+- [ ] Giảm JS client: tối đa hoá React Server Components — chưa rà soát riêng, mặc định theo hành vi Next.js
 
 ### 4.3 Bảo mật
-- [ ] Rà soát OWASP Top 10 (đặc biệt XSS trong output WYSIWYG, CSRF, injection)
-- [ ] Rate limit toàn bộ API công khai (đăng nhập, tìm kiếm, tải)
-- [ ] Audit log cho thao tác nhạy cảm: đổi quyền, điều chỉnh ví thủ công, đổi key R2/S3
+- [ ] Rà soát OWASP Top 10 (đặc biệt XSS trong output WYSIWYG, CSRF, injection) — chưa có bằng chứng đã rà soát có hệ thống
+- [ ] Rate limit toàn bộ API công khai (đăng nhập, tìm kiếm, tải) — **chưa làm**, chưa cài `@nestjs/throttler` hay tương đương
+- [ ] Audit log cho thao tác nhạy cảm: đổi quyền, điều chỉnh ví thủ công, đổi key R2/S3 — **chưa làm**, chưa có model `AuditLog` nào trong schema
 
 ### 4.4 Hạ tầng Production — Vercel (frontend) + aaPanel (backend)
-- [ ] 🔴 Làm theo thứ tự trong [`Deploy_Checklist.md`](Deploy_Checklist.md) — checklist thao tác cụ thể cho lần deploy đầu tiên (cần quyền truy cập Vercel/VPS/DNS của bạn, tôi không tự thực hiện được)
-- [ ] Import repo lên Vercel (Root Directory `frontend`), gắn domain `khomanguon.vn`, đặt `NEXT_PUBLIC_API_URL` — theo mục 12.1 tài liệu
-- [ ] Setup aaPanel cho backend theo mục 12.2 tài liệu (Cách A: Docker Compose, chỉ postgres/redis/backend) — cài panel, khoá 2FA, Docker Manager, reverse proxy domain `api.khomanguon.vn`, SSL, Cloudflare, firewall, cron
-- [ ] Cấu hình CORS/cookie cross-origin đúng (`ALLOWED_ORIGINS`/`FRONTEND_URL` trên backend trỏ domain Vercel thật) — xem mục 12.3 tài liệu, test đăng nhập + reload giữ phiên trên domain production
-- [ ] CI/CD backend: GitHub Actions build/test → image lên GHCR → deploy production cần duyệt thủ công. Frontend deploy tự động qua Vercel (không cần workflow riêng) — mục 11 tài liệu
-- [ ] Backup PostgreSQL tự động hàng ngày + đã thử restore ít nhất 1 lần
-- [ ] Giám sát: Sentry (lỗi, cả frontend lẫn backend), Uptime Kuma (uptime cả 2 domain), theo dõi tài nguyên VPS aaPanel
+- [x] 🔴 Làm theo thứ tự trong [`Deploy_Checklist.md`](Deploy_Checklist.md) — đã deploy thật, cả 2 domain đang chạy
+- [x] Import repo lên Vercel (Root Directory `frontend`) — `khomanguon-v2.vercel.app` đang chạy, deploy tự động mỗi lần merge `main`
+- [x] Setup aaPanel cho backend (Docker Compose: postgres/redis/backend) — `kmn2api.nhutnm.id.vn` đang chạy, health check `{"status":"ok","db":"up"}`
+- [x] Cấu hình CORS/cookie cross-origin đúng — đã xác nhận `Access-Control-Allow-Origin` trả đúng domain Vercel, đăng nhập + giữ phiên hoạt động qua domain production
+- [x] CI/CD backend — **cách làm thực tế khác với kế hoạch ban đầu:** job `deploy-backend` trong `.github/workflows/ci.yml` SSH thẳng vào VPS, `git reset --hard origin/main` rồi `docker compose up -d --build` build lại image ngay trên VPS + `prisma migrate deploy` + `prisma db seed` — **không** build image đẩy lên GHCR rồi pull như dự tính ban đầu. Job này chạy **tự động** mỗi khi có push vào `main` sau khi job `backend` (lint/build/test) xanh — **không có bước duyệt thủ công** như kế hoạch ban đầu yêu cầu. ⚠️ Rủi ro cần lưu ý: 1 lần merge quên chạy test đã từng làm hỏng CI và chặn deploy — nếu muốn thêm gate duyệt thủ công (`environment:` protection rule trên GitHub) thì cần làm trước khi tăng tần suất merge.
+- [ ] Backup PostgreSQL tự động hàng ngày + đã thử restore ít nhất 1 lần — **chưa làm**, không có script/cron backup nào trong repo, `Deploy_Checklist.md` cũng chưa nhắc tới backup
+- [ ] Giám sát: Sentry (lỗi, cả frontend lẫn backend), Uptime Kuma (uptime cả 2 domain), theo dõi tài nguyên VPS aaPanel — **chưa làm**, chưa tích hợp Sentry hay Uptime Kuma ở đâu
 
 ### 4.5 Dữ liệu & nội dung
-- [ ] 🔴 Migrate dữ liệu từ WordPress v1 sang v2 — kế hoạch chi tiết, mapping bảng, các quyết định kỹ thuật (mật khẩu, ảnh/file, ví `@CASH` cũ, comment khách...) nằm ở [`Migration_Plan.md`](Migration_Plan.md). Đang chờ file SQL export đầy đủ từ WordPress — khâu khảo sát/viết script ETL có thể bắt đầu ngay khi có SQL, **không cần chờ tới Phase 4**, chỉ việc chạy thật lên Production mới nên để sát Go-live.
+- [ ] 🔴 Migrate dữ liệu từ WordPress v1 sang v2 — kế hoạch chi tiết ở [`Migration_Plan.md`](Migration_Plan.md). Repo đã có `backend/scripts/migrate-wordpress/` (nhiều bước ETL) và `docker-compose.migrate*.yml` — script ETL đã được viết, cần xác nhận với chủ dự án đã chạy thật trên production hay còn ở giai đoạn dry-run.
 - [ ] 🔴 Soạn điều khoản sử dụng, chính sách hoàn tiền $P, chính sách bản quyền mã nguồn chia sẻ
 
 ### 4.6 Go-live (checklist đầy đủ ở mục 13 tài liệu)
-- [ ] DNS + SSL production hoạt động, force HTTPS
-- [ ] Chuyển toàn bộ key sandbox → key production (SePay, R2/S3), xoá key dev khỏi `.env`
-- [ ] Test nạp tiền thật với số tiền nhỏ trên production
-- [ ] Test tải file thật trên bucket production
-- [ ] Rollback plan sẵn sàng (giữ image tag bản trước)
+- [x] DNS + SSL production hoạt động, force HTTPS — cả 2 domain đã chạy HTTPS thật
+- [ ] Chuyển toàn bộ key sandbox → key production (SePay, R2/S3), xoá key dev khỏi `.env` — cần chủ dự án xác nhận key hiện tại trên production đã là key thật hay vẫn sandbox
+- [ ] Test nạp tiền thật với số tiền nhỏ trên production — cần xác nhận đã thử hay chưa
+- [ ] Test tải file thật trên bucket production — cần xác nhận đã thử hay chưa
+- [ ] Rollback plan sẵn sàng (giữ image tag bản trước) — chưa có, cách deploy hiện tại (`git reset --hard` + rebuild) không tự giữ lại bản trước để rollback nhanh
 - [ ] 🔴 Thông báo người dùng v1 về thời điểm chuyển đổi (nếu áp dụng)
 
-**DoD:** Site chạy thật trên domain chính, nhận thanh toán thật, có backup + giám sát hoạt động, rollback đã diễn tập.
+**DoD:** Site chạy thật trên domain chính ✅ (đã đạt sớm hơn kế hoạch — xem ghi chú Phase 2.7), nhận thanh toán thật (cần chủ dự án xác nhận key production vs sandbox), có backup + giám sát hoạt động (❌ chưa có cả hai), rollback đã diễn tập (❌ chưa).
 
 ---
 
