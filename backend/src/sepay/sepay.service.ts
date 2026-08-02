@@ -61,8 +61,8 @@ export class SepayService {
     };
     await this.prisma.siteSetting.upsert({
       where: { key: SEPAY_SETTING_KEY },
-      update: { value: next as object },
-      create: { key: SEPAY_SETTING_KEY, value: next as object },
+      update: { value: JSON.parse(JSON.stringify(next)) },
+      create: { key: SEPAY_SETTING_KEY, value: JSON.parse(JSON.stringify(next)) },
     });
     const { webhookApiKeyEncrypted, apiAccessTokenEncrypted, ...rest } = next;
     return { ...rest, hasApiKey: !!webhookApiKeyEncrypted, hasApiAccessToken: !!apiAccessTokenEncrypted };
@@ -203,7 +203,7 @@ export class SepayService {
           sepayTransactionCode,
           amountVnd: payload.transferAmount,
           pCredited: 0,
-          rawPayload: payload as object,
+          rawPayload: JSON.parse(JSON.stringify(payload)),
           status: WalletTxStatus.FAILED,
         },
       });
@@ -222,7 +222,7 @@ export class SepayService {
           sepayTransactionCode,
           amountVnd: payload.transferAmount,
           pCredited: 0,
-          rawPayload: payload as object,
+          rawPayload: JSON.parse(JSON.stringify(payload)),
           status: WalletTxStatus.FAILED,
         },
       });
@@ -261,7 +261,7 @@ export class SepayService {
           walletTransactionId: walletTransaction.id,
           amountVnd: payload.transferAmount,
           pCredited: order.amountP,
-          rawPayload: payload as object,
+          rawPayload: JSON.parse(JSON.stringify(payload)),
           status: WalletTxStatus.SUCCESS,
         },
       });
