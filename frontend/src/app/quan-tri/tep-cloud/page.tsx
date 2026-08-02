@@ -89,7 +89,7 @@ export default function CloudFilesPage() {
   }
 
   return (
-    <div className="flex w-full max-w-5xl flex-col gap-4 px-8 py-8">
+    <div className="flex w-full flex-col gap-4 px-8 py-8">
       <h1 className="text-xl font-semibold text-zinc-900">Quản lý File Cloud</h1>
       <p className="text-sm text-zinc-500">
         Xem file thật đang nằm trong bucket, đối chiếu với cấu hình link tải (lượt tải, member đã
