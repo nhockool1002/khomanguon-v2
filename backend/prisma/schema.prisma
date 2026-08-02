@@ -91,11 +91,19 @@ model RefreshToken {
 // Vai trò chỉ là một tập hợp quyền — Admin có thể tạo Custom Role bằng cách
 // tick permission trong RolePermission, không hard-code trong code (xem mục 06 docs/khomanguon-v2-spec.html).
 model Role {
-  id        String   @id @default(cuid())
-  name      String   @unique
-  slug      String   @unique
-  isSystem  Boolean  @default(false) // true cho 4 role mặc định, không cho xoá
-  createdAt DateTime @default(now())
+  id         String   @id @default(cuid())
+  name       String   @unique
+  slug       String   @unique
+  isSystem   Boolean  @default(false) // true cho 4 role mặc định, không cho xoá
+  createdAt  DateTime @default(now())
+
+  // Style badge hiển thị công khai (cạnh bình luận, byline bài viết...) — title để trống thì
+  // FE tự dùng name. fontFamily là key trong FONT_OPTIONS (xem roles/font-options.constant.ts).
+  title      String?
+  color      String?
+  bold       Boolean  @default(false)
+  italic     Boolean  @default(false)
+  fontFamily String?
 
   users       UserRole[]
   permissions RolePermission[]

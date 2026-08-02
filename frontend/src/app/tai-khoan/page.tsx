@@ -7,15 +7,9 @@ import { useAuth } from "@/context/auth-context";
 import { apiFetch, ApiError } from "@/lib/api";
 import type { Profile } from "@/lib/types";
 import { ErrorBanner, FormField, SubmitButton, SuccessBanner } from "@/components/ui";
+import { RoleBadge } from "@/components/role-badge";
 
 type Tab = "thong-tin" | "bao-mat";
-
-const ROLE_LABEL: Record<string, string> = {
-  admin: "Admin",
-  "super-moderator": "Super Moderator",
-  moderator: "Moderator",
-  member: "Member",
-};
 
 export default function AccountPage() {
   const { user, loading, logout, refreshUser } = useAuth();
@@ -142,14 +136,7 @@ function ProfileTab({ onSaved }: { onSaved: () => Promise<void> }) {
 
       <div className="flex flex-wrap items-center gap-2 text-sm">
         <span className="text-zinc-500">Vai trò:</span>
-        {profile.roles.map((r) => (
-          <span
-            key={r}
-            className="rounded-full bg-[#1d3557] px-2.5 py-0.5 font-mono text-xs text-white"
-          >
-            {ROLE_LABEL[r] ?? r}
-          </span>
-        ))}
+        <RoleBadge roleSlugs={profile.roles} />
       </div>
 
       {!profile.emailVerified && (

@@ -1,6 +1,7 @@
 import Link from "next/link";
 import type { PostSummary } from "@/lib/types";
 import { formatDate } from "@/lib/format";
+import { RoleBadge } from "@/components/role-badge";
 
 // Thẻ bài viết dạng lưới cho trang chủ (wireframe #01): ảnh -> tiêu đề (navy) -> meta -> excerpt 2 dòng.
 export function PostCard({ post }: { post: PostSummary }) {
@@ -24,8 +25,10 @@ export function PostCard({ post }: { post: PostSummary }) {
       <h3 className="line-clamp-2 text-sm font-semibold text-[#1d3557]">
         {post.title}
       </h3>
-      <p className="font-mono text-xs text-[#5c6370]">
-        {post.author.displayName} · {formatDate(post.publishedAt ?? post.createdAt)}
+      <p className="flex flex-wrap items-center gap-1 font-mono text-xs text-[#5c6370]">
+        {post.author.displayName}
+        <RoleBadge roleSlugs={post.author.roleSlugs} />
+        <span>· {formatDate(post.publishedAt ?? post.createdAt)}</span>
       </p>
       {post.excerpt && (
         <p className="line-clamp-2 text-xs text-zinc-500">{post.excerpt}</p>

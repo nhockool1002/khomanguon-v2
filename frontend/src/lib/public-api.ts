@@ -1,4 +1,4 @@
-import type { Category, MenuItem, PostDetail, PostListResponse, Widget } from "./types";
+import type { Category, MenuItem, PostDetail, PostListResponse, RoleBadgeInfo, Widget } from "./types";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000";
 
@@ -52,4 +52,11 @@ export async function fetchWidgets(area: string): Promise<Widget[]> {
   return (result ?? [])
     .filter((w) => w.area === area && w.isActive && w.roleSlugs.length === 0)
     .sort((a, b) => a.order - b.order);
+}
+
+// Style badge role (title/color/bold/italic/font) — công khai vì hiện cạnh bình luận/byline bài
+// viết, khách vãng lai cũng cần thấy đúng. Fetch 1 lần ở layout.tsx, truyền qua RoleBadgesProvider.
+export async function fetchRoleBadges(): Promise<RoleBadgeInfo[]> {
+  const result = await publicFetch<RoleBadgeInfo[]>("/roles/badges");
+  return result ?? [];
 }

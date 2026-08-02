@@ -6,6 +6,7 @@ import { useAuth } from "@/context/auth-context";
 import { apiFetch, ApiError } from "@/lib/api";
 import type { Permission, Role } from "@/lib/types";
 import { ErrorBanner, SuccessBanner } from "@/components/ui";
+import { FONT_OPTIONS, fontVar } from "@/lib/fonts";
 
 const MODULE_LABELS: Record<string, string> = {
   post: "Bài viết",
@@ -63,6 +64,11 @@ export default function AdminRolesPage() {
   const [permissions, setPermissions] = useState<Permission[] | null>(null);
   const [selectedId, setSelectedId] = useState<string | "new" | null>(null);
   const [name, setName] = useState("");
+  const [title, setTitle] = useState("");
+  const [color, setColor] = useState("");
+  const [bold, setBold] = useState(false);
+  const [italic, setItalic] = useState(false);
+  const [fontFamily, setFontFamily] = useState("");
   const [selectedKeys, setSelectedKeys] = useState<Set<string>>(new Set());
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
@@ -96,6 +102,11 @@ export default function AdminRolesPage() {
   function selectRole(role: Role) {
     setSelectedId(role.id);
     setName(role.name);
+    setTitle(role.title ?? "");
+    setColor(role.color ?? "");
+    setBold(role.bold);
+    setItalic(role.italic);
+    setFontFamily(role.fontFamily ?? "");
     setSelectedKeys(new Set(role.permissionKeys));
     setMessage(null);
     setError(null);
@@ -104,6 +115,11 @@ export default function AdminRolesPage() {
   function startNewRole() {
     setSelectedId("new");
     setName("");
+    setTitle("");
+    setColor("");
+    setBold(false);
+    setItalic(false);
+    setFontFamily("");
     setSelectedKeys(new Set());
     setMessage(null);
     setError(null);
@@ -127,7 +143,15 @@ export default function AdminRolesPage() {
     setError(null);
     setMessage(null);
     try {
-      const payload = { name, permissionKeys: [...selectedKeys] };
+      const payload = {
+        name,
+        permissionKeys: [...selectedKeys],
+        title,
+        color,
+        bold,
+        italic,
+        fontFamily,
+      };
       if (selectedId === "new") {
         const created = await apiFetch<Role>("/roles", {
           method: "POST",
@@ -194,7 +218,7 @@ export default function AdminRolesPage() {
             >
               <span
                 className="h-2 w-2 flex-none rounded-full"
-                style={{ backgroundColor: ROLE_COLORS[role.slug] ?? "#a1a1aa" }}
+                style={{ backgroundColor: role.color ?? ROLE_COLORS[role.slug] ?? "#a1a1aa" }}
               />
               {role.name}
             </button>
@@ -238,6 +262,82 @@ export default function AdminRolesPage() {
                   Xoá vai trò
                 </button>
               )}
+            </div>
+
+            <div className="flex flex-col gap-3 rounded-md border border-zinc-200 p-4">
+              <p className="text-xs font-semibold uppercase tracking-wide text-zinc-500">
+                Style badge (hiển thị cạnh bình luận, byline bài viết...)
+              </p>
+              <div className="flex flex-wrap items-end gap-3">
+                <label className="flex flex-col gap-1 text-sm text-zinc-700">
+                  Title hiển thị công khai (để trống = dùng tên vai trò)
+                  <input
+                    value={title}
+                    onChange={(e) => setTitle(e.target.value)}
+                    placeholder={name}
+                    className="w-56 rounded-md border border-zinc-300 px-3 py-2 text-sm outline-none focus:border-[#1d3557] focus:ring-1 focus:ring-[#1d3557]"
+                  />
+                </label>
+                <label className="flex flex-col gap-1 text-sm text-zinc-700">
+                  Màu
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="color"
+                      value={color || "#1d3557"}
+                      onChange={(e) => setColor(e.target.value)}
+                      className="h-9 w-14 rounded border border-zinc-300"
+                    />
+                    {color && (
+                      <button
+                        type="button"
+                        onClick={() => setColor("")}
+                        className="text-xs font-medium text-red-600 hover:underline"
+                      >
+                        Bỏ màu
+                      </button>
+                    )}
+                  </div>
+                </label>
+                <label className="flex flex-col gap-1 text-sm text-zinc-700">
+                  Font
+                  <select
+                    value={fontFamily}
+                    onChange={(e) => setFontFamily(e.target.value)}
+                    className="w-44 rounded-md border border-zinc-300 px-3 py-2 text-sm outline-none focus:border-[#1d3557] focus:ring-1 focus:ring-[#1d3557]"
+                  >
+                    <option value="">Mặc định</option>
+                    {FONT_OPTIONS.map((f) => (
+                      <option key={f.key} value={f.key} style={{ fontFamily: fontVar(f.key) }}>
+                        {f.label}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <label className="flex items-center gap-1.5 text-sm text-zinc-700">
+                  <input type="checkbox" checked={bold} onChange={(e) => setBold(e.target.checked)} />
+                  Đậm
+                </label>
+                <label className="flex items-center gap-1.5 text-sm text-zinc-700">
+                  <input type="checkbox" checked={italic} onChange={(e) => setItalic(e.target.checked)} />
+                  Nghiêng
+                </label>
+              </div>
+
+              <div className="flex items-center gap-2 text-sm text-zinc-500">
+                Xem trước:
+                <span
+                  className="rounded-full px-2 py-0.5 text-xs font-medium"
+                  style={{
+                    color: color || undefined,
+                    backgroundColor: color ? `${color}1a` : "#f4f4f5",
+                    fontWeight: bold ? 700 : undefined,
+                    fontStyle: italic ? "italic" : undefined,
+                    fontFamily: fontVar(fontFamily),
+                  }}
+                >
+                  {title || name}
+                </span>
+              </div>
             </div>
 
             <p className="text-xs font-semibold uppercase tracking-wide text-zinc-500">

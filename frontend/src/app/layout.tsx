@@ -2,8 +2,10 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { AuthProvider } from "@/context/auth-context";
+import { RoleBadgesProvider } from "@/context/role-badges-context";
 import { Navbar } from "@/components/navbar";
-import { fetchMenus } from "@/lib/public-api";
+import { fetchMenus, fetchRoleBadges } from "@/lib/public-api";
+import { ROLE_FONT_VARS } from "@/lib/fonts";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -26,17 +28,19 @@ export default async function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const menus = await fetchMenus();
+  const [menus, roleBadges] = await Promise.all([fetchMenus(), fetchRoleBadges()]);
 
   return (
     <html
       lang="vi"
-      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
+      className={`${geistSans.variable} ${geistMono.variable} ${ROLE_FONT_VARS} h-full antialiased`}
     >
       <body className="flex min-h-full flex-col">
         <AuthProvider>
-          <Navbar menus={menus} />
-          {children}
+          <RoleBadgesProvider badges={roleBadges}>
+            <Navbar menus={menus} />
+            {children}
+          </RoleBadgesProvider>
         </AuthProvider>
       </body>
     </html>
