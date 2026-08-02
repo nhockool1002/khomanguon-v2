@@ -23,6 +23,7 @@ export const WIDGET_TYPE_LABEL: Record<WidgetType, string> = {
   CATEGORIES: "Danh mục",
   RECENT_POSTS: "Bài viết mới nhất",
   HTML: "HTML tự do",
+  COMMENTS: "Bình luận",
 };
 
 // Danh sách phẳng kéo-thả sắp xếp — cùng pattern @dnd-kit với menu-tree-editor.tsx, bỏ phần

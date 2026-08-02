@@ -238,6 +238,10 @@ enum WidgetType {
   CATEGORIES
   RECENT_POSTS
   HTML
+  // Khác các loại còn lại — không tự thân đủ dữ liệu để render (cần postId của trang đang xem),
+  // nên chỉ hiển thị thật khi WidgetArea được gọi kèm postId (trang bài viết); các trang khác
+  // (trang chủ) coi như không có postId thì bỏ qua loại widget này dù đã cấu hình hiện.
+  COMMENTS
 }
 
 // Widget sidebar kiểu WordPress — danh sách phẳng (không cây như Menu), thứ tự cập nhật qua kéo-thả.

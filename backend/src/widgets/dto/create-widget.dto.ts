@@ -8,7 +8,13 @@ import {
   MaxLength,
 } from 'class-validator';
 
-const WIDGET_TYPES = ['SEARCH', 'CATEGORIES', 'RECENT_POSTS', 'HTML'] as const;
+const WIDGET_TYPES = [
+  'SEARCH',
+  'CATEGORIES',
+  'RECENT_POSTS',
+  'HTML',
+  'COMMENTS',
+] as const;
 
 export class CreateWidgetDto {
   @IsIn(WIDGET_TYPES)

@@ -79,7 +79,7 @@ export interface MenuItem {
   roleSlugs: string[];
 }
 
-export type WidgetType = "SEARCH" | "CATEGORIES" | "RECENT_POSTS" | "HTML";
+export type WidgetType = "SEARCH" | "CATEGORIES" | "RECENT_POSTS" | "HTML" | "COMMENTS";
 
 export interface Widget {
   id: string;

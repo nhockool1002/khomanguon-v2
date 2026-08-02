@@ -1,12 +1,16 @@
 import Link from "next/link";
 import { fetchCategories, fetchPosts, fetchWidgets } from "@/lib/public-api";
 import { formatDate } from "@/lib/format";
+import { CommentSection } from "@/components/comment-section";
 import type { Widget } from "@/lib/types";
 
 // Server Component — dùng chung cho trang chủ và trang bài viết (cả 2 đều là Server Component sẵn),
 // đọc danh sách widget đã cấu hình qua /quan-tri/widget thay vì hard-code sidebar riêng từng trang.
-export async function WidgetArea({ area }: { area: string }) {
-  const widgets = await fetchWidgets(area);
+// postId chỉ có ở trang bài viết — widget loại COMMENTS cần nó để biết bình luận của bài nào, nên bị
+// lọc bỏ khi không có (vd trang chủ), dù admin đang để "Đang hiện".
+export async function WidgetArea({ area, postId }: { area: string; postId?: string }) {
+  const allWidgets = await fetchWidgets(area);
+  const widgets = allWidgets.filter((w) => w.type !== "COMMENTS" || !!postId);
   if (widgets.length === 0) return null;
 
   // Không tự đặt lg:flex-1 ở đây nữa — sizing theo hàng (row) là việc của nơi gọi component này,
@@ -18,13 +22,13 @@ export async function WidgetArea({ area }: { area: string }) {
   return (
     <aside className="flex flex-col gap-4">
       {widgets.map((widget) => (
-        <WidgetRenderer key={widget.id} widget={widget} />
+        <WidgetRenderer key={widget.id} widget={widget} postId={postId} />
       ))}
     </aside>
   );
 }
 
-async function WidgetRenderer({ widget }: { widget: Widget }) {
+async function WidgetRenderer({ widget, postId }: { widget: Widget; postId?: string }) {
   switch (widget.type) {
     case "SEARCH":
       return <SearchWidget />;
@@ -34,6 +38,9 @@ async function WidgetRenderer({ widget }: { widget: Widget }) {
       return <RecentPostsWidget title={widget.title} limit={Number(widget.config.limit) || 5} />;
     case "HTML":
       return <HtmlWidget title={widget.title} html={String(widget.config.html ?? "")} />;
+    case "COMMENTS":
+      // postId luôn có ở đây — widget-level filter phía trên đã loại bỏ trường hợp thiếu postId.
+      return postId ? <CommentSection postId={postId} /> : null;
     default:
       return null;
   }

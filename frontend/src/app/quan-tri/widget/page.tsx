@@ -9,7 +9,7 @@ import { ErrorBanner } from "@/components/ui";
 import { WidgetListEditor, WIDGET_TYPE_LABEL } from "@/components/widget-list-editor";
 import { DEFAULT_ROLE_OPTIONS } from "@/components/menu-tree-editor";
 
-const WIDGET_TYPES: WidgetType[] = ["SEARCH", "CATEGORIES", "RECENT_POSTS", "HTML"];
+const WIDGET_TYPES: WidgetType[] = ["SEARCH", "CATEGORIES", "RECENT_POSTS", "HTML", "COMMENTS"];
 
 export default function AdminWidgetPage() {
   const { user, loading } = useAuth();
@@ -243,6 +243,13 @@ function WidgetEditPanel({
             className="rounded-md border border-zinc-300 px-3 py-2 font-mono text-xs outline-none focus:border-[#1d3557] focus:ring-1 focus:ring-[#1d3557]"
           />
         </label>
+      )}
+
+      {widget.type === "COMMENTS" && (
+        <p className="text-xs text-zinc-400">
+          Chỉ hiển thị trên trang chi tiết bài viết (cần biết bài viết đang xem) — sẽ không hiện ở
+          trang chủ hay các trang khác dù đang bật.
+        </p>
       )}
 
       <div className="flex flex-col gap-1.5">
