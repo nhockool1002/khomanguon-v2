@@ -27,6 +27,7 @@ function buildTree(comments: Comment[]): CommentNode[] {
 
 export function CommentSection({ postId }: { postId: string }) {
   const { user, loading: authLoading } = useAuth();
+  const [open, setOpen] = useState(true);
   const [comments, setComments] = useState<Comment[] | null>(null);
   const [isModerator, setIsModerator] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -116,10 +117,19 @@ export function CommentSection({ postId }: { postId: string }) {
 
   return (
     <section className="flex flex-col gap-3 rounded-lg border border-zinc-200 bg-white p-4">
-      <h2 className="text-sm font-semibold text-zinc-900">
-        Bình luận {comments ? `(${comments.length})` : ""}
-      </h2>
+      <button
+        type="button"
+        onClick={() => setOpen((o) => !o)}
+        className="flex items-center justify-between text-sm font-semibold text-zinc-900"
+      >
+        <span>
+          Bình luận {comments ? `(${comments.length})` : ""}
+        </span>
+        <span className="text-xs font-normal text-zinc-400">{open ? "▲ Ẩn" : "▼ Hiện"}</span>
+      </button>
 
+      {open && (
+        <>
       <ErrorBanner message={error} />
 
       {user ? (
@@ -218,6 +228,8 @@ export function CommentSection({ postId }: { postId: string }) {
           />
         ))}
       </div>
+        </>
+      )}
     </section>
   );
 }

@@ -44,7 +44,9 @@ export default async function Home({
           <Pagination baseHref="/" page={page} totalPages={totalPages} />
         </div>
 
-        <WidgetArea area="sidebar" />
+        <div className="lg:flex-1">
+          <WidgetArea area="sidebar" />
+        </div>
       </div>
     </main>
   );
