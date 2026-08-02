@@ -18,6 +18,12 @@ describe('PostsService.update — phân quyền sửa bài (post.edit.own / post
     id: 'post-1',
     authorId: 'author-1',
     publishedAt: null as Date | null,
+    author: {
+      id: 'author-1',
+      displayName: 'Author',
+      avatarUrl: null as string | null,
+      roles: [] as { role: { slug: string } }[],
+    },
   };
 
   beforeEach(async () => {
