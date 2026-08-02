@@ -1,9 +1,11 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useAuth } from "@/context/auth-context";
-import type { MenuItem } from "@/lib/types";
+import { apiFetch } from "@/lib/api";
+import { useWalletSocket } from "@/lib/socket";
+import type { MenuItem, Wallet } from "@/lib/types";
 import { LogoMark } from "./logo-mark";
 
 export function Navbar({ menus = [] }: { menus?: MenuItem[] }) {
@@ -14,6 +16,18 @@ export function Navbar({ menus = [] }: { menus?: MenuItem[] }) {
     .sort((a, b) => a.order - b.order);
   const { user, loading, logout } = useAuth();
   const [loggingOut, setLoggingOut] = useState(false);
+  const [wallet, setWallet] = useState<Wallet | null>(null);
+
+  useEffect(() => {
+    if (!user) return;
+    apiFetch<Wallet>("/wallet/me").then(setWallet).catch(() => setWallet(null));
+  }, [user]);
+
+  // Đẩy realtime khi SePay xác nhận nạp tiền (hoặc bất kỳ thay đổi ví nào khác sau này) — cập nhật
+  // chip số dư ở mọi trang, không chỉ trang ví (xem backend/src/realtime/wallet.gateway.ts).
+  useWalletSocket(!!user, (payload) => {
+    setWallet((prev) => (prev ? { ...prev, balance: payload.balance } : prev));
+  });
 
   async function handleLogout() {
     setLoggingOut(true);
@@ -37,6 +51,14 @@ export function Navbar({ menus = [] }: { menus?: MenuItem[] }) {
         <nav className="flex items-center gap-3">
           {loading ? null : user ? (
             <>
+              {wallet && (
+                <Link
+                  href="/tai-khoan/vi"
+                  className="rounded-full bg-gradient-to-r from-[#ff5da2] to-[#ffcf3f] px-3 py-1 font-mono text-xs font-semibold text-white hover:opacity-90"
+                >
+                  {wallet.balance} $P
+                </Link>
+              )}
               <Link
                 href="/quan-tri/bai-viet"
                 className="rounded-md px-3 py-1.5 text-sm text-zinc-200 hover:bg-white/10"

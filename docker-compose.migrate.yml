@@ -1,0 +1,43 @@
+# Overlay CHỈ dùng khi chạy migration WordPress v1 -> v2 (backend/scripts/migrate-wordpress/).
+# Không dùng độc lập — luôn kèm docker-compose.yml gốc:
+#
+#   docker compose -f docker-compose.yml -f docker-compose.migrate.yml run --rm backend \
+#     pnpm run migrate:wp -- --dry-run
+#
+# Biến môi trường cần có trong .env (copy từ .env.migrate.example, KHÔNG commit — xem
+# backend/scripts/migrate-wordpress/README.md để biết chi tiết từng bước):
+#   WP_SQL_DUMP_PATH — đường dẫn tuyệt đối tới file .sql export từ WordPress v1
+#   WP_PICTURE_DIR   — đường dẫn tuyệt đối tới thư mục ảnh gốc (wp-content/uploads đã tách ra)
+
+services:
+  # DB MySQL tạm chỉ tồn tại trong quá trình migrate — không có volume đặt tên nên mỗi lần
+  # `up`/`run` container mới sẽ tự import lại file .sql từ đầu (đúng ý "DB tạm", không phải lưu lâu dài).
+  mysql-migrate:
+    image: mysql:8
+    command: --sql-mode=NO_ENGINE_SUBSTITUTION
+    environment:
+      MYSQL_ROOT_PASSWORD: migrate_root_pass
+      MYSQL_DATABASE: khomanguon_wp
+    volumes:
+      - ${WP_SQL_DUMP_PATH}:/docker-entrypoint-initdb.d/source.sql:ro
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-uroot", "-pmigrate_root_pass"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+
+  backend:
+    volumes:
+      - ${WP_PICTURE_DIR}:/app/picture-wp:ro
+    environment:
+      WP_MYSQL_HOST: mysql-migrate
+      WP_MYSQL_PORT: 3306
+      WP_MYSQL_USER: root
+      WP_MYSQL_PASSWORD: migrate_root_pass
+      WP_MYSQL_DATABASE: khomanguon_wp
+      WP_PICTURE_DIR: /app/picture-wp
+      WP_UPLOADS_DIR: /app/uploads
+      WP_API_BASE_URL: http://localhost:4000
+    depends_on:
+      mysql-migrate:
+        condition: service_healthy

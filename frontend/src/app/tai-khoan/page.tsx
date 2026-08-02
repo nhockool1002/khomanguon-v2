@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/auth-context";
 import { apiFetch, ApiError } from "@/lib/api";
@@ -40,6 +41,12 @@ export default function AccountPage() {
         <TabButton active={tab === "bao-mat"} onClick={() => setTab("bao-mat")}>
           Bảo mật
         </TabButton>
+        <Link
+          href="/tai-khoan/vi"
+          className="border-b-2 border-transparent px-3 py-2 text-zinc-500 hover:text-zinc-700"
+        >
+          Ví &amp; Nạp tiền
+        </Link>
       </div>
 
       {tab === "thong-tin" ? (

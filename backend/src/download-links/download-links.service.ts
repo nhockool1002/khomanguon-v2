@@ -1,0 +1,183 @@
+import {
+  BadRequestException,
+  HttpException,
+  HttpStatus,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
+import { WalletTxStatus, WalletTxType } from '@prisma/client';
+import { PrismaService } from '../prisma/prisma.service';
+import { R2ClientService } from '../storage/r2-client.service';
+import { EXCLUDE_ADMIN_USER_WHERE } from '../common/exclude-admin-user.filter';
+import { UpsertDownloadLinkDto } from './dto/upsert-download-link.dto';
+
+const DOWNLOADER_LIST_LIMIT = 20;
+
+function toPublicShape(link: {
+  id: string;
+  label: string;
+  objectKey: string;
+  sizeBytes: bigint | null;
+  priceP: number;
+}) {
+  return {
+    id: link.id,
+    label: link.label,
+    objectKey: link.objectKey,
+    sizeBytes: link.sizeBytes === null ? null : Number(link.sizeBytes),
+    priceP: link.priceP,
+  };
+}
+
+// Mỗi post chỉ có 1 link tải "chính" trong phạm vi hiện tại (khớp dữ liệu WP cũ: custom_key/custom_cash
+// 1-1 theo post) — model DownloadLink hỗ trợ nhiều bản ghi/post để dành mở rộng sau, ở đây luôn thao tác
+// trên bản ghi tạo sớm nhất của post.
+@Injectable()
+export class DownloadLinksService {
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly r2Client: R2ClientService,
+  ) {}
+
+  private findPrimary(postId: string) {
+    return this.prisma.downloadLink.findFirst({
+      where: { postId },
+      orderBy: { createdAt: 'asc' },
+    });
+  }
+
+  async getForAdmin(postId: string) {
+    const link = await this.findPrimary(postId);
+    return link ? toPublicShape(link) : null;
+  }
+
+  async upsertForPost(postId: string, dto: UpsertDownloadLinkDto) {
+    await this.assertPostExists(postId);
+    await this.assertStorageProviderExists(dto.storageProviderId);
+
+    const existing = await this.findPrimary(postId);
+    const data = {
+      label: dto.label,
+      storageProviderId: dto.storageProviderId,
+      objectKey: dto.objectKey,
+      sizeBytes: dto.sizeBytes !== undefined ? BigInt(dto.sizeBytes) : null,
+      priceP: dto.priceP,
+    };
+
+    const link = existing
+      ? await this.prisma.downloadLink.update({
+          where: { id: existing.id },
+          data,
+        })
+      : await this.prisma.downloadLink.create({ data: { postId, ...data } });
+
+    return toPublicShape(link);
+  }
+
+  async getPublicInfo(postId: string, userId?: string) {
+    const link = await this.findPrimary(postId);
+    if (!link) return null;
+
+    const [downloaders, myGrant] = await Promise.all([
+      this.prisma.downloadGrant.findMany({
+        where: { downloadLinkId: link.id, ...EXCLUDE_ADMIN_USER_WHERE },
+        orderBy: { purchasedAt: 'desc' },
+        take: DOWNLOADER_LIST_LIMIT,
+        distinct: ['userId'],
+        select: { user: { select: { displayName: true } } },
+      }),
+      userId
+        ? this.prisma.downloadGrant.findFirst({
+            where: {
+              downloadLinkId: link.id,
+              userId,
+              OR: [{ expiresAt: null }, { expiresAt: { gt: new Date() } }],
+            },
+          })
+        : null,
+    ]);
+
+    return {
+      ...toPublicShape(link),
+      downloaderNames: downloaders.map((d) => d.user.displayName),
+      hasAccess: myGrant !== null,
+    };
+  }
+
+  // Luồng "mở khoá": grant còn hiệu lực → sinh lại link ngay, miễn phí; chưa có → kiểm tra + trừ ví
+  // trong 1 transaction để tránh trừ tiền 2 lần khi người dùng bấm liên tiếp (double-submit).
+  async unlock(userId: string, postId: string, ipAddress: string) {
+    const link = await this.findPrimary(postId);
+    if (!link) throw new NotFoundException('Bài viết này chưa có link tải');
+
+    await this.prisma.$transaction(async (tx) => {
+      const existingGrant = await tx.downloadGrant.findFirst({
+        where: {
+          downloadLinkId: link.id,
+          userId,
+          OR: [{ expiresAt: null }, { expiresAt: { gt: new Date() } }],
+        },
+      });
+
+      if (!existingGrant) {
+        if (link.priceP > 0) {
+          const wallet = await tx.wallet.upsert({
+            where: { userId },
+            update: {},
+            create: { userId, balance: 0 },
+          });
+          if (wallet.balance < link.priceP) {
+            throw new HttpException(
+              'Số dư $P không đủ để mở khoá link tải này',
+              HttpStatus.PAYMENT_REQUIRED,
+            );
+          }
+          const balanceAfter = wallet.balance - link.priceP;
+          await tx.wallet.update({
+            where: { userId },
+            data: { balance: balanceAfter },
+          });
+          await tx.walletTransaction.create({
+            data: {
+              walletId: wallet.id,
+              type: WalletTxType.PURCHASE,
+              amount: -link.priceP,
+              balanceAfter,
+              status: WalletTxStatus.SUCCESS,
+              referenceType: 'download_link',
+              referenceId: link.id,
+            },
+          });
+        }
+        await tx.downloadGrant.create({
+          data: { userId, downloadLinkId: link.id },
+        });
+      }
+
+      await tx.downloadEvent.create({
+        data: { userId, downloadLinkId: link.id, ipAddress },
+      });
+    });
+
+    const url = await this.r2Client.getPresignedDownloadUrl(
+      link.storageProviderId,
+      link.objectKey,
+    );
+    return { url };
+  }
+
+  private async assertPostExists(postId: string): Promise<void> {
+    const post = await this.prisma.post.findUnique({ where: { id: postId } });
+    if (!post) throw new NotFoundException('Không tìm thấy bài viết');
+  }
+
+  private async assertStorageProviderExists(
+    storageProviderId: string,
+  ): Promise<void> {
+    const provider = await this.prisma.storageProvider.findUnique({
+      where: { id: storageProviderId },
+    });
+    if (!provider)
+      throw new BadRequestException('Storage provider không tồn tại');
+  }
+}

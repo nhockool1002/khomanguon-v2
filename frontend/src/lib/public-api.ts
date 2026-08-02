@@ -1,4 +1,4 @@
-import type { Category, MenuItem, PostDetail, PostListResponse } from "./types";
+import type { Category, MenuItem, PostDetail, PostListResponse, Widget } from "./types";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000";
 
@@ -43,4 +43,13 @@ export async function fetchCategories(): Promise<Category[]> {
 export async function fetchMenus(): Promise<MenuItem[]> {
   const result = await publicFetch<MenuItem[]>("/menus");
   return result ?? [];
+}
+
+// Lọc area + isActive + công khai (roleSlugs rỗng) ở đây — cùng giới hạn với fetchMenus/navbar.tsx:
+// chưa lọc theo role cụ thể của user vì AuthUser client-side chưa có roles (để dành bản sau).
+export async function fetchWidgets(area: string): Promise<Widget[]> {
+  const result = await publicFetch<Widget[]>("/widgets");
+  return (result ?? [])
+    .filter((w) => w.area === area && w.isActive && w.roleSlugs.length === 0)
+    .sort((a, b) => a.order - b.order);
 }

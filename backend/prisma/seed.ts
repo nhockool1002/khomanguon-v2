@@ -68,6 +68,19 @@ async function main() {
     console.log('SEED_ADMIN_EMAIL/SEED_ADMIN_PASSWORD chưa đặt — bỏ qua seed admin user.');
   }
 
+  console.log('Seeding default widgets (nếu chưa có)...');
+  const widgetCount = await prisma.widget.count();
+  if (widgetCount === 0) {
+    await prisma.widget.create({
+      data: { type: 'SEARCH', title: '', area: 'sidebar', order: 0, isActive: true, config: {} },
+    });
+    await prisma.widget.create({
+      data: { type: 'CATEGORIES', title: 'Danh mục', area: 'sidebar', order: 1, isActive: true, config: {} },
+    });
+  } else {
+    console.log('Đã có widget — bỏ qua seed mặc định.');
+  }
+
   console.log('Seed xong.');
 }
 

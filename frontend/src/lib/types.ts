@@ -79,6 +79,19 @@ export interface MenuItem {
   roleSlugs: string[];
 }
 
+export type WidgetType = "SEARCH" | "CATEGORIES" | "RECENT_POSTS" | "HTML";
+
+export interface Widget {
+  id: string;
+  type: WidgetType;
+  title: string;
+  area: string;
+  order: number;
+  isActive: boolean;
+  config: Record<string, unknown>;
+  roleSlugs: string[];
+}
+
 export type CommentStatus = "PUBLISHED" | "HIDDEN" | "PENDING";
 
 export interface CommentAuthor {
@@ -112,4 +125,99 @@ export interface Permission {
   id: string;
   key: string;
   description: string;
+}
+
+export type StorageProviderType = "R2" | "S3";
+
+export interface StorageProvider {
+  id: string;
+  type: StorageProviderType;
+  label: string;
+  endpoint: string | null;
+  region: string | null;
+  bucket: string;
+  uploadPrefix: string | null;
+  accessKeyId: string;
+  isDefault: boolean;
+  createdAt: string;
+}
+
+export interface DownloadLinkAdmin {
+  id: string;
+  label: string;
+  objectKey: string;
+  sizeBytes: number | null;
+  priceP: number;
+}
+
+export interface DownloadLinkPublic extends DownloadLinkAdmin {
+  downloaderNames: string[];
+  hasAccess: boolean;
+}
+
+export interface Wallet {
+  balance: number;
+  updatedAt: string;
+}
+
+export interface TopupPreset {
+  vnd: number;
+  p: number;
+}
+
+export interface SepayConfigPublic {
+  bankAccountNumber: string;
+  bankName: string;
+  accountHolderName: string;
+  hasApiKey: boolean;
+  hasApiAccessToken: boolean;
+  baseRateVndPerP: number;
+  presets: TopupPreset[];
+}
+
+export type TopupOrderStatus = "PENDING" | "SUCCESS" | "EXPIRED";
+
+export interface TopupOrder {
+  id: string;
+  userId: string;
+  code: string;
+  amountVnd: number;
+  amountP: number;
+  status: TopupOrderStatus;
+  expiresAt: string;
+  createdAt: string;
+}
+
+export interface TopupOrderWithQr {
+  order: TopupOrder;
+  qrUrl: string;
+}
+
+export type WalletTxType = "TOPUP" | "PURCHASE" | "ADMIN_ADJUST" | "REFUND";
+export type WalletTxStatus = "PENDING" | "SUCCESS" | "FAILED";
+
+export interface WalletTransaction {
+  id: string;
+  type: WalletTxType;
+  amount: number;
+  balanceAfter: number;
+  status: WalletTxStatus;
+  referenceType: string | null;
+  referenceId: string | null;
+  createdAt: string;
+}
+
+export interface WalletTransactionListResponse {
+  items: WalletTransaction[];
+  total: number;
+}
+
+export interface CloudFile {
+  key: string;
+  sizeBytes: number;
+  lastModified: string | null;
+  downloadCount: number;
+  memberNames: string[];
+  revenueP: number;
+  linkedPostTitles: string[];
 }

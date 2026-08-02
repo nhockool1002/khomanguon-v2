@@ -7,6 +7,7 @@ import { ErrorBanner, FormField, SuccessBanner } from "@/components/ui";
 import { RichTextEditor } from "@/components/rich-text-editor";
 import { ImageUploadField } from "@/components/image-upload-field";
 import { SeoPanel } from "@/components/seo-panel";
+import { DownloadConfigPanel } from "@/components/download-config-panel";
 
 const STATUS_LABEL: Record<PostStatus, string> = {
   DRAFT: "Nháp",
@@ -206,6 +207,8 @@ export function PostForm({
           <ImageUploadField label="Ảnh OG (chia sẻ mạng xã hội)" value={ogImageUrl} onChange={setOgImageUrl} />
         </div>
       </div>
+
+      <DownloadConfigPanel postId={initial?.id} />
     </div>
   );
 }
