@@ -74,7 +74,7 @@ export default function AdminStorageProvidersPage() {
       label: values.label,
       endpoint: values.endpoint || undefined,
       region: values.region || undefined,
-      bucket: values.bucket,
+      bucket: values.type === "MAILJET" ? undefined : values.bucket,
       uploadPrefix: values.uploadPrefix || undefined,
       accessKeyId: values.accessKeyId,
       isDefault: values.isDefault,
@@ -113,7 +113,8 @@ export default function AdminStorageProvidersPage() {
       </div>
       <p className="text-sm text-zinc-500">
         Nhập Access Key/Secret R2/S3 thật ở đây — dùng để sinh link tải (presigned URL) và upload ảnh
-        khi migrate. Secret được mã hoá trước khi lưu, không hiển thị lại sau khi nhập.
+        khi migrate. Có thể thêm provider Mailjet để gửi email xác minh/đặt lại mật khẩu. Secret được
+        mã hoá trước khi lưu, không hiển thị lại sau khi nhập.
       </p>
 
       <ErrorBanner message={error} />
@@ -132,7 +133,10 @@ export default function AdminStorageProvidersPage() {
               className="flex items-center gap-2 rounded-md border border-zinc-200 bg-white px-3 py-2 text-sm"
             >
               <span className="font-medium text-zinc-800">{p.label}</span>
-              <span className="font-mono text-xs text-zinc-400">{p.type} · {p.bucket}</span>
+              <span className="font-mono text-xs text-zinc-400">
+                {p.type}
+                {p.bucket && ` · ${p.bucket}`}
+              </span>
               {p.isDefault && (
                 <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-medium text-emerald-700">
                   Mặc định
@@ -187,7 +191,7 @@ function StorageProviderEditPanel({
           label: provider.label,
           endpoint: provider.endpoint ?? "",
           region: provider.region ?? "",
-          bucket: provider.bucket,
+          bucket: provider.bucket ?? "",
           uploadPrefix: provider.uploadPrefix ?? "",
           accessKeyId: provider.accessKeyId,
           secretAccessKey: "",
@@ -225,45 +229,51 @@ function StorageProviderEditPanel({
           <select value={values.type} onChange={(e) => set("type", e.target.value as StorageProviderType)} className={inputClass}>
             <option value="R2">Cloudflare R2</option>
             <option value="S3">AWS S3</option>
+            <option value="MAILJET">Mailjet (gửi email)</option>
           </select>
         </label>
         <label className="flex flex-col gap-1 text-sm text-zinc-700">
           Tên hiển thị
           <input value={values.label} onChange={(e) => set("label", e.target.value)} required minLength={2} className={inputClass} />
         </label>
+        {values.type !== "MAILJET" && (
+          <>
+            <label className="flex flex-col gap-1 text-sm text-zinc-700">
+              {values.type === "R2" ? "Account ID" : "Endpoint (tuỳ chọn)"}
+              <input
+                value={values.endpoint}
+                onChange={(e) => set("endpoint", e.target.value)}
+                placeholder={values.type === "R2" ? "vd: 837a9be109f87bab075ea0dd4fe8b62f" : undefined}
+                className={inputClass}
+              />
+              {values.type === "R2" && (
+                <span className="text-xs text-zinc-400">
+                  Chỉ cần Account ID (xem trong Cloudflare dashboard) — hệ thống tự suy ra endpoint
+                  https://accountId.r2.cloudflarestorage.com, không cần dán nguyên URL.
+                </span>
+              )}
+            </label>
+            <label className="flex flex-col gap-1 text-sm text-zinc-700">
+              Region (S3 dùng)
+              <input value={values.region} onChange={(e) => set("region", e.target.value)} className={inputClass} />
+            </label>
+            <label className="flex flex-col gap-1 text-sm text-zinc-700">
+              Bucket
+              <input value={values.bucket} onChange={(e) => set("bucket", e.target.value)} required className={inputClass} />
+            </label>
+            <label className="flex flex-col gap-1 text-sm text-zinc-700">
+              Upload prefix (tuỳ chọn)
+              <input value={values.uploadPrefix} onChange={(e) => set("uploadPrefix", e.target.value)} className={inputClass} />
+            </label>
+          </>
+        )}
         <label className="flex flex-col gap-1 text-sm text-zinc-700">
-          {values.type === "R2" ? "Account ID" : "Endpoint (tuỳ chọn)"}
-          <input
-            value={values.endpoint}
-            onChange={(e) => set("endpoint", e.target.value)}
-            placeholder={values.type === "R2" ? "vd: 837a9be109f87bab075ea0dd4fe8b62f" : undefined}
-            className={inputClass}
-          />
-          {values.type === "R2" && (
-            <span className="text-xs text-zinc-400">
-              Chỉ cần Account ID (xem trong Cloudflare dashboard) — hệ thống tự suy ra endpoint
-              https://accountId.r2.cloudflarestorage.com, không cần dán nguyên URL.
-            </span>
-          )}
-        </label>
-        <label className="flex flex-col gap-1 text-sm text-zinc-700">
-          Region (S3 dùng)
-          <input value={values.region} onChange={(e) => set("region", e.target.value)} className={inputClass} />
-        </label>
-        <label className="flex flex-col gap-1 text-sm text-zinc-700">
-          Bucket
-          <input value={values.bucket} onChange={(e) => set("bucket", e.target.value)} required className={inputClass} />
-        </label>
-        <label className="flex flex-col gap-1 text-sm text-zinc-700">
-          Upload prefix (tuỳ chọn)
-          <input value={values.uploadPrefix} onChange={(e) => set("uploadPrefix", e.target.value)} className={inputClass} />
-        </label>
-        <label className="flex flex-col gap-1 text-sm text-zinc-700">
-          Access Key ID
+          {values.type === "MAILJET" ? "API Key" : "Access Key ID"}
           <input value={values.accessKeyId} onChange={(e) => set("accessKeyId", e.target.value)} required className={inputClass} />
         </label>
         <label className="flex flex-col gap-1 text-sm text-zinc-700">
-          Secret Access Key {provider && <span className="text-xs text-zinc-400">(để trống nếu không đổi)</span>}
+          {values.type === "MAILJET" ? "Secret Key" : "Secret Access Key"}{" "}
+          {provider && <span className="text-xs text-zinc-400">(để trống nếu không đổi)</span>}
           <input
             type="password"
             value={values.secretAccessKey}
@@ -273,6 +283,13 @@ function StorageProviderEditPanel({
           />
         </label>
       </div>
+      {values.type === "MAILJET" && (
+        <p className="text-xs text-zinc-400">
+          Lấy API Key/Secret Key tại dashboard Mailjet (Account Settings → REST API). Hệ thống gửi
+          qua SMTP relay của Mailjet (in-v3.mailjet.com) — dùng chung cho email xác minh tài khoản và
+          đặt lại mật khẩu.
+        </p>
+      )}
       <label className="flex items-center gap-2 text-sm text-zinc-700">
         <input type="checkbox" checked={values.isDefault} onChange={(e) => set("isDefault", e.target.checked)} />
         Đặt làm provider mặc định

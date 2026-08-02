@@ -9,6 +9,7 @@ import {
   Query,
   UseGuards,
 } from '@nestjs/common';
+import { CommentStatus } from '@prisma/client';
 import { CommentsService } from './comments.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { OptionalJwtAuthGuard } from '../auth/guards/optional-jwt-auth.guard';
@@ -47,6 +48,22 @@ export class CommentsController {
     @CurrentUser() user: AuthUser,
   ) {
     return this.commentsService.listForModeration(postId, user.id);
+  }
+
+  // Trang quản trị "Quản lý bình luận" — kiểm duyệt xuyên suốt tất cả bài viết.
+  @UseGuards(JwtAuthGuard, PermissionsGuard)
+  @Permissions(PERMISSIONS.COMMENT_MODERATE)
+  @Get('moderation/all')
+  listAllForModeration(
+    @Query('page') page?: string,
+    @Query('limit') limit?: string,
+    @Query('status') status?: CommentStatus,
+  ) {
+    return this.commentsService.listAllForModeration(
+      Number(page) || 1,
+      Number(limit) || 20,
+      status,
+    );
   }
 
   @UseGuards(JwtAuthGuard, PermissionsGuard)

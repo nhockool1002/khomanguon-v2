@@ -31,7 +31,9 @@ export default function CloudFilesPage() {
   useEffect(() => {
     if (!user) return;
     apiFetch<StorageProvider[]>("/storage-providers")
-      .then((list) => {
+      .then((all) => {
+        // MAILJET không phải file storage — không có gì để liệt kê file, loại khỏi danh sách chọn.
+        const list = all.filter((p) => p.type !== "MAILJET");
         setProviders(list);
         setProviderId((current) => current || list[0]?.id || "");
       })

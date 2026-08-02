@@ -311,17 +311,22 @@ model CommentLike {
 enum StorageProviderType {
   R2
   S3
+  // Không phải file storage — email API (SMTP relay in-v3.mailjet.com), lưu cùng bảng để tái dùng
+  // cơ chế mã hoá secret + UI "Cài đặt Storage" đã có, xem MailService cho phần dùng thật.
+  MAILJET
 }
 
 model StorageProvider {
-  id                       String              @id @default(cuid())
-  type                     StorageProviderType
-  label                    String
-  endpoint                 String? // R2 cần accountId/endpoint, S3 dùng region
-  region                   String?
-  bucket                   String
-  uploadPrefix             String?
-  accessKeyId              String
+  id       String              @id @default(cuid())
+  type     StorageProviderType
+  label    String
+  endpoint String? // R2 cần accountId/endpoint, S3 dùng region
+  region   String?
+  // Không áp dụng cho MAILJET — để trống.
+  bucket       String?
+  uploadPrefix String?
+  // MAILJET: accessKeyId = API Key, secretAccessKeyEncrypted = Secret Key (SMTP user/pass).
+  accessKeyId String
   // Secret không lưu plaintext — mã hoá ở tầng application trước khi ghi DB (xem UC20).
   secretAccessKeyEncrypted String
   isDefault                Boolean             @default(false)

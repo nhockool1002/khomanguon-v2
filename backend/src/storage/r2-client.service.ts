@@ -69,6 +69,13 @@ export class R2ClientService {
 
   // Object key logic ("con") <-> key thật trong bucket (có uploadPrefix) — DownloadLink.objectKey
   // luôn lưu dạng "con" để không phụ thuộc prefix cấu hình sau này đổi.
+  // MAILJET không có bucket (nullable trong schema) — file này chỉ xử lý R2/S3, nếu lỡ gọi nhầm với
+  // provider thiếu bucket thì đó là lỗi dữ liệu cần biết ngay, không nên âm thầm bỏ qua.
+  private requireBucket(provider: { bucket: string | null }): string {
+    if (!provider.bucket) throw new Error('Storage provider thiếu bucket');
+    return provider.bucket;
+  }
+
   private toPrefixedKey(
     provider: { uploadPrefix: string | null },
     key: string,
@@ -97,7 +104,7 @@ export class R2ClientService {
     const client = this.buildClient(provider);
     await client.send(
       new PutObjectCommand({
-        Bucket: provider.bucket,
+        Bucket: this.requireBucket(provider),
         Key: this.toPrefixedKey(provider, key),
         Body: body,
         ContentType: contentType,
@@ -115,7 +122,7 @@ export class R2ClientService {
     const provider = await this.getProvider(providerId);
     const client = this.buildClient(provider);
     const command = new GetObjectCommand({
-      Bucket: provider.bucket,
+      Bucket: this.requireBucket(provider),
       Key: this.toPrefixedKey(provider, objectKey),
     });
     return getSignedUrl(client, command, { expiresIn: expiresInSeconds });
@@ -134,7 +141,7 @@ export class R2ClientService {
 
     const result = await client.send(
       new ListObjectsV2Command({
-        Bucket: provider.bucket,
+        Bucket: this.requireBucket(provider),
         Prefix: prefix || undefined,
         MaxKeys: LIST_MAX_KEYS,
       }),
@@ -154,7 +161,7 @@ export class R2ClientService {
     const client = this.buildClient(provider);
     await client.send(
       new DeleteObjectCommand({
-        Bucket: provider.bucket,
+        Bucket: this.requireBucket(provider),
         Key: this.toPrefixedKey(provider, key),
       }),
     );

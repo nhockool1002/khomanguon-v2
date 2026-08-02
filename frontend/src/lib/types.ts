@@ -113,6 +113,12 @@ export interface Comment {
   likedByMe: boolean;
 }
 
+// Bản ghi bình luận cho trang quản trị "Quản lý bình luận" — kèm thông tin bài viết vì kiểm duyệt
+// xuyên suốt tất cả bài viết, không chỉ trong ngữ cảnh 1 bài như listForModeration(postId).
+export interface AdminComment extends Comment {
+  post: { id: string; title: string; slug: string };
+}
+
 export interface Role {
   id: string;
   name: string;
@@ -121,13 +127,24 @@ export interface Role {
   permissionKeys: string[];
 }
 
+export type UserStatus = "ACTIVE" | "BANNED";
+
+export interface AdminUser {
+  id: string;
+  email: string;
+  displayName: string;
+  status: UserStatus;
+  createdAt: string;
+  roles: { slug: string; name: string }[];
+}
+
 export interface Permission {
   id: string;
   key: string;
   description: string;
 }
 
-export type StorageProviderType = "R2" | "S3";
+export type StorageProviderType = "R2" | "S3" | "MAILJET";
 
 export interface StorageProvider {
   id: string;
@@ -135,7 +152,7 @@ export interface StorageProvider {
   label: string;
   endpoint: string | null;
   region: string | null;
-  bucket: string;
+  bucket: string | null;
   uploadPrefix: string | null;
   accessKeyId: string;
   isDefault: boolean;

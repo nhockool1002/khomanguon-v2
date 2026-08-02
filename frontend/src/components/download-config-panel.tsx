@@ -18,7 +18,9 @@ export function DownloadConfigPanel({ postId }: { postId?: string }) {
 
   useEffect(() => {
     apiFetch<StorageProvider[]>("/storage-providers")
-      .then((list) => {
+      .then((all) => {
+        // MAILJET không phải file storage — không dùng được cho download link.
+        const list = all.filter((p) => p.type !== "MAILJET");
         setProviders(list);
         setStorageProviderId((current) => current || list.find((p) => p.isDefault)?.id || list[0]?.id || "");
       })
