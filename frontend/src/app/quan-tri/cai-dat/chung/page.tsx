@@ -1,0 +1,300 @@
+"use client";
+
+import { useEffect, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
+import { useAuth } from "@/context/auth-context";
+import { apiFetch, ApiError } from "@/lib/api";
+import { uploadImage } from "@/lib/upload";
+import type {
+  GeneralSettings,
+  HeaderBackgroundAttachment,
+  HeaderBackgroundSize,
+} from "@/lib/types";
+import { ErrorBanner, SuccessBanner } from "@/components/ui";
+
+const inputClass =
+  "rounded-md border border-zinc-300 px-3 py-2 text-sm outline-none focus:border-[#1d3557] focus:ring-1 focus:ring-[#1d3557]";
+
+export default function GeneralSettingsPage() {
+  const { user, loading } = useAuth();
+  const router = useRouter();
+
+  const [postsPerPage, setPostsPerPage] = useState(9);
+  const [headerTitle, setHeaderTitle] = useState("");
+  const [headerSlogan, setHeaderSlogan] = useState("");
+  const [headerBackgroundColor, setHeaderBackgroundColor] = useState("#1d3557");
+  const [headerBackgroundImageUrl, setHeaderBackgroundImageUrl] = useState<string | null>(null);
+  const [headerBackgroundSize, setHeaderBackgroundSize] = useState<HeaderBackgroundSize>("cover");
+  const [headerBackgroundAttachment, setHeaderBackgroundAttachment] =
+    useState<HeaderBackgroundAttachment>("scroll");
+  const [posX, setPosX] = useState(50);
+  const [posY, setPosY] = useState(50);
+
+  const [error, setError] = useState<string | null>(null);
+  const [message, setMessage] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const previewRef = useRef<HTMLDivElement>(null);
+  const dragging = useRef(false);
+
+  useEffect(() => {
+    if (!loading && !user) router.replace("/dang-nhap");
+  }, [loading, user, router]);
+
+  useEffect(() => {
+    if (!user) return;
+    apiFetch<GeneralSettings>("/settings/general")
+      .then((res) => {
+        setPostsPerPage(res.postsPerPage);
+        setHeaderTitle(res.headerTitle);
+        setHeaderSlogan(res.headerSlogan);
+        setHeaderBackgroundColor(res.headerBackgroundColor);
+        setHeaderBackgroundImageUrl(res.headerBackgroundImageUrl);
+        setHeaderBackgroundSize(res.headerBackgroundSize);
+        setHeaderBackgroundAttachment(res.headerBackgroundAttachment);
+        setPosX(res.headerBackgroundPositionX);
+        setPosY(res.headerBackgroundPositionY);
+      })
+      .catch((err) => setError(err instanceof ApiError ? err.message : "Có lỗi xảy ra"));
+  }, [user]);
+
+  async function handleSave() {
+    setError(null);
+    setMessage(null);
+    setSaving(true);
+    try {
+      await apiFetch<GeneralSettings>("/settings/general", {
+        method: "PUT",
+        body: JSON.stringify({
+          postsPerPage,
+          headerTitle,
+          headerSlogan,
+          headerBackgroundColor,
+          headerBackgroundImageUrl,
+          headerBackgroundSize,
+          headerBackgroundAttachment,
+          headerBackgroundPositionX: posX,
+          headerBackgroundPositionY: posY,
+        }),
+      });
+      setMessage("Đã lưu cấu hình chung.");
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : "Có lỗi xảy ra");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function handleUploadBackground(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+    setError(null);
+    setUploading(true);
+    try {
+      const url = await uploadImage(file);
+      setHeaderBackgroundImageUrl(url);
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : "Tải ảnh thất bại");
+    } finally {
+      setUploading(false);
+    }
+  }
+
+  // Kéo chuột/chạm trong khung xem trước để chọn background-position tuỳ ý (tính theo % để không
+  // phụ thuộc kích thước ảnh gốc) — Pointer Events gộp chung mouse + touch, không cần 2 bộ handler.
+  function updatePositionFromEvent(e: { clientX: number; clientY: number }) {
+    const el = previewRef.current;
+    if (!el) return;
+    const rect = el.getBoundingClientRect();
+    const x = Math.min(Math.max(((e.clientX - rect.left) / rect.width) * 100, 0), 100);
+    const y = Math.min(Math.max(((e.clientY - rect.top) / rect.height) * 100, 0), 100);
+    setPosX(Math.round(x));
+    setPosY(Math.round(y));
+  }
+
+  function handlePointerDown(e: React.PointerEvent<HTMLDivElement>) {
+    dragging.current = true;
+    e.currentTarget.setPointerCapture(e.pointerId);
+    updatePositionFromEvent(e);
+  }
+
+  function handlePointerMove(e: React.PointerEvent<HTMLDivElement>) {
+    if (!dragging.current) return;
+    updatePositionFromEvent(e);
+  }
+
+  function handlePointerUp() {
+    dragging.current = false;
+  }
+
+  const previewStyle: React.CSSProperties = headerBackgroundImageUrl
+    ? {
+        backgroundColor: headerBackgroundColor,
+        backgroundImage: `url(${headerBackgroundImageUrl})`,
+        backgroundSize: headerBackgroundSize,
+        backgroundPosition: `${posX}% ${posY}%`,
+        backgroundRepeat: "no-repeat",
+      }
+    : { backgroundColor: headerBackgroundColor };
+
+  if (loading || !user) {
+    return <div className="px-8 py-16 text-center text-sm text-zinc-400">Đang tải...</div>;
+  }
+
+  return (
+    <div className="flex w-full max-w-3xl flex-col gap-4 px-8 py-8">
+      <h1 className="text-xl font-semibold text-zinc-900">Cài đặt chung</h1>
+      <p className="text-sm text-zinc-500">
+        Cấu hình chung cho toàn site: số bài viết/trang ở trang chủ, tiêu đề/slogan và nền của khối
+        banner đầu trang chủ.
+      </p>
+
+      <ErrorBanner message={error} />
+      <SuccessBanner message={message} />
+
+      <div className="flex flex-col gap-3 rounded-md border border-zinc-200 p-4">
+        <p className="text-xs font-semibold uppercase tracking-wide text-zinc-500">Trang chủ</p>
+        <label className="flex max-w-xs flex-col gap-1 text-sm text-zinc-700">
+          Số bài viết / trang
+          <input
+            type="number"
+            min={1}
+            max={50}
+            value={postsPerPage}
+            onChange={(e) => setPostsPerPage(Number(e.target.value) || 1)}
+            className={inputClass}
+          />
+        </label>
+      </div>
+
+      <div className="flex flex-col gap-3 rounded-md border border-zinc-200 p-4">
+        <p className="text-xs font-semibold uppercase tracking-wide text-zinc-500">Banner đầu trang</p>
+        <label className="flex flex-col gap-1 text-sm text-zinc-700">
+          Tiêu đề nhỏ (kicker)
+          <input
+            value={headerTitle}
+            onChange={(e) => setHeaderTitle(e.target.value)}
+            className={inputClass}
+          />
+        </label>
+        <label className="flex flex-col gap-1 text-sm text-zinc-700">
+          Slogan
+          <textarea
+            value={headerSlogan}
+            onChange={(e) => setHeaderSlogan(e.target.value)}
+            rows={2}
+            className={`${inputClass} resize-none`}
+          />
+        </label>
+
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+          <label className="flex flex-col gap-1 text-sm text-zinc-700">
+            Màu nền
+            <input
+              type="color"
+              value={headerBackgroundColor}
+              onChange={(e) => setHeaderBackgroundColor(e.target.value)}
+              className="h-10 w-full rounded-md border border-zinc-300"
+            />
+          </label>
+          <label className="flex flex-col gap-1 text-sm text-zinc-700">
+            Ảnh nền (tuỳ chọn — để trống thì dùng màu nền)
+            <input
+              type="file"
+              accept="image/*"
+              onChange={handleUploadBackground}
+              disabled={uploading}
+              className="text-sm"
+            />
+          </label>
+        </div>
+
+        {headerBackgroundImageUrl && (
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <label className="flex flex-col gap-1 text-sm text-zinc-700">
+              Kích thước ảnh (background-size)
+              <select
+                value={headerBackgroundSize}
+                onChange={(e) => setHeaderBackgroundSize(e.target.value as HeaderBackgroundSize)}
+                className={inputClass}
+              >
+                <option value="cover">Cover (lấp đầy)</option>
+                <option value="contain">Contain (vừa khung)</option>
+                <option value="auto">Auto (kích thước gốc)</option>
+              </select>
+            </label>
+            <label className="flex flex-col gap-1 text-sm text-zinc-700">
+              Cuộn theo trang (background-attachment)
+              <select
+                value={headerBackgroundAttachment}
+                onChange={(e) =>
+                  setHeaderBackgroundAttachment(e.target.value as HeaderBackgroundAttachment)
+                }
+                className={inputClass}
+              >
+                <option value="scroll">Cuộn cùng trang (scroll)</option>
+                <option value="fixed">Cố định (fixed)</option>
+              </select>
+            </label>
+          </div>
+        )}
+
+        <div className="flex flex-col gap-2">
+          <p className="text-sm text-zinc-700">
+            Xem trước —{" "}
+            {headerBackgroundImageUrl
+              ? "kéo chuột trong khung để chọn vị trí ảnh"
+              : "chưa có ảnh, đang dùng màu nền"}
+          </p>
+          <div
+            ref={previewRef}
+            onPointerDown={headerBackgroundImageUrl ? handlePointerDown : undefined}
+            onPointerMove={headerBackgroundImageUrl ? handlePointerMove : undefined}
+            onPointerUp={handlePointerUp}
+            className={`relative h-40 w-full overflow-hidden rounded-lg border border-zinc-300 text-white ${
+              headerBackgroundImageUrl ? "cursor-move" : ""
+            }`}
+            style={previewStyle}
+          >
+            <div className="px-6 py-6">
+              <p className="font-mono text-xs uppercase tracking-widest text-white/70">
+                {headerTitle || "khomanguon.vn"}
+              </p>
+              <p className="mt-2 max-w-md text-lg font-semibold drop-shadow">{headerSlogan}</p>
+            </div>
+            {headerBackgroundImageUrl && (
+              <span
+                className="pointer-events-none absolute h-3 w-3 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-white bg-[#1d3557] shadow"
+                style={{ left: `${posX}%`, top: `${posY}%` }}
+              />
+            )}
+          </div>
+          {headerBackgroundImageUrl && (
+            <div className="flex items-center gap-3 text-xs text-zinc-500">
+              <span>
+                Vị trí: {posX}% / {posY}%
+              </span>
+              <button
+                type="button"
+                onClick={() => setHeaderBackgroundImageUrl(null)}
+                className="rounded px-2 py-1 font-medium text-red-600 hover:bg-zinc-100"
+              >
+                Gỡ ảnh nền
+              </button>
+            </div>
+          )}
+        </div>
+      </div>
+
+      <button
+        type="button"
+        onClick={handleSave}
+        disabled={saving || uploading}
+        className="w-fit rounded-md bg-[#1d3557] px-4 py-2 text-sm font-medium text-white hover:bg-[#16294a] disabled:opacity-50"
+      >
+        {saving ? "Đang lưu..." : "Lưu cấu hình"}
+      </button>
+    </div>
+  );
+}

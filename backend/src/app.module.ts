@@ -21,6 +21,8 @@ import { RealtimeModule } from './realtime/realtime.module';
 import { CloudFilesModule } from './cloud-files/cloud-files.module';
 import { WidgetsModule } from './widgets/widgets.module';
 import { NotificationsModule } from './notifications/notifications.module';
+import { SiteSettingsModule } from './settings/site-settings.module';
+import { MediaModule } from './media/media.module';
 
 @Module({
   imports: [
@@ -44,6 +46,8 @@ import { NotificationsModule } from './notifications/notifications.module';
     CloudFilesModule,
     WidgetsModule,
     NotificationsModule,
+    SiteSettingsModule,
+    MediaModule,
   ],
   controllers: [AppController],
   providers: [AppService],

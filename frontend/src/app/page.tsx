@@ -1,9 +1,7 @@
-import { fetchPosts } from "@/lib/public-api";
+import { fetchGeneralSettings, fetchPosts } from "@/lib/public-api";
 import { PostCard } from "@/components/post-card";
 import { Pagination } from "@/components/pagination";
 import { WidgetArea } from "@/components/widget-area";
-
-const PAGE_SIZE = 9;
 
 export default async function Home({
   searchParams,
@@ -13,18 +11,31 @@ export default async function Home({
   const { page: pageParam } = await searchParams;
   const page = Math.max(Number(pageParam) || 1, 1);
 
-  const { items: posts, total } = await fetchPosts({ page, limit: PAGE_SIZE });
-  const totalPages = Math.max(Math.ceil(total / PAGE_SIZE), 1);
+  const settings = await fetchGeneralSettings();
+  const pageSize = settings.postsPerPage;
+  const { items: posts, total } = await fetchPosts({ page, limit: pageSize });
+  const totalPages = Math.max(Math.ceil(total / pageSize), 1);
+
+  const heroStyle: React.CSSProperties = settings.headerBackgroundImageUrl
+    ? {
+        backgroundColor: settings.headerBackgroundColor,
+        backgroundImage: `url(${settings.headerBackgroundImageUrl})`,
+        backgroundSize: settings.headerBackgroundSize,
+        backgroundAttachment: settings.headerBackgroundAttachment,
+        backgroundPosition: `${settings.headerBackgroundPositionX}% ${settings.headerBackgroundPositionY}%`,
+        backgroundRepeat: "no-repeat",
+      }
+    : { backgroundColor: settings.headerBackgroundColor };
 
   return (
     <main className="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-6 px-4 py-8">
-      <section className="rounded-lg bg-gradient-to-r from-[#1d3557] to-[#2b3f5c] px-8 py-10 text-white">
+      <section className="rounded-lg px-8 py-10 text-white" style={heroStyle}>
         <p className="font-mono text-xs uppercase tracking-widest text-white/70">
-          khomanguon.vn
+          {settings.headerTitle}
         </p>
-        <h1 className="mt-2 max-w-lg text-2xl font-semibold">
-          Mở kho, dựng lại thanh xuân — kho mã nguồn Game/Web/App cho cộng đồng Việt
-        </h1>
+        {settings.headerSlogan && (
+          <h1 className="mt-2 max-w-lg text-2xl font-semibold">{settings.headerSlogan}</h1>
+        )}
       </section>
 
       <div className="flex flex-col gap-6 lg:flex-row">

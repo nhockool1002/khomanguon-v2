@@ -13,9 +13,11 @@ const NAV_ITEMS = [
   { href: "/quan-tri/giao-dich", label: "Giao dịch ($P)", icon: "💰", match: "prefix" as const },
   { href: "/quan-tri/binh-luan", label: "Quản lý bình luận", icon: "💬", match: "prefix" as const },
   { href: "/quan-tri/vai-tro", label: "Phân quyền", icon: "🛡", match: "prefix" as const },
+  { href: "/quan-tri/thu-vien-media", label: "Thư viện Media", icon: "🖼️", match: "prefix" as const },
   { href: "/quan-tri/cai-dat/storage", label: "Cài đặt Storage", icon: "☁️", match: "prefix" as const },
   { href: "/quan-tri/tep-cloud", label: "Quản lý File Cloud", icon: "🗃️", match: "prefix" as const },
   { href: "/quan-tri/cai-dat/sepay", label: "Cài đặt SePay", icon: "💳", match: "prefix" as const },
+  { href: "/quan-tri/cai-dat/chung", label: "Cài đặt chung", icon: "⚙️", match: "prefix" as const },
 ];
 
 // Menu quản trị nằm bên trái, kiểu WordPress admin — thay cho việc rải link trên navbar.

@@ -22,6 +22,8 @@ export const PERMISSIONS = {
   SETTINGS_SEO: 'settings.seo',
   SETTINGS_STORAGE_KEYS: 'settings.storage_keys',
   SETTINGS_PAYMENT: 'settings.payment',
+  SETTINGS_GENERAL: 'settings.general',
+  MEDIA_MANAGE: 'media.manage',
 } as const;
 
 export type PermissionKey = (typeof PERMISSIONS)[keyof typeof PERMISSIONS];
@@ -51,6 +53,7 @@ export const DEFAULT_ROLE_PERMISSIONS: Record<string, PermissionKey[]> = {
     PERMISSIONS.USER_MANAGE,
     PERMISSIONS.WALLET_VIEW_ANY,
     PERMISSIONS.DOWNLOAD_MANAGE_LINKS,
+    PERMISSIONS.MEDIA_MANAGE,
   ],
   [DEFAULT_ROLES.MODERATOR.slug]: [
     PERMISSIONS.POST_CREATE,

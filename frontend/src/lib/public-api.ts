@@ -1,4 +1,12 @@
-import type { Category, MenuItem, PostDetail, PostListResponse, RoleBadgeInfo, Widget } from "./types";
+import type {
+  Category,
+  GeneralSettings,
+  MenuItem,
+  PostDetail,
+  PostListResponse,
+  RoleBadgeInfo,
+  Widget,
+} from "./types";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000";
 
@@ -59,4 +67,24 @@ export async function fetchWidgets(area: string): Promise<Widget[]> {
 export async function fetchRoleBadges(): Promise<RoleBadgeInfo[]> {
   const result = await publicFetch<RoleBadgeInfo[]>("/roles/badges");
   return result ?? [];
+}
+
+// Fallback y hệt DEFAULT_GENERAL_SETTINGS ở backend/src/settings/site-settings.types.ts —
+// giữ trang chủ vẫn render hợp lý nếu API lỗi/backend chưa deploy migration mới.
+export const DEFAULT_GENERAL_SETTINGS: GeneralSettings = {
+  postsPerPage: 9,
+  headerTitle: "khomanguon.vn",
+  headerSlogan:
+    "Mở kho, dựng lại thanh xuân — kho mã nguồn Game/Web/App cho cộng đồng Việt",
+  headerBackgroundColor: "#1d3557",
+  headerBackgroundImageUrl: null,
+  headerBackgroundSize: "cover",
+  headerBackgroundAttachment: "scroll",
+  headerBackgroundPositionX: 50,
+  headerBackgroundPositionY: 50,
+};
+
+export async function fetchGeneralSettings(): Promise<GeneralSettings> {
+  const result = await publicFetch<GeneralSettings>("/settings/general");
+  return result ?? DEFAULT_GENERAL_SETTINGS;
 }

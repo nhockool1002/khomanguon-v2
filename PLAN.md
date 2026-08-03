@@ -50,7 +50,9 @@ Quy ước: mỗi phase có **Definition of Done (DoD)** rõ ràng — không sa
 | `storage-providers/` | Cấu hình nhiều provider R2/S3/Mailjet (secret mã hoá, chọn provider mặc định) |
 | `storage/` | `r2-client.service.ts` — client S3/R2 dùng chung (AWS SDK thật) cho mọi module cần |
 | `cloud-files/` | Duyệt/xoá file trong bucket qua trang admin |
-| `uploads/` | Upload file chung (ảnh bài viết, avatar...) |
+| `uploads/` | Upload file chung (ảnh bài viết, avatar...) — lưu đĩa cục bộ, không ghi vào `MediaFile` |
+| `settings/` | Cấu hình chung toàn site (số bài viết/trang trang chủ, tiêu đề/slogan/nền banner đầu trang chủ) — key/value trong `SiteSetting` (key `general_settings`), theo đúng mẫu `sepay_config` |
+| `media/` | Thư viện Media kiểu WordPress — upload/liệt kê/tìm kiếm/xoá ảnh, model `MediaFile` riêng (tên gốc, kích thước, người tải lên); file vật lý vẫn nằm chung `./uploads` với module `uploads/` nhưng nguồn ghi DB tách biệt |
 | `mail/` | Gửi email transactional (xác minh, đặt lại mật khẩu) |
 | `realtime/` | WebSocket gateway (`wallet.gateway.ts`, `notification.gateway.ts`) — mỗi user 1 room riêng, xác thực bằng JWT |
 | `prisma/` | `PrismaService`/`PrismaModule` — client DB dùng chung, `@Global()` |
@@ -58,7 +60,7 @@ Quy ước: mỗi phase có **Definition of Done (DoD)** rõ ràng — không sa
 
 **`frontend/src/`** — Next.js App Router:
 
-- `app/` — route theo tiếng Việt, URL thân thiện: `/dang-nhap`, `/dang-ky`, `/quen-mat-khau`, `/dat-lai-mat-khau`, `/xac-minh-email`, `/bai-viet/[slug]`, `/danh-muc/[slug]`, `/tim-kiem`, `/tai-khoan` (+ `/tai-khoan/vi`), `/quan-tri/*` (toàn bộ khu quản trị: `bai-viet`, `danh-muc`, `menu`, `widget`, `nguoi-dung`, `giao-dich`, `binh-luan`, `vai-tro`, `cai-dat/storage`, `cai-dat/sepay`, `tep-cloud`)
+- `app/` — route theo tiếng Việt, URL thân thiện: `/dang-nhap`, `/dang-ky`, `/quen-mat-khau`, `/dat-lai-mat-khau`, `/xac-minh-email`, `/bai-viet/[slug]`, `/danh-muc/[slug]`, `/tim-kiem`, `/tai-khoan` (+ `/tai-khoan/vi`), `/quan-tri/*` (toàn bộ khu quản trị: `bai-viet`, `danh-muc`, `menu`, `widget`, `nguoi-dung`, `giao-dich`, `binh-luan`, `vai-tro`, `cai-dat/storage`, `cai-dat/sepay`, `cai-dat/chung`, `tep-cloud`, `thu-vien-media`)
 - `components/` — component dùng chung (UI cơ bản, rich-text-editor, comment-section, mention-textarea, styled-user-name, notification-bell...)
 - `context/` — React context (`auth-context`, `role-badges-context`)
 - `lib/` — `api.ts` (client có token, tự refresh), `public-api.ts` (fetch phía server không token), `types.ts`, `format.ts`, `fonts.ts`, `socket.ts`
@@ -200,6 +202,10 @@ Quy ước: mỗi phase có **Definition of Done (DoD)** rõ ràng — không sa
 ### 3.4 Cài đặt hệ thống liên quan
 - [ ] Trang cài đặt Key R2/S3 (nhiều provider, nút test kết nối, chọn mặc định) — UC20, wireframe #12. **Đã có:** CRUD nhiều provider + chọn mặc định (`isDefault`). **Còn thiếu:** nút "Test kết nối" (không có endpoint/route nào cho việc này ở `storage-providers`, khác với SePay đã có `testApiConnection` thật).
 - [x] Trang cài đặt SePay (API key, webhook secret) + tỉ giá VNĐ↔$P, gói nạp khuyến mãi — UC21, đầy đủ kèm nút "Test kết nối API" thật
+
+### 3.4b Cài đặt chung & Thư viện Media (ngoài kế hoạch ban đầu — bổ sung theo yêu cầu 2026-08-03)
+- [x] Trang "Cài đặt chung" (`/quan-tri/cai-dat/chung`, quyền `settings.general`) — chỉnh số bài viết/trang ở trang chủ, tiêu đề nhỏ + slogan banner đầu trang chủ, màu nền hoặc ảnh nền (chọn `background-size`/`background-attachment`, kéo chuột chọn `background-position` tự do). Lưu vào `SiteSetting` (key `general_settings`, service `settings/site-settings.service.ts`), đọc công khai qua `GET /settings/general` (không cần đăng nhập) để `frontend/src/app/page.tsx` (Server Component) render banner + phân trang theo cấu hình thay vì hằng số `PAGE_SIZE = 9` cũ.
+- [x] Thư viện Media kiểu WordPress (`/quan-tri/thu-vien-media`, quyền `media.manage`) — lưới thumbnail, tìm theo tên gốc, xem chi tiết (dung lượng/loại/người tải/ngày), copy URL, xoá, upload nhiều ảnh cùng lúc (`POST /media`, `GET /media`, `DELETE /media/:id`). Model `MediaFile` mới (migration `20260803120000_add_media_files`) ghi tên gốc + người tải lên mỗi lần upload qua `/media` — **lưu ý:** ảnh upload qua endpoint `/uploads` cũ (trong trình soạn bài viết, avatar, ảnh nền banner) KHÔNG tự động xuất hiện trong thư viện này vì cố tình không đổi hành vi endpoint `/uploads` đang dùng rộng rãi; đây là giới hạn có chủ đích, để dành hợp nhất 2 nguồn upload cho bản sau nếu cần.
 
 ### 3.5 Chống lạm dụng
 - [x] Log IP mỗi lần tải — `DownloadEvent.ipAddress` ghi mỗi lần `unlock()`
