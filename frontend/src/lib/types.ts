@@ -299,12 +299,13 @@ export interface GeneralSettings {
 }
 
 export interface MediaFile {
-  id: string;
+  // Đường dẫn tương đối (từ /uploads) — dùng làm id vì Thư viện Media liệt kê trực tiếp từ đĩa
+  // (uploads/posts/yyyy/mm/dd/...), không có bảng riêng để cấp primary key ổn định cho mọi file.
+  path: string;
+  url: string;
   fileName: string;
-  originalName: string;
   mimeType: string;
   sizeBytes: number;
-  url: string;
   createdAt: string;
   uploadedBy: { displayName: string } | null;
 }

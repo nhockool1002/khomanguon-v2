@@ -1,5 +1,5 @@
 import { randomUUID } from 'crypto';
-import { extname } from 'path';
+import { extname, relative, sep } from 'path';
 import {
   BadRequestException,
   Controller,
@@ -14,6 +14,10 @@ import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { PermissionsGuard } from '../roles/guards/permissions.guard';
 import { Permissions } from '../roles/decorators/permissions.decorator';
 import { PERMISSIONS } from '../roles/permissions.constant';
+import {
+  datedUploadDestination,
+  UPLOAD_ROOT,
+} from '../common/dated-upload.util';
 
 const ALLOWED_MIME_TYPES = [
   'image/jpeg',
@@ -23,8 +27,10 @@ const ALLOWED_MIME_TYPES = [
 ];
 const MAX_FILE_SIZE = 5 * 1024 * 1024;
 
-// Lưu tạm lên đĩa cục bộ (volume /app/uploads) cho tới khi trang cài đặt R2/S3 sẵn sàng ở Phase 3 —
-// FE luôn ghép URL tuyệt đối (NEXT_PUBLIC_API_URL + path) ngay khi upload xong nên không cần
+// Lưu lên đĩa cục bộ (volume /app/uploads), thư mục theo ngày kiểu WordPress
+// uploads/posts/yyyy/mm/dd (xem common/dated-upload.util.ts) — Thư viện Media quét thẳng cây thư
+// mục này nên MỌI ảnh qua endpoint chung này (nội dung bài viết, avatar, banner...) đều hiện ra ở
+// đó. FE luôn ghép URL tuyệt đối (NEXT_PUBLIC_API_URL + path) ngay khi upload xong nên không cần
 // biết public origin của backend ở đây (tránh phải đoán protocol/host phía sau reverse proxy).
 @Controller('uploads')
 export class UploadsController {
@@ -34,7 +40,7 @@ export class UploadsController {
   @UseInterceptors(
     FileInterceptor('file', {
       storage: diskStorage({
-        destination: './uploads',
+        destination: datedUploadDestination,
         filename: (_req, file, callback) => {
           callback(
             null,
@@ -57,6 +63,7 @@ export class UploadsController {
   )
   upload(@UploadedFile() file: Express.Multer.File) {
     if (!file) throw new BadRequestException('Thiếu file');
-    return { url: `/uploads/${file.filename}` };
+    const relPath = relative(UPLOAD_ROOT, file.path).split(sep).join('/');
+    return { url: `/uploads/${relPath}` };
   }
 }
