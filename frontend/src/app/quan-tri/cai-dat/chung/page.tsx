@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/auth-context";
 import { apiFetch, ApiError } from "@/lib/api";
 import { uploadImage } from "@/lib/upload";
+import { FONT_OPTIONS, fontVar } from "@/lib/fonts";
 import type {
   GeneralSettings,
   HeaderBackgroundAttachment,
@@ -29,6 +30,14 @@ export default function GeneralSettingsPage() {
     useState<HeaderBackgroundAttachment>("scroll");
   const [posX, setPosX] = useState(50);
   const [posY, setPosY] = useState(50);
+  const [headerMinHeight, setHeaderMinHeight] = useState(260);
+  const [headerTitleColor, setHeaderTitleColor] = useState("#c7d2e0");
+  const [headerTitleFontFamily, setHeaderTitleFontFamily] = useState<string | null>(null);
+  const [headerTitleBold, setHeaderTitleBold] = useState(false);
+  const [headerSloganColor, setHeaderSloganColor] = useState("#ffffff");
+  const [headerSloganFontFamily, setHeaderSloganFontFamily] = useState<string | null>(null);
+  const [headerSloganBold, setHeaderSloganBold] = useState(true);
+  const [headerSloganItalic, setHeaderSloganItalic] = useState(false);
   const [gaTrackingId, setGaTrackingId] = useState("");
   const [googleSiteVerification, setGoogleSiteVerification] = useState("");
 
@@ -56,6 +65,14 @@ export default function GeneralSettingsPage() {
         setHeaderBackgroundAttachment(res.headerBackgroundAttachment);
         setPosX(res.headerBackgroundPositionX);
         setPosY(res.headerBackgroundPositionY);
+        setHeaderMinHeight(res.headerMinHeight);
+        setHeaderTitleColor(res.headerTitleColor);
+        setHeaderTitleFontFamily(res.headerTitleFontFamily);
+        setHeaderTitleBold(res.headerTitleBold);
+        setHeaderSloganColor(res.headerSloganColor);
+        setHeaderSloganFontFamily(res.headerSloganFontFamily);
+        setHeaderSloganBold(res.headerSloganBold);
+        setHeaderSloganItalic(res.headerSloganItalic);
         setGaTrackingId(res.gaTrackingId);
         setGoogleSiteVerification(res.googleSiteVerification);
       })
@@ -79,6 +96,14 @@ export default function GeneralSettingsPage() {
           headerBackgroundAttachment,
           headerBackgroundPositionX: posX,
           headerBackgroundPositionY: posY,
+          headerMinHeight,
+          headerTitleColor,
+          headerTitleFontFamily,
+          headerTitleBold,
+          headerSloganColor,
+          headerSloganFontFamily,
+          headerSloganBold,
+          headerSloganItalic,
           gaTrackingId,
           googleSiteVerification,
         }),
@@ -216,6 +241,106 @@ export default function GeneralSettingsPage() {
           </label>
         </div>
 
+        <label className="flex max-w-xs flex-col gap-1 text-sm text-zinc-700">
+          Chiều cao tối thiểu (px)
+          <input
+            type="number"
+            min={120}
+            max={600}
+            value={headerMinHeight}
+            onChange={(e) => setHeaderMinHeight(Number(e.target.value) || 120)}
+            className={inputClass}
+          />
+        </label>
+
+        <div className="flex flex-col gap-3 rounded-md bg-zinc-50 p-3">
+          <p className="text-xs font-semibold uppercase tracking-wide text-zinc-500">
+            Style tiêu đề nhỏ (kicker)
+          </p>
+          <div className="flex flex-wrap items-end gap-3">
+            <label className="flex flex-col gap-1 text-sm text-zinc-700">
+              Màu
+              <input
+                type="color"
+                value={headerTitleColor}
+                onChange={(e) => setHeaderTitleColor(e.target.value)}
+                className="h-9 w-14 rounded border border-zinc-300"
+              />
+            </label>
+            <label className="flex flex-col gap-1 text-sm text-zinc-700">
+              Font
+              <select
+                value={headerTitleFontFamily ?? ""}
+                onChange={(e) => setHeaderTitleFontFamily(e.target.value || null)}
+                className="w-44 rounded-md border border-zinc-300 px-3 py-2 text-sm outline-none focus:border-[#1d3557] focus:ring-1 focus:ring-[#1d3557]"
+              >
+                <option value="">Mặc định</option>
+                {FONT_OPTIONS.map((f) => (
+                  <option key={f.key} value={f.key} style={{ fontFamily: fontVar(f.key) }}>
+                    {f.label}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className="flex items-center gap-1.5 text-sm text-zinc-700">
+              <input
+                type="checkbox"
+                checked={headerTitleBold}
+                onChange={(e) => setHeaderTitleBold(e.target.checked)}
+              />
+              Đậm
+            </label>
+          </div>
+        </div>
+
+        <div className="flex flex-col gap-3 rounded-md bg-zinc-50 p-3">
+          <p className="text-xs font-semibold uppercase tracking-wide text-zinc-500">
+            Style slogan
+          </p>
+          <div className="flex flex-wrap items-end gap-3">
+            <label className="flex flex-col gap-1 text-sm text-zinc-700">
+              Màu
+              <input
+                type="color"
+                value={headerSloganColor}
+                onChange={(e) => setHeaderSloganColor(e.target.value)}
+                className="h-9 w-14 rounded border border-zinc-300"
+              />
+            </label>
+            <label className="flex flex-col gap-1 text-sm text-zinc-700">
+              Font
+              <select
+                value={headerSloganFontFamily ?? ""}
+                onChange={(e) => setHeaderSloganFontFamily(e.target.value || null)}
+                className="w-44 rounded-md border border-zinc-300 px-3 py-2 text-sm outline-none focus:border-[#1d3557] focus:ring-1 focus:ring-[#1d3557]"
+              >
+                <option value="">Mặc định</option>
+                {FONT_OPTIONS.map((f) => (
+                  <option key={f.key} value={f.key} style={{ fontFamily: fontVar(f.key) }}>
+                    {f.label}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className="flex items-center gap-1.5 text-sm text-zinc-700">
+              <input
+                type="checkbox"
+                checked={headerSloganBold}
+                onChange={(e) => setHeaderSloganBold(e.target.checked)}
+              />
+              Đậm
+            </label>
+            <label className="flex items-center gap-1.5 text-sm text-zinc-700">
+              <input
+                type="checkbox"
+                checked={headerSloganItalic}
+                onChange={(e) => setHeaderSloganItalic(e.target.checked)}
+              />
+              Nghiêng
+            </label>
+          </div>
+        </div>
+
         {headerBackgroundImageUrl && (
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             <label className="flex flex-col gap-1 text-sm text-zinc-700">
@@ -258,16 +383,33 @@ export default function GeneralSettingsPage() {
             onPointerDown={headerBackgroundImageUrl ? handlePointerDown : undefined}
             onPointerMove={headerBackgroundImageUrl ? handlePointerMove : undefined}
             onPointerUp={handlePointerUp}
-            className={`relative h-40 w-full overflow-hidden rounded-lg border border-zinc-300 text-white ${
+            className={`relative w-full overflow-hidden rounded-lg border border-zinc-300 text-white ${
               headerBackgroundImageUrl ? "cursor-move" : ""
             }`}
-            style={previewStyle}
+            style={{ ...previewStyle, minHeight: Math.min(headerMinHeight, 320) }}
           >
             <div className="px-6 py-6">
-              <p className="font-mono text-xs uppercase tracking-widest text-white/70">
+              <p
+                className="font-mono text-xs uppercase tracking-widest"
+                style={{
+                  color: headerTitleColor,
+                  fontFamily: fontVar(headerTitleFontFamily),
+                  fontWeight: headerTitleBold ? 700 : undefined,
+                }}
+              >
                 {headerTitle || "khomanguon.vn"}
               </p>
-              <p className="mt-2 max-w-md text-lg font-semibold drop-shadow">{headerSlogan}</p>
+              <p
+                className="mt-2 max-w-md text-lg drop-shadow"
+                style={{
+                  color: headerSloganColor,
+                  fontFamily: fontVar(headerSloganFontFamily),
+                  fontWeight: headerSloganBold ? 700 : undefined,
+                  fontStyle: headerSloganItalic ? "italic" : undefined,
+                }}
+              >
+                {headerSlogan}
+              </p>
             </div>
             {headerBackgroundImageUrl && (
               <span

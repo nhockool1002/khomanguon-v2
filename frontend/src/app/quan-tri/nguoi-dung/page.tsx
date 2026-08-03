@@ -15,12 +15,44 @@ const STATUS_LABEL: Record<UserStatus, string> = {
   BANNED: "Đã khoá",
 };
 
+type SortBy = "email" | "displayName" | "status" | "createdAt";
+type SortDir = "asc" | "desc";
+
+const COLUMNS: { key: SortBy; label: string }[] = [
+  { key: "email", label: "Email" },
+  { key: "displayName", label: "Tên hiển thị" },
+  { key: "status", label: "Trạng thái" },
+  { key: "createdAt", label: "Ngày tạo" },
+];
+
+function SortArrow({ dir }: { dir: SortDir }) {
+  return (
+    <svg
+      width="10"
+      height="10"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="3"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className={dir === "asc" ? "" : "rotate-180"}
+    >
+      <path d="M18 15l-6-6-6 6" />
+    </svg>
+  );
+}
+
 export default function AdminUsersPage() {
   const { user, loading } = useAuth();
   const router = useRouter();
   const [items, setItems] = useState<AdminUser[] | null>(null);
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
+  const [searchInput, setSearchInput] = useState("");
+  const [search, setSearch] = useState("");
+  const [sortBy, setSortBy] = useState<SortBy>("createdAt");
+  const [sortDir, setSortDir] = useState<SortDir>("desc");
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
@@ -29,19 +61,45 @@ export default function AdminUsersPage() {
     if (!loading && !user) router.replace("/dang-nhap");
   }, [loading, user, router]);
 
+  // Gõ vào ô tìm kiếm không gọi API ngay — chờ 300ms sau khi ngừng gõ mới cập nhật `search` (tránh
+  // spam request mỗi phím bấm), đồng thời reset về trang 1 vì tổng số kết quả đã đổi.
+  useEffect(() => {
+    const t = setTimeout(() => {
+      setSearch(searchInput);
+      setPage(1);
+    }, 300);
+    return () => clearTimeout(t);
+  }, [searchInput]);
+
   const reload = useCallback(() => {
-    apiFetch<{ items: AdminUser[]; total: number }>(`/users?page=${page}&limit=${PAGE_SIZE}`)
+    const params = new URLSearchParams({
+      page: String(page),
+      limit: String(PAGE_SIZE),
+      sortBy,
+      sortDir,
+    });
+    if (search.trim()) params.set("search", search.trim());
+    apiFetch<{ items: AdminUser[]; total: number }>(`/users?${params.toString()}`)
       .then((res) => {
         setItems(res.items);
         setTotal(res.total);
       })
       .catch((err) => setError(err instanceof ApiError ? err.message : "Có lỗi xảy ra"));
-  }, [page]);
+  }, [page, search, sortBy, sortDir]);
 
   useEffect(() => {
     if (!user) return;
     reload();
   }, [user, reload]);
+
+  function toggleSort(key: SortBy) {
+    if (sortBy === key) {
+      setSortDir((d) => (d === "asc" ? "desc" : "asc"));
+    } else {
+      setSortBy(key);
+      setSortDir("asc");
+    }
+  }
 
   async function toggleStatus(target: AdminUser) {
     const nextStatus: UserStatus = target.status === "ACTIVE" ? "BANNED" : "ACTIVE";
@@ -57,6 +115,21 @@ export default function AdminUsersPage() {
       });
       setMessage(`Đã ${verb} tài khoản ${target.email}.`);
       reload();
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : "Có lỗi xảy ra");
+    } finally {
+      setBusyId(null);
+    }
+  }
+
+  async function sendResetPassword(target: AdminUser) {
+    if (!confirm(`Gửi email đặt lại mật khẩu cho "${target.email}"?`)) return;
+    setError(null);
+    setMessage(null);
+    setBusyId(target.id);
+    try {
+      await apiFetch(`/users/${target.id}/send-reset-password`, { method: "POST" });
+      setMessage(`Đã gửi email đặt lại mật khẩu tới ${target.email}.`);
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "Có lỗi xảy ra");
     } finally {
@@ -104,16 +177,23 @@ export default function AdminUsersPage() {
     <div className="flex w-full flex-col gap-4 px-8 py-8">
       <h1 className="text-xl font-semibold text-zinc-900">Quản lý User</h1>
       <p className="text-sm text-zinc-500">
-        Khoá/mở khoá tài khoản, gán hoặc gỡ vai trò. Khoá tài khoản sẽ đăng xuất tất cả phiên đang
-        đăng nhập của user đó.
+        Khoá/mở khoá tài khoản, gán hoặc gỡ vai trò, gửi email đặt lại mật khẩu. Khoá tài khoản sẽ
+        đăng xuất tất cả phiên đang đăng nhập của user đó.
       </p>
 
       <ErrorBanner message={error} />
       <SuccessBanner message={message} />
 
+      <input
+        value={searchInput}
+        onChange={(e) => setSearchInput(e.target.value)}
+        placeholder="Tìm theo email hoặc tên hiển thị..."
+        className="w-full max-w-sm rounded-md border border-zinc-300 px-3 py-2 text-sm outline-none focus:border-[#1d3557] focus:ring-1 focus:ring-[#1d3557]"
+      />
+
       {items && items.length === 0 && (
         <p className="rounded-lg border border-dashed border-zinc-300 px-4 py-10 text-center text-sm text-zinc-400">
-          Chưa có user nào.
+          {search ? "Không tìm thấy user nào." : "Chưa có user nào."}
         </p>
       )}
 
@@ -122,11 +202,19 @@ export default function AdminUsersPage() {
           <table className="w-full text-left text-sm">
             <thead className="bg-zinc-50 text-xs uppercase tracking-wide text-zinc-500">
               <tr>
-                <th className="px-3 py-2">Email</th>
-                <th className="px-3 py-2">Tên hiển thị</th>
-                <th className="px-3 py-2">Trạng thái</th>
+                {COLUMNS.map((col) => (
+                  <th key={col.key} className="px-3 py-2">
+                    <button
+                      type="button"
+                      onClick={() => toggleSort(col.key)}
+                      className="flex items-center gap-1 hover:text-zinc-800"
+                    >
+                      {col.label}
+                      {sortBy === col.key && <SortArrow dir={sortDir} />}
+                    </button>
+                  </th>
+                ))}
                 <th className="px-3 py-2">Vai trò</th>
-                <th className="px-3 py-2">Ngày tạo</th>
                 <th className="px-3 py-2"></th>
               </tr>
             </thead>
@@ -145,6 +233,9 @@ export default function AdminUsersPage() {
                     >
                       {STATUS_LABEL[u.status]}
                     </span>
+                  </td>
+                  <td className="px-3 py-2 text-xs text-zinc-500">
+                    {new Date(u.createdAt).toLocaleDateString("vi-VN")}
                   </td>
                   <td className="px-3 py-2">
                     <div className="flex flex-wrap items-center gap-1">
@@ -182,20 +273,27 @@ export default function AdminUsersPage() {
                       </select>
                     </div>
                   </td>
-                  <td className="px-3 py-2 text-xs text-zinc-500">
-                    {new Date(u.createdAt).toLocaleDateString("vi-VN")}
-                  </td>
                   <td className="px-3 py-2">
-                    <button
-                      type="button"
-                      onClick={() => toggleStatus(u)}
-                      disabled={busyId === u.id}
-                      className={`rounded px-2 py-0.5 text-xs font-medium hover:bg-zinc-100 disabled:opacity-50 ${
-                        u.status === "ACTIVE" ? "text-red-600" : "text-emerald-600"
-                      }`}
-                    >
-                      {u.status === "ACTIVE" ? "Khoá" : "Mở khoá"}
-                    </button>
+                    <div className="flex items-center gap-1 whitespace-nowrap">
+                      <button
+                        type="button"
+                        onClick={() => sendResetPassword(u)}
+                        disabled={busyId === u.id}
+                        className="rounded px-2 py-0.5 text-xs font-medium text-[#1d3557] hover:bg-zinc-100 disabled:opacity-50"
+                      >
+                        Đặt lại mật khẩu
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => toggleStatus(u)}
+                        disabled={busyId === u.id}
+                        className={`rounded px-2 py-0.5 text-xs font-medium hover:bg-zinc-100 disabled:opacity-50 ${
+                          u.status === "ACTIVE" ? "text-red-600" : "text-emerald-600"
+                        }`}
+                      >
+                        {u.status === "ACTIVE" ? "Khoá" : "Mở khoá"}
+                      </button>
+                    </div>
                   </td>
                 </tr>
               ))}

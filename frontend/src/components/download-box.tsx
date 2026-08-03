@@ -47,26 +47,53 @@ export function DownloadBox({ postId }: { postId: string }) {
     }
   }
 
-  if (!link) return null; // đang tải hoặc bài viết không có cấu hình tải — không hiện khung rỗng
+  if (link === undefined) return null; // đang tải — chưa biết có cấu hình hay không, tránh nháy khung
+
+  // link === null: bài viết chưa cấu hình link tải — vẫn hiện khung (viền động y hệt), chỉ đổi nội
+  // dung sang trạng thái "đang chuẩn bị" thay vì ẩn hẳn cả khối.
+  if (link === null) {
+    return (
+      <DownloadBoxShell>
+        <div className="flex flex-wrap items-start justify-between gap-4">
+          <DownloadBoxIntro />
+          <div className="flex flex-col items-end gap-1 rounded-lg bg-[#1d3557] px-4 py-2 text-white">
+            <span className="text-[10px] uppercase tracking-wide text-zinc-300">Chi phí mở khoá</span>
+            <span className="font-mono text-lg font-bold">—</span>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-3 rounded-lg border border-zinc-200 bg-white px-4 py-3">
+          <span className="flex h-9 w-9 flex-none items-center justify-center rounded-md bg-zinc-100 text-lg" aria-hidden>
+            ⏳
+          </span>
+          <div className="flex min-w-0 flex-1 flex-col">
+            <span className="text-[10px] uppercase tracking-wide text-zinc-400">Thông tin file</span>
+            <span className="text-sm font-medium text-zinc-800">Đang được chuẩn bị</span>
+          </div>
+        </div>
+
+        <div className="rounded-lg border border-zinc-200 bg-white px-4 py-3">
+          <p className="text-[10px] uppercase tracking-wide text-zinc-400">Member đã tải</p>
+          <p className="mt-1 text-sm text-zinc-400">Chưa có member nào tải file này.</p>
+        </div>
+
+        <button
+          type="button"
+          disabled
+          className="rounded-lg bg-red-100 px-5 py-3 text-center text-sm font-semibold text-red-500 opacity-80"
+        >
+          ⏳ Liên kết tải và số @Cash đang được chuẩn bị.
+        </button>
+      </DownloadBoxShell>
+    );
+  }
 
   const fileName = link.objectKey.split("/").pop() || link.label;
 
   return (
-    <div className="flex flex-col gap-4 rounded-xl border border-[#ffcf3f]/40 bg-gradient-to-br from-[#fff8ec] to-white p-5">
+    <DownloadBoxShell>
       <div className="flex flex-wrap items-start justify-between gap-4">
-        <div className="flex flex-col gap-1">
-          <span className="w-fit rounded-full bg-gradient-to-r from-[#ff5da2] to-[#ffcf3f] px-3 py-1 text-[11px] font-semibold uppercase tracking-wide text-white">
-            Tải về siêu tốc
-          </span>
-          <p className="text-base font-semibold text-zinc-900">
-            Bạn có thể tải về với một liên kết duy nhất bên dưới 🚀
-          </p>
-          <ul className="mt-1 flex flex-col gap-0.5 text-xs text-zinc-500">
-            <li>➜ Liên kết tải trực tiếp, không quảng cáo.</li>
-            <li>➜ Liên kết tải đơn luồng, tốc độ tải không giới hạn.</li>
-          </ul>
-        </div>
-
+        <DownloadBoxIntro />
         <div className="flex flex-col items-end gap-1 rounded-lg bg-[#1d3557] px-4 py-2 text-white">
           <span className="text-[10px] uppercase tracking-wide text-zinc-300">Chi phí mở khoá</span>
           <span className="font-mono text-lg font-bold">
@@ -122,7 +149,7 @@ export function DownloadBox({ postId }: { postId: string }) {
           type="button"
           onClick={handleUnlock}
           disabled={unlocking}
-          className="rounded-lg bg-gradient-to-r from-[#ff5da2] to-[#ffcf3f] px-5 py-3 text-center text-sm font-semibold text-white shadow-sm hover:opacity-90 disabled:opacity-50"
+          className="download-box-cta rounded-lg px-5 py-3 text-center text-sm font-semibold text-white shadow-sm disabled:opacity-50"
         >
           {unlocking
             ? "Đang xử lý..."
@@ -131,6 +158,33 @@ export function DownloadBox({ postId }: { postId: string }) {
               : "⬇ Tải xuống miễn phí"}
         </button>
       )}
+    </DownloadBoxShell>
+  );
+}
+
+function DownloadBoxShell({ children }: { children: React.ReactNode }) {
+  return (
+    <div className="download-box-border rounded-xl p-[2px]">
+      <div className="flex flex-col gap-4 rounded-[calc(0.75rem-2px)] bg-gradient-to-br from-[#fff8ec] to-white p-5">
+        {children}
+      </div>
+    </div>
+  );
+}
+
+function DownloadBoxIntro() {
+  return (
+    <div className="flex flex-col gap-1">
+      <span className="w-fit rounded-full bg-gradient-to-r from-[#ff5da2] to-[#ffcf3f] px-3 py-1 text-[11px] font-semibold uppercase tracking-wide text-white">
+        Tải về siêu tốc
+      </span>
+      <p className="text-base font-semibold text-zinc-900">
+        Bạn có thể tải về với một liên kết duy nhất bên dưới 🚀
+      </p>
+      <ul className="mt-1 flex flex-col gap-0.5 text-xs text-zinc-500">
+        <li>➜ Liên kết tải trực tiếp, không quảng cáo.</li>
+        <li>➜ Liên kết tải đơn luồng, tốc độ tải không giới hạn.</li>
+      </ul>
     </div>
   );
 }

@@ -56,6 +56,30 @@ export class SiteSettingsService {
       ...(dto.headerBackgroundPositionY !== undefined && {
         headerBackgroundPositionY: dto.headerBackgroundPositionY,
       }),
+      ...(dto.headerMinHeight !== undefined && {
+        headerMinHeight: dto.headerMinHeight,
+      }),
+      ...(dto.headerTitleColor !== undefined && {
+        headerTitleColor: dto.headerTitleColor,
+      }),
+      ...(dto.headerTitleFontFamily !== undefined && {
+        headerTitleFontFamily: dto.headerTitleFontFamily,
+      }),
+      ...(dto.headerTitleBold !== undefined && {
+        headerTitleBold: dto.headerTitleBold,
+      }),
+      ...(dto.headerSloganColor !== undefined && {
+        headerSloganColor: dto.headerSloganColor,
+      }),
+      ...(dto.headerSloganFontFamily !== undefined && {
+        headerSloganFontFamily: dto.headerSloganFontFamily,
+      }),
+      ...(dto.headerSloganBold !== undefined && {
+        headerSloganBold: dto.headerSloganBold,
+      }),
+      ...(dto.headerSloganItalic !== undefined && {
+        headerSloganItalic: dto.headerSloganItalic,
+      }),
       ...(dto.gaTrackingId !== undefined && { gaTrackingId: dto.gaTrackingId }),
       ...(dto.googleSiteVerification !== undefined && {
         googleSiteVerification: dto.googleSiteVerification,

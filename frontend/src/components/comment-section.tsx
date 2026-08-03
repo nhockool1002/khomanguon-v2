@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useAuth } from "@/context/auth-context";
 import { apiFetch, ApiError } from "@/lib/api";
@@ -39,6 +39,8 @@ export function CommentSection({
 }) {
   const { user, loading: authLoading } = useAuth();
   const [open, setOpen] = useState(true);
+  const [sortMenuOpen, setSortMenuOpen] = useState(false);
+  const sortMenuRef = useRef<HTMLDivElement>(null);
   const [comments, setComments] = useState<Comment[] | null>(null);
   const [loadingComments, setLoadingComments] = useState(true);
   const [isModerator, setIsModerator] = useState(false);
@@ -94,6 +96,16 @@ export function CommentSection({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [authLoading, user, activeSort]);
 
+  useEffect(() => {
+    function handleClickOutside(e: MouseEvent) {
+      if (sortMenuRef.current && !sortMenuRef.current.contains(e.target as Node)) {
+        setSortMenuOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
   const tree = useMemo(() => buildTree(comments ?? []), [comments]);
 
   async function handleSubmit(e: React.FormEvent, parentId: string | null) {
@@ -143,28 +155,44 @@ export function CommentSection({
           type="button"
           onClick={() => setOpen((o) => !o)}
           className="flex items-center gap-1.5 text-sm font-semibold text-zinc-900"
+          aria-expanded={open}
         >
-          <span>
-            Bình luận {comments ? `(${comments.length})` : ""}
-          </span>
-          <span className="text-xs font-normal text-zinc-400">{open ? "▲ Ẩn" : "▼ Hiện"}</span>
+          <span>Bình luận {comments ? `(${comments.length})` : ""}</span>
+          <ChevronIcon open={open} />
         </button>
         {open && (
-          <label className="flex items-center gap-1.5 text-xs text-zinc-500">
-            Sắp xếp
-            <select
-              value={activeSort}
-              onChange={(e) => {
-                setLoadingComments(true);
-                setActiveSort(e.target.value as "newest" | "oldest");
-              }}
+          <div ref={sortMenuRef} className="relative">
+            <button
+              type="button"
+              onClick={() => setSortMenuOpen((o) => !o)}
               disabled={loadingComments}
-              className="rounded border border-zinc-300 bg-white px-1.5 py-1 text-xs text-zinc-700 outline-none focus:border-[#1d3557] disabled:opacity-50"
+              aria-label="Sắp xếp bình luận"
+              aria-expanded={sortMenuOpen}
+              className="flex items-center justify-center rounded-md p-1.5 text-zinc-500 hover:bg-zinc-100 hover:text-zinc-700 disabled:opacity-50"
             >
-              <option value="newest">Mới nhất</option>
-              <option value="oldest">Cũ nhất</option>
-            </select>
-          </label>
+              <SortIcon />
+            </button>
+            {sortMenuOpen && (
+              <div className="absolute right-0 z-10 mt-1 w-32 overflow-hidden rounded-md border border-zinc-200 bg-white text-xs shadow-lg">
+                {(["newest", "oldest"] as const).map((value) => (
+                  <button
+                    key={value}
+                    type="button"
+                    onClick={() => {
+                      setLoadingComments(true);
+                      setActiveSort(value);
+                      setSortMenuOpen(false);
+                    }}
+                    className={`block w-full px-3 py-2 text-left hover:bg-zinc-50 ${
+                      activeSort === value ? "font-semibold text-[#1d3557]" : "text-zinc-700"
+                    }`}
+                  >
+                    {value === "newest" ? "Mới nhất" : "Cũ nhất"}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
         )}
       </div>
 
@@ -474,5 +502,31 @@ function CommentItem({
         />
       ))}
     </div>
+  );
+}
+
+function ChevronIcon({ open }: { open: boolean }) {
+  return (
+    <svg
+      width="14"
+      height="14"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2.5"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className={`text-zinc-400 transition-transform ${open ? "" : "-rotate-180"}`}
+    >
+      <path d="M18 15l-6-6-6 6" />
+    </svg>
+  );
+}
+
+function SortIcon() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M3 6h18M6 12h12M10 18h4" />
+    </svg>
   );
 }

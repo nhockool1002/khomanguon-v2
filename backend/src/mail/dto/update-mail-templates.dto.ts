@@ -31,4 +31,9 @@ export class UpdateMailTemplatesDto {
   @ValidateNested()
   @Type(() => MailTemplateConfigDto)
   downloadUnlock?: MailTemplateConfigDto;
+
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => MailTemplateConfigDto)
+  passwordReset?: MailTemplateConfigDto;
 }

@@ -101,12 +101,18 @@ export class MailService {
     });
   }
 
-  async sendPasswordResetEmail(to: string, resetUrl: string): Promise<void> {
-    await this.send({
-      to,
-      subject: 'Đặt lại mật khẩu khomanguon',
-      html: `<p>Chào bạn,</p><p>Bấm vào link sau để đặt lại mật khẩu (hết hạn sau 15 phút, chỉ dùng được 1 lần):</p><p><a href="${resetUrl}">${resetUrl}</a></p><p>Nếu không phải bạn yêu cầu, hãy bỏ qua email này.</p>`,
+  async sendPasswordResetEmail(
+    to: string,
+    displayName: string,
+    resetUrl: string,
+  ): Promise<void> {
+    const templates = await this.getTemplates();
+    const { subject, html } = renderMailTemplate(templates.passwordReset, {
+      displayName,
+      resetUrl,
+      timestamp: formatTimestamp(new Date()),
     });
+    await this.send({ to, subject, html });
   }
 
   // ───────────────────────── Template thông báo Admin ─────────────────────────
@@ -130,6 +136,9 @@ export class MailService {
       ...(dto.topupSuccess !== undefined && { topupSuccess: dto.topupSuccess }),
       ...(dto.downloadUnlock !== undefined && {
         downloadUnlock: dto.downloadUnlock,
+      }),
+      ...(dto.passwordReset !== undefined && {
+        passwordReset: dto.passwordReset,
       }),
     };
     await this.prisma.siteSetting.upsert({
@@ -195,14 +204,17 @@ export class MailService {
   // email của chính admin đang bấm nút) để kiểm chứng đúng logic 2 người nhận của luồng thật. Trả
   // {success,message} thay vì throw (khớp pattern testApiConnection() của sepay.service.ts) để FE
   // hiện lỗi thật thay vì 500 chung chung.
+  // passwordReset khác 2 kind còn lại — gửi CHO USER, không liên quan notifyEmail của Admin — nên
+  // chỉ gửi tới testerEmail (chính admin đang bấm nút), resetUrl là link mẫu (không sinh token thật).
   async sendTestNotification(
-    kind: 'topupSuccess' | 'downloadUnlock',
+    kind: 'topupSuccess' | 'downloadUnlock' | 'passwordReset',
     testerEmail: string,
   ): Promise<{ success: boolean; message: string }> {
     const templates = await this.getTemplates();
-    const recipients = [
-      ...new Set([templates.notifyEmail, testerEmail].filter(Boolean)),
-    ];
+    const recipients =
+      kind === 'passwordReset'
+        ? [testerEmail]
+        : [...new Set([templates.notifyEmail, testerEmail].filter(Boolean))];
     if (recipients.length === 0) {
       return {
         success: false,
@@ -218,12 +230,17 @@ export class MailService {
             paymentMethod: 'Vietcombank',
             transactionCode: 'GD123456',
           }
-        : {
-            displayName: 'demo_user',
-            postTitle: 'Bài viết mẫu',
-            fileName: 'demo.zip',
-            priceP: '50',
-          };
+        : kind === 'downloadUnlock'
+          ? {
+              displayName: 'demo_user',
+              postTitle: 'Bài viết mẫu',
+              fileName: 'demo.zip',
+              priceP: '50',
+            }
+          : {
+              displayName: 'demo_user',
+              resetUrl: `${this.config.get<string>('FRONTEND_URL')}/dat-lai-mat-khau?token=demo-token`,
+            };
     const { subject, html } = renderMailTemplate(templates[kind], {
       timestamp: formatTimestamp(new Date()),
       ...sampleVars,

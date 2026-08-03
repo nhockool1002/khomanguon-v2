@@ -6,6 +6,7 @@ import { GradientUnderline } from "@/components/gradient-underline";
 import { DownloadBox } from "@/components/download-box";
 import { WidgetArea } from "@/components/widget-area";
 import { StyledUserName } from "@/components/styled-user-name";
+import { ProseContent } from "@/components/prose-content";
 import { formatDate, formatViewCount } from "@/lib/format";
 
 type Props = {
@@ -74,18 +75,20 @@ export default async function PostDetailPage({ params }: Props) {
           </div>
 
           {post.thumbnailUrl && (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
-              src={post.thumbnailUrl}
-              alt={post.title}
-              className="max-h-96 w-full rounded-lg object-cover"
-            />
+            <span className="img-shine block w-full rounded-lg">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={post.thumbnailUrl}
+                alt={post.title}
+                className="max-h-96 w-full rounded-lg object-cover"
+              />
+            </span>
           )}
 
           {/* Nội dung soạn từ Tiptap (Phase 2.1) — HTML thật do admin/mod đã qua permission gate, không phải input công khai. */}
-          <div
-            className="prose prose-sm max-w-none text-zinc-800 [&_img]:rounded-md"
-            dangerouslySetInnerHTML={{ __html: post.contentHtml }}
+          <ProseContent
+            html={post.contentHtml}
+            className="prose prose-sm max-w-none text-zinc-800 [&_.img-shine]:rounded-md [&_.img-shine_img]:rounded-md"
           />
 
           <DownloadBox postId={post.id} />

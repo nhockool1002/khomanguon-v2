@@ -10,6 +10,7 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { UsersService } from './users.service';
+import type { UserSortBy, SortDir } from './users.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { PermissionsGuard } from '../roles/guards/permissions.guard';
 import { Permissions } from '../roles/decorators/permissions.decorator';
@@ -65,10 +66,25 @@ export class UsersController {
   @UseGuards(JwtAuthGuard, PermissionsGuard)
   @Permissions(PERMISSIONS.USER_MANAGE)
   @Get()
-  list(@Query('page') page = '1', @Query('limit') limit = '20') {
+  list(
+    @Query('page') page = '1',
+    @Query('limit') limit = '20',
+    @Query('search') search?: string,
+    @Query('sortBy') sortBy?: UserSortBy,
+    @Query('sortDir') sortDir?: SortDir,
+  ) {
     const take = Math.min(Number(limit) || 20, 100);
     const skip = (Math.max(Number(page) || 1, 1) - 1) * take;
-    return this.usersService.list(skip, take);
+    return this.usersService.list(skip, take, search, sortBy, sortDir);
+  }
+
+  // Admin bấm "Đặt lại mật khẩu" ở trang quản lý user — gửi mail chứa link đặt lại mật khẩu, không
+  // tự đổi mật khẩu thay user (giữ đúng luồng bảo mật hiện có, chỉ admin không tự set mật khẩu mới).
+  @UseGuards(JwtAuthGuard, PermissionsGuard)
+  @Permissions(PERMISSIONS.USER_MANAGE)
+  @Post(':id/send-reset-password')
+  sendResetPassword(@Param('id') id: string) {
+    return this.usersService.sendResetPasswordEmail(id);
   }
 
   // Gợi ý @mention trong bình luận + chọn user lọc widget Bình luận (UC tương đương) — bất kỳ user

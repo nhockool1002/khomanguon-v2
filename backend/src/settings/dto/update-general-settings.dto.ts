@@ -1,4 +1,5 @@
 import {
+  IsBoolean,
   IsIn,
   IsInt,
   IsOptional,
@@ -56,6 +57,40 @@ export class UpdateGeneralSettingsDto {
   @Min(0)
   @Max(100)
   headerBackgroundPositionY?: number;
+
+  @IsOptional()
+  @IsInt()
+  @Min(120)
+  @Max(600)
+  headerMinHeight?: number;
+
+  @IsOptional()
+  @IsString()
+  headerTitleColor?: string;
+
+  @IsOptional()
+  @IsString()
+  headerTitleFontFamily?: string | null;
+
+  @IsOptional()
+  @IsBoolean()
+  headerTitleBold?: boolean;
+
+  @IsOptional()
+  @IsString()
+  headerSloganColor?: string;
+
+  @IsOptional()
+  @IsString()
+  headerSloganFontFamily?: string | null;
+
+  @IsOptional()
+  @IsBoolean()
+  headerSloganBold?: boolean;
+
+  @IsOptional()
+  @IsBoolean()
+  headerSloganItalic?: boolean;
 
   @IsOptional()
   @IsString()

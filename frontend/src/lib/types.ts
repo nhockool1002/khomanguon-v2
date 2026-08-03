@@ -303,6 +303,14 @@ export interface GeneralSettings {
   headerBackgroundAttachment: HeaderBackgroundAttachment;
   headerBackgroundPositionX: number;
   headerBackgroundPositionY: number;
+  headerMinHeight: number;
+  headerTitleColor: string;
+  headerTitleFontFamily: string | null;
+  headerTitleBold: boolean;
+  headerSloganColor: string;
+  headerSloganFontFamily: string | null;
+  headerSloganBold: boolean;
+  headerSloganItalic: boolean;
   gaTrackingId: string;
   googleSiteVerification: string;
 }
@@ -316,6 +324,7 @@ export interface MailTemplates {
   notifyEmail: string;
   topupSuccess: MailTemplateConfig;
   downloadUnlock: MailTemplateConfig;
+  passwordReset: MailTemplateConfig;
 }
 
 export interface MediaFile {
