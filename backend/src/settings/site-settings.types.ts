@@ -14,6 +14,9 @@ export interface GeneralSettings {
   // % vị trí ảnh nền (0 = trái/trên, 100 = phải/dưới) — cho phép "kéo" ảnh tới vị trí tuỳ ý.
   headerBackgroundPositionX: number;
   headerBackgroundPositionY: number;
+  // PLAN.md 2.6 (SEO toàn site) — để trống thì không render thẻ/script tương ứng.
+  gaTrackingId: string; // "G-XXXXXXX" — gắn gtag.js vào layout.tsx
+  googleSiteVerification: string; // nội dung thẻ <meta name="google-site-verification">
 }
 
 export const GENERAL_SETTINGS_KEY = 'general_settings';
@@ -29,4 +32,6 @@ export const DEFAULT_GENERAL_SETTINGS: GeneralSettings = {
   headerBackgroundAttachment: 'scroll',
   headerBackgroundPositionX: 50,
   headerBackgroundPositionY: 50,
+  gaTrackingId: '',
+  googleSiteVerification: '',
 };

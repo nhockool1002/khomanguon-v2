@@ -29,6 +29,8 @@ export default function GeneralSettingsPage() {
     useState<HeaderBackgroundAttachment>("scroll");
   const [posX, setPosX] = useState(50);
   const [posY, setPosY] = useState(50);
+  const [gaTrackingId, setGaTrackingId] = useState("");
+  const [googleSiteVerification, setGoogleSiteVerification] = useState("");
 
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
@@ -54,6 +56,8 @@ export default function GeneralSettingsPage() {
         setHeaderBackgroundAttachment(res.headerBackgroundAttachment);
         setPosX(res.headerBackgroundPositionX);
         setPosY(res.headerBackgroundPositionY);
+        setGaTrackingId(res.gaTrackingId);
+        setGoogleSiteVerification(res.googleSiteVerification);
       })
       .catch((err) => setError(err instanceof ApiError ? err.message : "Có lỗi xảy ra"));
   }, [user]);
@@ -75,6 +79,8 @@ export default function GeneralSettingsPage() {
           headerBackgroundAttachment,
           headerBackgroundPositionX: posX,
           headerBackgroundPositionY: posY,
+          gaTrackingId,
+          googleSiteVerification,
         }),
       });
       setMessage("Đã lưu cấu hình chung.");
@@ -285,6 +291,35 @@ export default function GeneralSettingsPage() {
             </div>
           )}
         </div>
+      </div>
+
+      <div className="flex flex-col gap-3 rounded-md border border-zinc-200 p-4">
+        <p className="text-xs font-semibold uppercase tracking-wide text-zinc-500">SEO toàn site</p>
+        <label className="flex flex-col gap-1 text-sm text-zinc-700">
+          Google Analytics Tracking ID
+          <input
+            value={gaTrackingId}
+            onChange={(e) => setGaTrackingId(e.target.value)}
+            placeholder="G-XXXXXXXXXX"
+            className={inputClass}
+          />
+          <span className="text-xs text-zinc-400">
+            Để trống thì không gắn Google Analytics vào site.
+          </span>
+        </label>
+        <label className="flex flex-col gap-1 text-sm text-zinc-700">
+          Google Search Console — mã xác minh
+          <input
+            value={googleSiteVerification}
+            onChange={(e) => setGoogleSiteVerification(e.target.value)}
+            placeholder="Nội dung thẻ meta google-site-verification"
+            className={inputClass}
+          />
+          <span className="text-xs text-zinc-400">
+            Lấy ở Search Console → Cài đặt → Xác minh quyền sở hữu → HTML tag — chỉ dán phần nội
+            dung (content=&quot;...&quot;), không dán cả thẻ.
+          </span>
+        </label>
       </div>
 
       <button

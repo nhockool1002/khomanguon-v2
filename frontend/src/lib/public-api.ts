@@ -10,11 +10,16 @@ import type {
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000";
 
-// Fetch phía server cho các trang công khai (trang chủ/danh mục/chi tiết) —
-// không cần access token, luôn lấy dữ liệu mới (chưa làm SSR/ISR cache, xem PLAN.md Phase 4.2).
-async function publicFetch<T>(path: string): Promise<T | null> {
+// Fetch phía server cho các trang công khai (trang chủ/danh mục/chi tiết) — không cần access
+// token. ISR (PLAN.md 4.2): cache theo revalidateSeconds thay vì "no-store" như trước — Next.js
+// tự suy ra thời gian revalidate của cả trang từ các lệnh fetch dùng trong Server Component, không
+// cần khai báo `export const revalidate` riêng ở từng page.tsx. Mặc định 30s là đủ nhanh để nội
+// dung mới (bài đăng, sửa cài đặt...) hiện ra mà vẫn được hưởng lợi cache giữa các lượt truy cập.
+async function publicFetch<T>(path: string, revalidateSeconds = 30): Promise<T | null> {
   try {
-    const res = await fetch(`${API_URL}${path}`, { cache: "no-store" });
+    const res = await fetch(`${API_URL}${path}`, {
+      next: { revalidate: revalidateSeconds },
+    });
     if (!res.ok) return null;
     return (await res.json()) as T;
   } catch {
@@ -82,6 +87,8 @@ export const DEFAULT_GENERAL_SETTINGS: GeneralSettings = {
   headerBackgroundAttachment: "scroll",
   headerBackgroundPositionX: 50,
   headerBackgroundPositionY: 50,
+  gaTrackingId: "",
+  googleSiteVerification: "",
 };
 
 export async function fetchGeneralSettings(): Promise<GeneralSettings> {

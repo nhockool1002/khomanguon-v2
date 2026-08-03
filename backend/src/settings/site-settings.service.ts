@@ -56,6 +56,10 @@ export class SiteSettingsService {
       ...(dto.headerBackgroundPositionY !== undefined && {
         headerBackgroundPositionY: dto.headerBackgroundPositionY,
       }),
+      ...(dto.gaTrackingId !== undefined && { gaTrackingId: dto.gaTrackingId }),
+      ...(dto.googleSiteVerification !== undefined && {
+        googleSiteVerification: dto.googleSiteVerification,
+      }),
     };
     await this.prisma.siteSetting.upsert({
       where: { key: GENERAL_SETTINGS_KEY },

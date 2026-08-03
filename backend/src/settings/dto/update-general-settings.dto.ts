@@ -56,4 +56,12 @@ export class UpdateGeneralSettingsDto {
   @Min(0)
   @Max(100)
   headerBackgroundPositionY?: number;
+
+  @IsOptional()
+  @IsString()
+  gaTrackingId?: string;
+
+  @IsOptional()
+  @IsString()
+  googleSiteVerification?: string;
 }

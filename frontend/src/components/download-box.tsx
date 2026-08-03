@@ -6,6 +6,7 @@ import { apiFetch, ApiError } from "@/lib/api";
 import { useAuth } from "@/context/auth-context";
 import type { DownloadLinkPublic } from "@/lib/types";
 import { formatFileSize } from "@/lib/format";
+import { StyledUserName } from "@/components/styled-user-name";
 
 // Khối "TẢI VỀ SIÊU TỐC" dưới nội dung bài viết — giữ đúng nội dung/bố cục bản v1 (Cloud Storage +
 // @Cash + danh sách member đã tải), style lại theo design system v2 (gradient hồng-vàng kế thừa từ
@@ -88,10 +89,17 @@ export function DownloadBox({ postId }: { postId: string }) {
 
       <div className="rounded-lg border border-zinc-200 bg-white px-4 py-3">
         <p className="text-[10px] uppercase tracking-wide text-zinc-400">Member đã tải</p>
-        {link.downloaderNames.length === 0 ? (
+        {link.downloaders.length === 0 ? (
           <p className="mt-1 text-sm text-zinc-400">Chưa có member nào tải file này.</p>
         ) : (
-          <p className="mt-1 text-sm text-zinc-700">{link.downloaderNames.join(", ")}</p>
+          <p className="mt-1 text-sm text-zinc-700">
+            {link.downloaders.map((d, i) => (
+              <span key={`${d.displayName}-${i}`}>
+                <StyledUserName styleRoleSlug={d.styleRoleSlug}>{d.displayName}</StyledUserName>
+                {i < link.downloaders.length - 1 && ", "}
+              </span>
+            ))}
+          </p>
         )}
       </div>
 

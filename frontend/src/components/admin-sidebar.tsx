@@ -17,6 +17,7 @@ const NAV_ITEMS = [
   { href: "/quan-tri/cai-dat/storage", label: "Cài đặt Storage", icon: "☁️", match: "prefix" as const },
   { href: "/quan-tri/tep-cloud", label: "Quản lý File Cloud", icon: "🗃️", match: "prefix" as const },
   { href: "/quan-tri/cai-dat/sepay", label: "Cài đặt SePay", icon: "💳", match: "prefix" as const },
+  { href: "/quan-tri/cai-dat/email", label: "Cài đặt Email", icon: "✉️", match: "prefix" as const },
   { href: "/quan-tri/cai-dat/chung", label: "Cài đặt chung", icon: "⚙️", match: "prefix" as const },
 ];
 
