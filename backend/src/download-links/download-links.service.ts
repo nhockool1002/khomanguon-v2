@@ -8,6 +8,7 @@ import {
 import { WalletTxStatus, WalletTxType } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { R2ClientService } from '../storage/r2-client.service';
+import { WalletGateway } from '../realtime/wallet.gateway';
 import { EXCLUDE_ADMIN_USER_WHERE } from '../common/exclude-admin-user.filter';
 import { UpsertDownloadLinkDto } from './dto/upsert-download-link.dto';
 
@@ -37,6 +38,7 @@ export class DownloadLinksService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly r2Client: R2ClientService,
+    private readonly walletGateway: WalletGateway,
   ) {}
 
   private findPrimary(postId: string) {
@@ -74,90 +76,76 @@ export class DownloadLinksService {
     return toPublicShape(link);
   }
 
-  async getPublicInfo(postId: string, userId?: string) {
+  async getPublicInfo(postId: string) {
     const link = await this.findPrimary(postId);
     if (!link) return null;
 
-    const [downloaders, myGrant] = await Promise.all([
-      this.prisma.downloadGrant.findMany({
-        where: { downloadLinkId: link.id, ...EXCLUDE_ADMIN_USER_WHERE },
-        orderBy: { purchasedAt: 'desc' },
-        take: DOWNLOADER_LIST_LIMIT,
-        distinct: ['userId'],
-        select: { user: { select: { displayName: true } } },
-      }),
-      userId
-        ? this.prisma.downloadGrant.findFirst({
-            where: {
-              downloadLinkId: link.id,
-              userId,
-              OR: [{ expiresAt: null }, { expiresAt: { gt: new Date() } }],
-            },
-          })
-        : null,
-    ]);
+    const downloaders = await this.prisma.downloadGrant.findMany({
+      where: { downloadLinkId: link.id, ...EXCLUDE_ADMIN_USER_WHERE },
+      orderBy: { purchasedAt: 'desc' },
+      take: DOWNLOADER_LIST_LIMIT,
+      distinct: ['userId'],
+      select: { user: { select: { displayName: true } } },
+    });
 
     return {
       ...toPublicShape(link),
       downloaderNames: downloaders.map((d) => d.user.displayName),
-      hasAccess: myGrant !== null,
     };
   }
 
-  // Luồng "mở khoá": grant còn hiệu lực → sinh lại link ngay, miễn phí; chưa có → kiểm tra + trừ ví
-  // trong 1 transaction để tránh trừ tiền 2 lần khi người dùng bấm liên tiếp (double-submit).
+  // Mỗi lượt tải luôn kiểm tra + trừ ví trong 1 transaction — KHÔNG có khái niệm "đã mở khoá thì
+  // tải lại miễn phí" như thiết kế Phase 3 ban đầu (đã bỏ do yêu cầu thực tế: mỗi lần tải = 1 lần
+  // trừ $P). DownloadGrant vẫn được ghi mỗi lần tải thành công — không còn dùng để kiểm tra quyền
+  // truy cập, chỉ còn là lịch sử mua phục vụ tính doanh thu/danh sách member (cloud-files.service.ts).
   async unlock(userId: string, postId: string, ipAddress: string) {
     const link = await this.findPrimary(postId);
     if (!link) throw new NotFoundException('Bài viết này chưa có link tải');
 
+    let newBalance: number | null = null;
     await this.prisma.$transaction(async (tx) => {
-      const existingGrant = await tx.downloadGrant.findFirst({
-        where: {
-          downloadLinkId: link.id,
-          userId,
-          OR: [{ expiresAt: null }, { expiresAt: { gt: new Date() } }],
-        },
-      });
-
-      if (!existingGrant) {
-        if (link.priceP > 0) {
-          const wallet = await tx.wallet.upsert({
-            where: { userId },
-            update: {},
-            create: { userId, balance: 0 },
-          });
-          if (wallet.balance < link.priceP) {
-            throw new HttpException(
-              'Số dư $P không đủ để mở khoá link tải này',
-              HttpStatus.PAYMENT_REQUIRED,
-            );
-          }
-          const balanceAfter = wallet.balance - link.priceP;
-          await tx.wallet.update({
-            where: { userId },
-            data: { balance: balanceAfter },
-          });
-          await tx.walletTransaction.create({
-            data: {
-              walletId: wallet.id,
-              type: WalletTxType.PURCHASE,
-              amount: -link.priceP,
-              balanceAfter,
-              status: WalletTxStatus.SUCCESS,
-              referenceType: 'download_link',
-              referenceId: link.id,
-            },
-          });
-        }
-        await tx.downloadGrant.create({
-          data: { userId, downloadLinkId: link.id },
+      if (link.priceP > 0) {
+        const wallet = await tx.wallet.upsert({
+          where: { userId },
+          update: {},
+          create: { userId, balance: 0 },
         });
+        if (wallet.balance < link.priceP) {
+          throw new HttpException(
+            'Số dư $P không đủ để tải file này',
+            HttpStatus.PAYMENT_REQUIRED,
+          );
+        }
+        const balanceAfter = wallet.balance - link.priceP;
+        await tx.wallet.update({
+          where: { userId },
+          data: { balance: balanceAfter },
+        });
+        await tx.walletTransaction.create({
+          data: {
+            walletId: wallet.id,
+            type: WalletTxType.PURCHASE,
+            amount: -link.priceP,
+            balanceAfter,
+            status: WalletTxStatus.SUCCESS,
+            referenceType: 'download_link',
+            referenceId: link.id,
+          },
+        });
+        newBalance = balanceAfter;
       }
 
+      await tx.downloadGrant.create({
+        data: { userId, downloadLinkId: link.id },
+      });
       await tx.downloadEvent.create({
         data: { userId, downloadLinkId: link.id, ipAddress },
       });
     });
+
+    if (newBalance !== null) {
+      this.walletGateway.emitWalletUpdated(userId, { balance: newBalance });
+    }
 
     const url = await this.r2Client.getPresignedDownloadUrl(
       link.storageProviderId,

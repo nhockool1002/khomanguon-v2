@@ -9,6 +9,16 @@ import { ErrorBanner, FormField, SubmitButton, SuccessBanner } from "@/component
 
 const PAGE_SIZE = 20;
 
+type SortKey = "createdAt" | "amount" | "balanceAfter" | "type" | "status";
+
+const SORT_LABEL: Record<SortKey, string> = {
+  createdAt: "Thời gian",
+  amount: "Số tiền",
+  balanceAfter: "Số dư sau GD",
+  type: "Loại",
+  status: "Trạng thái",
+};
+
 const TYPE_LABEL: Record<WalletTxType, string> = {
   TOPUP: "Nạp tiền",
   PURCHASE: "Mua hàng",
@@ -40,6 +50,35 @@ function formatP(amount: number): string {
   return `${sign}${amount.toLocaleString("vi-VN")} $P`;
 }
 
+// Header cột bấm được để đổi sắp xếp (datatable tự viết bằng Tailwind — không thêm thư viện ngoài,
+// theo quy ước dự án) — bấm lại cùng cột thì đảo chiều, bấm cột khác thì chuyển cột + về "desc".
+function SortableTh({
+  sortKey,
+  active,
+  indicator,
+  onSort,
+}: {
+  sortKey: SortKey;
+  active: SortKey;
+  indicator: (key: SortKey) => string;
+  onSort: (key: SortKey) => void;
+}) {
+  return (
+    <th className="px-3 py-2">
+      <button
+        type="button"
+        onClick={() => onSort(sortKey)}
+        className={`font-semibold uppercase tracking-wide hover:text-zinc-900 ${
+          active === sortKey ? "text-[#1d3557]" : ""
+        }`}
+      >
+        {SORT_LABEL[sortKey]}
+        {indicator(sortKey)}
+      </button>
+    </th>
+  );
+}
+
 export default function AdminWalletTransactionsPage() {
   const { user, loading } = useAuth();
   const router = useRouter();
@@ -54,6 +93,9 @@ export default function AdminWalletTransactionsPage() {
   const [status, setStatus] = useState("");
   const [qInput, setQInput] = useState("");
   const [q, setQ] = useState("");
+  const [sortBy, setSortBy] = useState<SortKey>("createdAt");
+  const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
+  const [deleting, setDeleting] = useState(false);
 
   const [adjustEmail, setAdjustEmail] = useState("");
   const [adjustDirection, setAdjustDirection] = useState<"credit" | "debit">("credit");
@@ -65,11 +107,20 @@ export default function AdminWalletTransactionsPage() {
     if (!loading && !user) router.replace("/dang-nhap");
   }, [loading, user, router]);
 
-  const reload = useCallback(() => {
-    const params = new URLSearchParams({ page: String(page), limit: String(PAGE_SIZE) });
+  function buildFilterParams(): URLSearchParams {
+    const params = new URLSearchParams();
     if (type) params.set("type", type);
     if (status) params.set("status", status);
     if (q) params.set("q", q);
+    return params;
+  }
+
+  const reload = useCallback(() => {
+    const params = buildFilterParams();
+    params.set("page", String(page));
+    params.set("limit", String(PAGE_SIZE));
+    params.set("sortBy", sortBy);
+    params.set("sortDir", sortDir);
     apiFetch<{ items: AdminWalletTransaction[]; total: number }>(
       `/wallet/admin/transactions?${params.toString()}`,
     )
@@ -78,7 +129,8 @@ export default function AdminWalletTransactionsPage() {
         setTotal(res.total);
       })
       .catch((err) => setError(err instanceof ApiError ? err.message : "Có lỗi xảy ra"));
-  }, [page, type, status, q]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [page, type, status, q, sortBy, sortDir]);
 
   useEffect(() => {
     if (!user) return;
@@ -89,6 +141,52 @@ export default function AdminWalletTransactionsPage() {
     e.preventDefault();
     setPage(1);
     setQ(qInput.trim());
+  }
+
+  function toggleSort(key: SortKey) {
+    setPage(1);
+    if (sortBy === key) {
+      setSortDir((d) => (d === "asc" ? "desc" : "asc"));
+    } else {
+      setSortBy(key);
+      setSortDir("desc");
+    }
+  }
+
+  function sortIndicator(key: SortKey): string {
+    if (sortBy !== key) return "";
+    return sortDir === "asc" ? " ▲" : " ▼";
+  }
+
+  async function handleDeleteByFilter() {
+    if (!type && !status && !q) {
+      setError("Chọn ít nhất 1 điều kiện lọc (loại/trạng thái/tìm kiếm) trước khi xoá hàng loạt.");
+      return;
+    }
+    if (
+      !confirm(
+        `Xoá vĩnh viễn ${total} giao dịch đang khớp bộ lọc hiện tại? Hành động này không thể hoàn tác (không ảnh hưởng số dư hiện tại của user, chỉ mất lịch sử đối soát).`,
+      )
+    ) {
+      return;
+    }
+    setError(null);
+    setMessage(null);
+    setDeleting(true);
+    try {
+      const params = buildFilterParams();
+      const res = await apiFetch<{ count: number }>(
+        `/wallet/admin/transactions?${params.toString()}`,
+        { method: "DELETE" },
+      );
+      setMessage(`Đã xoá ${res.count} giao dịch khớp bộ lọc.`);
+      setPage(1);
+      reload();
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : "Có lỗi xảy ra");
+    } finally {
+      setDeleting(false);
+    }
   }
 
   async function submitAdjust(e: React.FormEvent) {
@@ -227,6 +325,14 @@ export default function AdminWalletTransactionsPage() {
           placeholder="nhut@..."
         />
         <SubmitButton type="submit">Áp dụng</SubmitButton>
+        <button
+          type="button"
+          onClick={handleDeleteByFilter}
+          disabled={deleting}
+          className="rounded-md border border-red-200 px-4 py-2 text-sm font-medium text-red-600 hover:bg-red-50 disabled:opacity-50"
+        >
+          {deleting ? "Đang xoá..." : "🗑 Xoá theo bộ lọc"}
+        </button>
       </form>
 
       {items && items.length === 0 && (
@@ -240,12 +346,12 @@ export default function AdminWalletTransactionsPage() {
           <table className="w-full text-left text-sm">
             <thead className="bg-zinc-50 text-xs uppercase tracking-wide text-zinc-500">
               <tr>
-                <th className="px-3 py-2">Thời gian</th>
+                <SortableTh sortKey="createdAt" active={sortBy} indicator={sortIndicator} onSort={toggleSort} />
                 <th className="px-3 py-2">Người dùng</th>
-                <th className="px-3 py-2">Loại</th>
-                <th className="px-3 py-2">Số tiền</th>
-                <th className="px-3 py-2">Số dư sau GD</th>
-                <th className="px-3 py-2">Trạng thái</th>
+                <SortableTh sortKey="type" active={sortBy} indicator={sortIndicator} onSort={toggleSort} />
+                <SortableTh sortKey="amount" active={sortBy} indicator={sortIndicator} onSort={toggleSort} />
+                <SortableTh sortKey="balanceAfter" active={sortBy} indicator={sortIndicator} onSort={toggleSort} />
+                <SortableTh sortKey="status" active={sortBy} indicator={sortIndicator} onSort={toggleSort} />
                 <th className="px-3 py-2">Ghi chú / Tham chiếu</th>
               </tr>
             </thead>

@@ -10,7 +10,6 @@ import {
 } from '@nestjs/common';
 import { DownloadLinksService } from './download-links.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
-import { OptionalJwtAuthGuard } from '../auth/guards/optional-jwt-auth.guard';
 import { PermissionsGuard } from '../roles/guards/permissions.guard';
 import { Permissions } from '../roles/decorators/permissions.decorator';
 import { PERMISSIONS } from '../roles/permissions.constant';
@@ -26,10 +25,10 @@ interface AuthUser {
 export class DownloadLinksController {
   constructor(private readonly downloadLinksService: DownloadLinksService) {}
 
-  @UseGuards(OptionalJwtAuthGuard)
+  // Công khai — không còn phụ thuộc user hiện tại (đã bỏ hasAccess, mỗi lượt tải luôn trừ $P).
   @Get()
-  getPublic(@Param('postId') postId: string, @CurrentUser() user?: AuthUser) {
-    return this.downloadLinksService.getPublicInfo(postId, user?.id);
+  getPublic(@Param('postId') postId: string) {
+    return this.downloadLinksService.getPublicInfo(postId);
   }
 
   @UseGuards(JwtAuthGuard, PermissionsGuard)

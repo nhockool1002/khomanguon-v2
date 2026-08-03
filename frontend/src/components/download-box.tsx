@@ -115,10 +115,15 @@ export function DownloadBox({ postId }: { postId: string }) {
         >
           {unlocking
             ? "Đang xử lý..."
-            : link.hasAccess
-              ? "⬇ Tải xuống ngay"
-              : "🔒 Mở khoá liên kết tải ngay"}
+            : link.priceP > 0
+              ? `🔒 Mở khoá & tải xuống — ${link.priceP} $P`
+              : "⬇ Tải xuống miễn phí"}
         </button>
+      )}
+      {link.priceP > 0 && (
+        <p className="text-center text-[11px] text-zinc-400">
+          Mỗi lượt tải sẽ trừ {link.priceP} $P — không phải trả 1 lần dùng mãi mãi.
+        </p>
       )}
     </div>
   );

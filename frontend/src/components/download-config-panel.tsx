@@ -2,7 +2,8 @@
 
 import { useEffect, useState } from "react";
 import { apiFetch, ApiError } from "@/lib/api";
-import type { DownloadLinkPublic, StorageProvider } from "@/lib/types";
+import { formatFileSize } from "@/lib/format";
+import type { CloudFile, DownloadLinkPublic, StorageProvider } from "@/lib/types";
 
 // "Download Config" — cấu hình link tải trả phí gắn theo bài viết (Cloud Storage + Key File + @Cash),
 // khớp bố cục trang quản trị v1 cũ. Chỉ dùng được sau khi bài viết đã lưu (cần postId làm FK).
@@ -12,7 +13,9 @@ export function DownloadConfigPanel({ postId }: { postId?: string }) {
   const [objectKey, setObjectKey] = useState("");
   const [priceP, setPriceP] = useState(0);
   const [label, setLabel] = useState("");
+  const [sizeBytes, setSizeBytes] = useState<number | null>(null);
   const [saving, setSaving] = useState(false);
+  const [detecting, setDetecting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
 
@@ -35,9 +38,35 @@ export function DownloadConfigPanel({ postId }: { postId?: string }) {
         setObjectKey(link.objectKey);
         setPriceP(link.priceP);
         setLabel(link.label);
+        setSizeBytes(link.sizeBytes);
       })
       .catch(() => {});
   }, [postId]);
+
+  // Tự động dò dung lượng thật từ bucket thay vì bắt admin gõ tay — khớp đúng object key đã nhập,
+  // tránh tình trạng quên nhập nên "Dung lượng" luôn hiện "—" ở trang chi tiết bài viết.
+  async function handleDetectSize() {
+    if (!storageProviderId || !objectKey.trim()) {
+      setError("Chọn Cloud Storage và nhập Key File trước khi dò dung lượng.");
+      return;
+    }
+    setError(null);
+    setDetecting(true);
+    try {
+      const files = await apiFetch<CloudFile[]>(`/storage-providers/${storageProviderId}/files`);
+      const match = files.find((f) => f.key === objectKey.trim());
+      if (!match) {
+        setError("Không tìm thấy file này trong bucket — kiểm tra lại Key File.");
+        return;
+      }
+      setSizeBytes(match.sizeBytes);
+      setMessage(`Đã dò được dung lượng: ${formatFileSize(match.sizeBytes)}.`);
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : "Có lỗi xảy ra khi dò dung lượng");
+    } finally {
+      setDetecting(false);
+    }
+  }
 
   async function handleSave() {
     if (!postId) return;
@@ -59,6 +88,7 @@ export function DownloadConfigPanel({ postId }: { postId?: string }) {
           label: label.trim() || objectKey.trim(),
           storageProviderId,
           objectKey: objectKey.trim(),
+          sizeBytes: sizeBytes ?? undefined,
           priceP,
         }),
       });
@@ -103,6 +133,31 @@ export function DownloadConfigPanel({ postId }: { postId?: string }) {
               className="rounded-md border border-zinc-300 px-3 py-2 text-sm text-zinc-900 outline-none focus:border-[#1d3557] focus:ring-1 focus:ring-[#1d3557]"
             />
             <span className="text-xs text-zinc-400">Nhập object key/path tương ứng provider đã chọn.</span>
+          </label>
+
+          <label className="flex flex-col gap-1 text-sm text-zinc-700">
+            Dung lượng (byte)
+            <div className="flex items-center gap-2">
+              <input
+                type="number"
+                min={0}
+                value={sizeBytes ?? ""}
+                onChange={(e) => setSizeBytes(e.target.value === "" ? null : Math.max(0, Number(e.target.value) || 0))}
+                placeholder="Chưa có — bấm Dò dung lượng hoặc nhập tay"
+                className="flex-1 rounded-md border border-zinc-300 px-3 py-2 text-sm text-zinc-900 outline-none focus:border-[#1d3557] focus:ring-1 focus:ring-[#1d3557]"
+              />
+              <button
+                type="button"
+                onClick={handleDetectSize}
+                disabled={detecting}
+                className="rounded-md border border-zinc-300 px-3 py-2 text-xs font-medium text-zinc-700 hover:bg-zinc-50 disabled:opacity-50"
+              >
+                {detecting ? "Đang dò..." : "Dò dung lượng"}
+              </button>
+            </div>
+            <span className="text-xs text-zinc-400">
+              {sizeBytes ? `≈ ${formatFileSize(sizeBytes)}` : "Hiển thị ở khối \"Dung lượng\" trang chi tiết bài viết — để trống sẽ hiện dấu \"—\"."}
+            </span>
           </label>
 
           <label className="flex flex-col gap-1 text-sm text-zinc-700">

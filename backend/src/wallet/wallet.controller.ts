@@ -1,6 +1,7 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
   Param,
   Post,
@@ -8,7 +9,7 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { WalletTxStatus, WalletTxType } from '@prisma/client';
-import { WalletService } from './wallet.service';
+import { WalletService, WalletTransactionSortKey } from './wallet.service';
 import { SepayService } from '../sepay/sepay.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { PermissionsGuard } from '../roles/guards/permissions.guard';
@@ -20,6 +21,13 @@ import { AdjustWalletDto } from './dto/adjust-wallet.dto';
 
 const WALLET_TX_TYPES = Object.values(WalletTxType) as string[];
 const WALLET_TX_STATUSES = Object.values(WalletTxStatus) as string[];
+const WALLET_TX_SORT_KEYS: WalletTransactionSortKey[] = [
+  'createdAt',
+  'amount',
+  'balanceAfter',
+  'type',
+  'status',
+];
 
 interface AuthUser {
   id: string;
@@ -91,12 +99,43 @@ export class WalletController {
     @Query('type') type?: string,
     @Query('status') status?: string,
     @Query('q') q?: string,
+    @Query('sortBy') sortBy?: string,
+    @Query('sortDir') sortDir?: string,
   ) {
     const take = Math.min(Number(limit) || 20, 100);
     const skip = (Math.max(Number(page) || 1, 1) - 1) * take;
     return this.walletService.listAll({
       skip,
       take,
+      type:
+        type && WALLET_TX_TYPES.includes(type)
+          ? (type as WalletTxType)
+          : undefined,
+      status:
+        status && WALLET_TX_STATUSES.includes(status)
+          ? (status as WalletTxStatus)
+          : undefined,
+      q: q?.trim() || undefined,
+      sortBy:
+        sortBy &&
+        WALLET_TX_SORT_KEYS.includes(sortBy as WalletTransactionSortKey)
+          ? (sortBy as WalletTransactionSortKey)
+          : undefined,
+      sortDir: sortDir === 'asc' ? 'asc' : undefined,
+    });
+  }
+
+  // Xoá hàng loạt đúng theo bộ lọc đang áp dụng trên trang Quản lý giao dịch — quyền cao hơn view
+  // (WALLET_ADJUST, cùng mức với điều chỉnh tay) vì đây là thao tác phá huỷ dữ liệu tài chính.
+  @UseGuards(JwtAuthGuard, PermissionsGuard)
+  @Permissions(PERMISSIONS.WALLET_ADJUST)
+  @Delete('admin/transactions')
+  deleteTransactionsByFilter(
+    @Query('type') type?: string,
+    @Query('status') status?: string,
+    @Query('q') q?: string,
+  ) {
+    return this.walletService.deleteByFilter({
       type:
         type && WALLET_TX_TYPES.includes(type)
           ? (type as WalletTxType)
