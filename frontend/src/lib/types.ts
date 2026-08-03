@@ -4,6 +4,10 @@ export interface AuthUser {
   displayName: string;
   avatarUrl: string | null;
   emailVerified: boolean;
+  // Gợi ý hiển thị UI (vd nút "Xoá cache" ở topbar, xem navbar.tsx) — chỉ /users/me trả về field
+  // này (login/register chưa có, xem backend/src/auth/auth.service.ts PublicUser), nên optional.
+  // Backend luôn kiểm tra lại bằng PermissionsGuard nên sai/thiếu ở đây chỉ ảnh hưởng UI.
+  permissionKeys?: string[];
 }
 
 export interface Profile extends AuthUser {

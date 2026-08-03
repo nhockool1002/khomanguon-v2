@@ -4,6 +4,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { CreateWidgetDto } from './dto/create-widget.dto';
 import { UpdateWidgetDto } from './dto/update-widget.dto';
 import { ReorderWidgetDto } from './dto/reorder-widget.dto';
+import { CacheService } from '../cache/cache.service';
 
 const widgetSelect = {
   id: true,
@@ -25,7 +26,10 @@ function toWidgetDto(widget: WidgetRow) {
 
 @Injectable()
 export class WidgetsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly cache: CacheService,
+  ) {}
 
   // Public — trang chủ/trang bài viết đọc để render sidebar (FE tự lọc area/isActive/công khai,
   // giống cách menus đang làm).
@@ -52,6 +56,7 @@ export class WidgetsService {
       },
     });
     if (dto.roleSlugs) await this.syncRoles(widget.id, dto.roleSlugs);
+    await this.cache.invalidatePrefix('widgets');
     return this.getOne(widget.id);
   }
 
@@ -69,12 +74,14 @@ export class WidgetsService {
       },
     });
     if (dto.roleSlugs !== undefined) await this.syncRoles(id, dto.roleSlugs);
+    await this.cache.invalidatePrefix('widgets');
     return this.getOne(id);
   }
 
   async remove(id: string): Promise<void> {
     await this.assertExists(id);
     await this.prisma.widget.delete({ where: { id } });
+    await this.cache.invalidatePrefix('widgets');
   }
 
   // Gọi sau mỗi lần kéo-thả — cập nhật order hàng loạt trong 1 transaction.
@@ -87,6 +94,7 @@ export class WidgetsService {
         }),
       ),
     );
+    await this.cache.invalidatePrefix('widgets');
   }
 
   private async getOne(id: string) {

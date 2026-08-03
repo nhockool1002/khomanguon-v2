@@ -70,6 +70,9 @@ export class UsersService {
       canChangeDisplayName:
         permissions.includes(PERMISSIONS.USER_MANAGE) ||
         displayNameChangedAt === null,
+      // FE dùng để ẩn/hiện thao tác quản trị nhạy cảm ngay trên UI (vd nút "Xoá cache" ở topbar,
+      // xem navbar.tsx) — chỉ là gợi ý hiển thị, backend vẫn luôn kiểm tra lại bằng PermissionsGuard.
+      permissionKeys: permissions,
     };
   }
 

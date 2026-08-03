@@ -7,6 +7,7 @@ import {
   Patch,
   Post,
   UseGuards,
+  UseInterceptors,
 } from '@nestjs/common';
 import { RolesService } from './roles.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
@@ -15,6 +16,8 @@ import { Permissions } from './decorators/permissions.decorator';
 import { PERMISSIONS } from './permissions.constant';
 import { CreateRoleDto } from './dto/create-role.dto';
 import { UpdateRoleDto } from './dto/update-role.dto';
+import { Cacheable } from '../cache/cacheable.decorator';
+import { HttpCacheInterceptor } from '../cache/http-cache.interceptor';
 
 // UI ma trận quyền tick chọn theo module (UC17, wireframe #11).
 // @Permissions phải khai báo lại ở TỪNG method — PermissionsGuard chỉ đọc metadata qua
@@ -33,6 +36,8 @@ export class RolesController {
 
   // Công khai — badge role hiện cạnh bình luận/byline bài viết, khách vãng lai cũng cần thấy đúng
   // style (title/color/bold/italic/font).
+  @UseInterceptors(HttpCacheInterceptor)
+  @Cacheable('roles', 300)
   @Get('roles/badges')
   listBadges() {
     return this.rolesService.listBadges();

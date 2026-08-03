@@ -163,6 +163,21 @@ Nếu bước "reload vẫn còn đăng nhập" thất bại → gần như ch�
 
 ---
 
+## Bổ sung: bật tính năng Cache + nút "Xoá cache"
+
+Thêm sau khi deploy lần đầu ở trên — cần làm 1 lần để tính năng cache (Redis object cache + purge ISR Next.js) hoạt động đúng trên production.
+
+1. Sinh 1 secret riêng cho revalidate: `openssl rand -hex 24`.
+2. Thêm `REVALIDATE_SECRET=<giá trị vừa sinh>` vào `.env.production` trên aaPanel, rồi restart backend (như mục 5).
+3. Thêm biến môi trường **giống hệt giá trị ở bước 2** vào Vercel: Project → Settings → Environment Variables → `REVALIDATE_SECRET` (server-side, KHÔNG thêm tiền tố `NEXT_PUBLIC_`) → Redeploy.
+4. Seed lại quyền `cache.manage` (mới thêm vào `permissions.constant.ts`, Admin tự động có quyền này qua `ALL_PERMISSION_KEYS`):
+   ```bash
+   docker compose --env-file .env.production -f docker-compose.prod.yml exec backend pnpm exec prisma db seed
+   ```
+5. Đăng nhập bằng tài khoản Admin → kiểm tra nút "Xoá cache" xuất hiện ở topbar và bấm thử, kỳ vọng phản hồi "Đã xoá cache".
+
+---
+
 ## 7. Muốn tôi hỗ trợ trực tiếp?
 
 Tôi không có sẵn quyền truy cập Vercel/VPS của bạn nên không tự chạy được các bước cần SSH/UI. Nếu muốn tôi hỗ trợ trực tiếp:
