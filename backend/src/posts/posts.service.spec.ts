@@ -5,6 +5,7 @@ import { PostsService } from './posts.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { RolesService } from '../roles/roles.service';
 import { PERMISSIONS } from '../roles/permissions.constant';
+import { CacheService } from '../cache/cache.service';
 
 describe('PostsService.update — phân quyền sửa bài (post.edit.own / post.edit.any)', () => {
   let service: PostsService;
@@ -49,6 +50,10 @@ describe('PostsService.update — phân quyền sửa bài (post.edit.own / post
         PostsService,
         { provide: PrismaService, useValue: prisma },
         { provide: RolesService, useValue: roles },
+        {
+          provide: CacheService,
+          useValue: { invalidatePrefix: jest.fn() },
+        },
       ],
     }).compile();
 
