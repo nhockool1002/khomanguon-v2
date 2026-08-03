@@ -3,9 +3,10 @@ import { DownloadLinksService } from './download-links.service';
 import { DownloadLinksController } from './download-links.controller';
 import { AuthModule } from '../auth/auth.module';
 import { StorageModule } from '../storage/storage.module';
+import { RealtimeModule } from '../realtime/realtime.module';
 
 @Module({
-  imports: [AuthModule, StorageModule],
+  imports: [AuthModule, StorageModule, RealtimeModule],
   controllers: [DownloadLinksController],
   providers: [DownloadLinksService],
   exports: [DownloadLinksService],

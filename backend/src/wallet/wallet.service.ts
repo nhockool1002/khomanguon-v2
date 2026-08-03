@@ -7,12 +7,20 @@ import { Prisma, WalletTxStatus, WalletTxType } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { WalletGateway } from '../realtime/wallet.gateway';
 
-export interface ListWalletTransactionsParams {
-  skip: number;
-  take: number;
+export type WalletTransactionSortKey =
+  'createdAt' | 'amount' | 'balanceAfter' | 'type' | 'status';
+
+export interface WalletTransactionFilterParams {
   type?: WalletTxType;
   status?: WalletTxStatus;
   q?: string;
+}
+
+export interface ListWalletTransactionsParams extends WalletTransactionFilterParams {
+  skip: number;
+  take: number;
+  sortBy?: WalletTransactionSortKey;
+  sortDir?: 'asc' | 'desc';
 }
 
 @Injectable()
@@ -33,10 +41,10 @@ export class WalletService {
     });
   }
 
-  // Sổ giao dịch $P toàn hệ thống cho Admin/Super Moderator đối soát (wallet.view.any) —
-  // ghép sẵn thông tin user để FE không phải gọi thêm request.
-  async listAll(params: ListWalletTransactionsParams) {
-    const where: Prisma.WalletTransactionWhereInput = {
+  private buildWhere(
+    params: WalletTransactionFilterParams,
+  ): Prisma.WalletTransactionWhereInput {
+    return {
       ...(params.type && { type: params.type }),
       ...(params.status && { status: params.status }),
       ...(params.q && {
@@ -50,11 +58,20 @@ export class WalletService {
         },
       }),
     };
+  }
+
+  // Sổ giao dịch $P toàn hệ thống cho Admin/Super Moderator đối soát (wallet.view.any) —
+  // ghép sẵn thông tin user để FE không phải gọi thêm request.
+  async listAll(params: ListWalletTransactionsParams) {
+    const where = this.buildWhere(params);
+    const orderBy: Prisma.WalletTransactionOrderByWithRelationInput = {
+      [params.sortBy ?? 'createdAt']: params.sortDir ?? 'desc',
+    };
 
     const [rows, total] = await this.prisma.$transaction([
       this.prisma.walletTransaction.findMany({
         where,
-        orderBy: { createdAt: 'desc' },
+        orderBy,
         skip: params.skip,
         take: params.take,
         include: {
@@ -73,6 +90,20 @@ export class WalletService {
       user: wallet.user,
     }));
     return { items, total };
+  }
+
+  // Xoá hàng loạt theo đúng bộ lọc đang áp dụng trên trang Quản lý giao dịch — chỉ xoá bản ghi
+  // WalletTransaction (sổ lịch sử), KHÔNG đụng tới Wallet.balance (số dư là cột riêng, không tính
+  // lại từ tổng transaction) nên không làm sai số dư hiện tại của user, chỉ mất lịch sử đối soát.
+  async deleteByFilter(params: WalletTransactionFilterParams) {
+    const where = this.buildWhere(params);
+    if (Object.keys(where).length === 0) {
+      throw new BadRequestException(
+        'Phải chọn ít nhất 1 điều kiện lọc trước khi xoá hàng loạt',
+      );
+    }
+    const result = await this.prisma.walletTransaction.deleteMany({ where });
+    return { count: result.count };
   }
 
   // Điều chỉnh số dư tay (wallet.adjust) — dùng khi webhook SePay không khớp đối soát (UC23)

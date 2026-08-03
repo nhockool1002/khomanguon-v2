@@ -213,7 +213,6 @@ export interface DownloadLinkAdmin {
 
 export interface DownloadLinkPublic extends DownloadLinkAdmin {
   downloaderNames: string[];
-  hasAccess: boolean;
 }
 
 export interface Wallet {

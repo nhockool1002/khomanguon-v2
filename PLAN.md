@@ -186,6 +186,7 @@ Quy ước: mỗi phase có **Definition of Done (DoD)** rõ ràng — không sa
 - [x] Model `wallets`, `wallet_transactions` (ACID) — mọi thao tác cộng/trừ nằm trong `prisma.$transaction`
 - [x] UI trang Ví & lịch sử giao dịch — UC10, wireframe #07 (`/tai-khoan/vi`), cập nhật số dư realtime qua WebSocket
 - [x] Bổ sung sau: trang Admin "Quản lý giao dịch" (`/quan-tri/giao-dich`) — xem toàn bộ giao dịch mọi user, lọc theo loại/trạng thái/email, điều chỉnh số dư tay theo email (dùng đúng quyền `wallet.adjust` đã khai báo sẵn nhưng chưa dùng tới trước đó)
+- [x] Bổ sung 2026-08-03: bảng giao dịch sort được (bấm tiêu đề cột Thời gian/Loại/Số tiền/Số dư sau GD/Trạng thái — tự viết bằng Tailwind, không thêm thư viện datatable ngoài, đúng quy ước dự án), server-side qua `sortBy`/`sortDir` ở `GET /wallet/admin/transactions`. Nút "🗑 Xoá theo bộ lọc" gọi `DELETE /wallet/admin/transactions` (quyền `wallet.adjust`) xoá hàng loạt đúng theo bộ lọc type/status/q đang áp dụng — bắt buộc phải chọn ít nhất 1 điều kiện lọc (chặn cả 2 phía FE/BE) để tránh xoá nhầm toàn bộ lịch sử; chỉ xoá bản ghi `WalletTransaction`, không đụng `Wallet.balance` nên không làm sai số dư hiện tại.
 
 ### 3.2 Nạp tiền qua SePay
 - [x] API tạo yêu cầu nạp tiền + sinh mã QR VietQR (trạng thái `pending`)
@@ -195,9 +196,9 @@ Quy ước: mỗi phase có **Definition of Done (DoD)** rõ ràng — không sa
 
 ### 3.3 Link tải & giá $P
 - [x] Model `download_links` (gắn Post, provider R2/S3, object key, giá $P)
-- [x] UI quản lý link tải trong trình soạn bài — wireframe #09. **Giới hạn hiện tại:** mỗi bài viết chỉ hỗ trợ 1 link tải "chính" (model đã sẵn sàng cho nhiều link/bài nhưng service chỉ thao tác trên bản ghi sớm nhất) — nếu cần nhiều link/bài thật, phải mở rộng `download-links.service.ts`.
+- [x] UI quản lý link tải trong trình soạn bài — wireframe #09. **Giới hạn hiện tại:** mỗi bài viết chỉ hỗ trợ 1 link tải "chính" (model đã sẵn sàng cho nhiều link/bài nhưng service chỉ thao tác trên bản ghi sớm nhất) — nếu cần nhiều link/bài thật, phải mở rộng `download-links.service.ts`. Có ô "Dung lượng (byte)" + nút "Dò dung lượng" (đọc thật từ bucket qua `GET /storage-providers/:id/files`) — trước đó form không gửi `sizeBytes` nên mỗi lần lưu tự xoá về `null`, khối "Dung lượng" ở trang bài viết luôn hiện "—" (đã sửa 2026-08-03).
 - [x] API mua + sinh presigned URL: kiểm tra số dư → trừ tiền (1 transaction) → gọi SDK R2/S3 thật → TTL 10 phút — UC11, UC24
-- [x] Model `download_grants` cho phép tải lại miễn phí trong X ngày sau khi đã mua (tránh thu tiền 2 lần vô lý)
+- [x] **Đổi thiết kế 2026-08-03 (yêu cầu thực tế, khác Phase 3 ban đầu):** bỏ hẳn cơ chế "mở khoá 1 lần → tải lại miễn phí mãi mãi" qua `DownloadGrant.expiresAt` — **mỗi lượt tải đều kiểm tra + trừ $P**, kể cả user đã tải trước đó (gọi `POST /posts/:postId/download-link/unlock` là luôn trừ tiền nếu `priceP > 0`, không có ngoại lệ). `DownloadGrant` vẫn được ghi mỗi lượt tải thành công nhưng chỉ còn là lịch sử mua (phục vụ tính doanh thu/danh sách member ở `cloud-files.service.ts`), không còn dùng để bỏ qua thanh toán. Trường `hasAccess` đã bỏ khỏi API công khai (`GET /posts/:postId/download-link`) vì không còn ý nghĩa. Đẩy realtime số dư qua WebSocket ngay sau khi trừ tiền (trước đó `download-links.service.ts` không emit, chip $P ở navbar không tự cập nhật sau khi tải).
 
 ### 3.4 Cài đặt hệ thống liên quan
 - [ ] Trang cài đặt Key R2/S3 (nhiều provider, nút test kết nối, chọn mặc định) — UC20, wireframe #12. **Đã có:** CRUD nhiều provider + chọn mặc định (`isDefault`). **Còn thiếu:** nút "Test kết nối" (không có endpoint/route nào cho việc này ở `storage-providers`, khác với SePay đã có `testApiConnection` thật).
