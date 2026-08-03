@@ -24,6 +24,7 @@ export const PERMISSIONS = {
   SETTINGS_PAYMENT: 'settings.payment',
   SETTINGS_GENERAL: 'settings.general',
   MEDIA_MANAGE: 'media.manage',
+  SETTINGS_MAIL: 'settings.mail',
 } as const;
 
 export type PermissionKey = (typeof PERMISSIONS)[keyof typeof PERMISSIONS];

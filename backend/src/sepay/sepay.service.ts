@@ -13,6 +13,7 @@ import {
 } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { WalletGateway } from '../realtime/wallet.gateway';
+import { MailService } from '../mail/mail.service';
 import { encryptSecret, decryptSecret } from '../common/secret-crypto.util';
 import { UpdateSepayConfigDto } from './dto/update-sepay-config.dto';
 import {
@@ -38,6 +39,7 @@ export class SepayService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly walletGateway: WalletGateway,
+    private readonly mailService: MailService,
   ) {}
 
   // ───────────────────────── Cấu hình (Admin) ─────────────────────────
@@ -357,6 +359,22 @@ export class SepayService {
       balance: newBalance,
       topupOrderId: order.id,
     });
+
+    const user = await this.prisma.user.findUnique({
+      where: { id: order.userId },
+      select: { displayName: true },
+    });
+    if (user) {
+      // Không await — webhook SePay cần phản hồi nhanh (retry nếu chậm/không {success:true}, UC23);
+      // gửi mail là side-effect phụ, tự bắt lỗi bên trong sendTopupSuccessNotification.
+      void this.mailService.sendTopupSuccessNotification({
+        displayName: user.displayName,
+        amountVnd: payload.transferAmount.toLocaleString('vi-VN'),
+        paymentMethod: payload.gateway ?? 'SePay',
+        transactionCode: sepayTransactionCode,
+      });
+    }
+
     return { credited: true };
   }
 

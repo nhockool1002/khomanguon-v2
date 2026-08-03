@@ -15,6 +15,7 @@ import { Permissions } from '../roles/decorators/permissions.decorator';
 import { PERMISSIONS } from '../roles/permissions.constant';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { UpsertDownloadLinkDto } from './dto/upsert-download-link.dto';
+import { DownloadRateLimitGuard } from './download-rate-limit.guard';
 
 interface AuthUser {
   id: string;
@@ -38,7 +39,9 @@ export class DownloadLinksController {
     return this.downloadLinksService.upsertForPost(postId, dto);
   }
 
-  @UseGuards(JwtAuthGuard, PermissionsGuard)
+  // DownloadRateLimitGuard chặn spam trước, PermissionsGuard chạy sau — thứ tự trong mảng UseGuards
+  // là thứ tự thực thi thật của Nest, nên đặt rate-limit trước để chặn sớm nhất có thể.
+  @UseGuards(DownloadRateLimitGuard, JwtAuthGuard, PermissionsGuard)
   @Permissions(PERMISSIONS.DOWNLOAD_PURCHASE)
   @Post('unlock')
   unlock(

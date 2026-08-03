@@ -9,7 +9,9 @@ import { WalletTxStatus, WalletTxType } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { R2ClientService } from '../storage/r2-client.service';
 import { WalletGateway } from '../realtime/wallet.gateway';
+import { MailService } from '../mail/mail.service';
 import { EXCLUDE_ADMIN_USER_WHERE } from '../common/exclude-admin-user.filter';
+import { resolveStyleRoleSlug } from '../roles/style-role.util';
 import { UpsertDownloadLinkDto } from './dto/upsert-download-link.dto';
 
 const DOWNLOADER_LIST_LIMIT = 20;
@@ -39,6 +41,7 @@ export class DownloadLinksService {
     private readonly prisma: PrismaService,
     private readonly r2Client: R2ClientService,
     private readonly walletGateway: WalletGateway,
+    private readonly mailService: MailService,
   ) {}
 
   private findPrimary(postId: string) {
@@ -86,7 +89,18 @@ export class DownloadLinksService {
         orderBy: { purchasedAt: 'desc' },
         take: DOWNLOADER_LIST_LIMIT,
         distinct: ['userId'],
-        select: { user: { select: { displayName: true } } },
+        select: {
+          user: {
+            select: {
+              displayName: true,
+              primaryRoleId: true,
+              roles: {
+                select: { roleId: true, role: { select: { slug: true } } },
+                orderBy: { role: { createdAt: 'asc' } },
+              },
+            },
+          },
+        },
       }),
       this.resolveSizeBytes(link),
     ]);
@@ -94,7 +108,12 @@ export class DownloadLinksService {
     return {
       ...toPublicShape(link),
       sizeBytes,
-      downloaderNames: downloaders.map((d) => d.user.displayName),
+      // Style tên (màu/đậm/nghiêng/font theo role) — khớp cách bình luận/byline bài viết đã làm,
+      // không phải plain string như trước (xem components/download-box.tsx + StyledUserName).
+      downloaders: downloaders.map(({ user }) => ({
+        displayName: user.displayName,
+        styleRoleSlug: resolveStyleRoleSlug(user.primaryRoleId, user.roles),
+      })),
     };
   }
 
@@ -173,6 +192,27 @@ export class DownloadLinksService {
 
     if (newBalance !== null) {
       this.walletGateway.emitWalletUpdated(userId, { balance: newBalance });
+    }
+
+    const [user, post] = await Promise.all([
+      this.prisma.user.findUnique({
+        where: { id: userId },
+        select: { displayName: true },
+      }),
+      this.prisma.post.findUnique({
+        where: { id: postId },
+        select: { title: true },
+      }),
+    ]);
+    if (user) {
+      // Không await — gửi mail thông báo là side-effect phụ, không được làm chậm việc trả link tải
+      // về cho user (sendDownloadUnlockNotification tự bắt lỗi bên trong, không reject ra ngoài).
+      void this.mailService.sendDownloadUnlockNotification({
+        displayName: user.displayName,
+        postTitle: post?.title ?? '',
+        fileName: link.objectKey.split('/').pop() || link.label,
+        priceP: String(link.priceP),
+      });
     }
 
     const url = await this.r2Client.getPresignedDownloadUrl(

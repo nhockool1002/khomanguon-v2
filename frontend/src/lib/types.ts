@@ -211,8 +211,13 @@ export interface DownloadLinkAdmin {
   priceP: number;
 }
 
+export interface DownloaderInfo {
+  displayName: string;
+  styleRoleSlug: string | null;
+}
+
 export interface DownloadLinkPublic extends DownloadLinkAdmin {
-  downloaderNames: string[];
+  downloaders: DownloaderInfo[];
 }
 
 export interface Wallet {
@@ -295,6 +300,19 @@ export interface GeneralSettings {
   headerBackgroundAttachment: HeaderBackgroundAttachment;
   headerBackgroundPositionX: number;
   headerBackgroundPositionY: number;
+  gaTrackingId: string;
+  googleSiteVerification: string;
+}
+
+export interface MailTemplateConfig {
+  subject: string;
+  html: string;
+}
+
+export interface MailTemplates {
+  notifyEmail: string;
+  topupSuccess: MailTemplateConfig;
+  downloadUnlock: MailTemplateConfig;
 }
 
 export interface MediaFile {
