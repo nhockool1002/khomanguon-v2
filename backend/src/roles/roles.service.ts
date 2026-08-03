@@ -48,14 +48,47 @@ export class RolesService {
     return rows.map((r) => r.role.slug);
   }
 
+  // Gán role UNVERIFIED (không phải MEMBER) lúc đăng ký — chỉ nâng lên MEMBER sau khi xác minh
+  // email thành công (xem upgradeAfterVerification), chặn tài khoản ảo/spam email tải file ngay.
   async assignDefaultRole(userId: string): Promise<void> {
-    const member = await this.prisma.role.findUnique({
-      where: { slug: DEFAULT_ROLES.MEMBER.slug },
+    const unverified = await this.prisma.role.findUnique({
+      where: { slug: DEFAULT_ROLES.UNVERIFIED.slug },
     });
-    if (!member) return;
+    if (!unverified) return;
     await this.prisma.userRole.create({
-      data: { userId, roleId: member.id },
+      data: { userId, roleId: unverified.id },
     });
+  }
+
+  // Gọi ngay sau khi verifyEmail() thành công (auth.service.ts) — thay role UNVERIFIED bằng MEMBER.
+  // Chỉ đụng vào nếu user THỰC SỰ còn giữ role UNVERIFIED — nếu Admin đã tự gán role khác trước đó
+  // (vd thăng Moderator dù chưa xác minh) thì không đụng vào, tránh ghi đè quyết định thủ công.
+  async upgradeAfterVerification(userId: string): Promise<void> {
+    const [unverified, member] = await Promise.all([
+      this.prisma.role.findUnique({
+        where: { slug: DEFAULT_ROLES.UNVERIFIED.slug },
+      }),
+      this.prisma.role.findUnique({
+        where: { slug: DEFAULT_ROLES.MEMBER.slug },
+      }),
+    ]);
+    if (!unverified || !member) return;
+
+    const hasUnverified = await this.prisma.userRole.findUnique({
+      where: { userId_roleId: { userId, roleId: unverified.id } },
+    });
+    if (!hasUnverified) return;
+
+    await this.prisma.$transaction([
+      this.prisma.userRole.delete({
+        where: { userId_roleId: { userId, roleId: unverified.id } },
+      }),
+      this.prisma.userRole.upsert({
+        where: { userId_roleId: { userId, roleId: member.id } },
+        update: {},
+        create: { userId, roleId: member.id },
+      }),
+    ]);
   }
 
   // Ma trận quyền tick chọn theo module (UC17, wireframe #11) — Admin tạo/sửa role tuỳ chỉnh tự do.

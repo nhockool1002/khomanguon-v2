@@ -207,7 +207,14 @@ function ProfileTab({ onSaved }: { onSaved: () => Promise<void> }) {
           maxLength={50}
           value={displayName}
           onChange={(e) => setDisplayName(e.target.value)}
+          disabled={!profile.canChangeDisplayName}
         />
+        {!profile.canChangeDisplayName && (
+          <p className="-mt-2 text-xs text-zinc-400">
+            Bạn đã dùng hết lượt đổi tên hiển thị miễn phí (chỉ được đổi 1 lần) — liên hệ Admin/Super
+            Moderator nếu cần đổi lại.
+          </p>
+        )}
         <label className="flex flex-col gap-1.5 text-sm text-zinc-700">
           Giới thiệu bản thân
           <textarea

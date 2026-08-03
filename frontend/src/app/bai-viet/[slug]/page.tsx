@@ -64,7 +64,7 @@ export default async function PostDetailPage({ params }: Props) {
             <span className="flex h-6 w-6 items-center justify-center rounded-full bg-[#2b3f5c] text-[10px] uppercase text-white">
               {post.author.displayName.charAt(0)}
             </span>
-            <StyledUserName styleRoleSlug={post.author.styleRoleSlug}>
+            <StyledUserName styleRoleSlug={post.author.styleRoleSlug} userId={post.author.id}>
               {post.author.displayName}
             </StyledUserName>
             <span>·</span>

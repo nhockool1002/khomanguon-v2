@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { apiFetch, ApiError } from "@/lib/api";
 import { useAuth } from "@/context/auth-context";
@@ -17,7 +18,6 @@ export function DownloadBox({ postId }: { postId: string }) {
   const [link, setLink] = useState<DownloadLinkPublic | null | undefined>(undefined);
   const [unlocking, setUnlocking] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [downloadUrl, setDownloadUrl] = useState<string | null>(null);
 
   useEffect(() => {
     apiFetch<DownloadLinkPublic | null>(`/posts/${postId}/download-link`)
@@ -25,6 +25,9 @@ export function DownloadBox({ postId }: { postId: string }) {
       .catch(() => setLink(null));
   }, [postId]);
 
+  // Không giữ lại link tải sau khi mở khoá — nút luôn trở về trạng thái khoá ngay sau khi mở tab
+  // tải, bấm lại lần nữa tính như 1 lượt mở khoá mới (trừ $P mới), khớp đúng "mỗi lần tải trừ $P"
+  // (không phải trả 1 lần dùng mãi mãi trong cùng phiên xem trang).
   async function handleUnlock() {
     if (!user) {
       router.push("/dang-nhap");
@@ -36,7 +39,6 @@ export function DownloadBox({ postId }: { postId: string }) {
       const res = await apiFetch<{ url: string }>(`/posts/${postId}/download-link/unlock`, {
         method: "POST",
       });
-      setDownloadUrl(res.url);
       window.open(res.url, "_blank", "noopener,noreferrer");
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "Có lỗi xảy ra");
@@ -94,8 +96,10 @@ export function DownloadBox({ postId }: { postId: string }) {
         ) : (
           <p className="mt-1 text-sm text-zinc-700">
             {link.downloaders.map((d, i) => (
-              <span key={`${d.displayName}-${i}`}>
-                <StyledUserName styleRoleSlug={d.styleRoleSlug}>{d.displayName}</StyledUserName>
+              <span key={d.id}>
+                <StyledUserName styleRoleSlug={d.styleRoleSlug} userId={d.id}>
+                  {d.displayName}
+                </StyledUserName>
                 {i < link.downloaders.length - 1 && ", "}
               </span>
             ))}
@@ -105,15 +109,14 @@ export function DownloadBox({ postId }: { postId: string }) {
 
       {error && <p className="text-xs text-red-600">{error}</p>}
 
-      {downloadUrl ? (
-        <a
-          href={downloadUrl}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="rounded-lg bg-gradient-to-r from-[#ff5da2] to-[#ffcf3f] px-5 py-3 text-center text-sm font-semibold text-white shadow-sm hover:opacity-90"
-        >
-          ⬇ Tải xuống ngay
-        </a>
+      {user && !user.emailVerified ? (
+        <p className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-center text-sm text-amber-800">
+          Tài khoản của bạn chưa xác minh email nên chưa tải file được — xác minh email ở{" "}
+          <Link href="/tai-khoan" className="font-medium underline">
+            trang Tài khoản
+          </Link>{" "}
+          trước.
+        </p>
       ) : (
         <button
           type="button"

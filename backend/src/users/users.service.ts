@@ -1,5 +1,6 @@
 import {
   BadRequestException,
+  ForbiddenException,
   Injectable,
   NotFoundException,
   UnauthorizedException,
@@ -9,8 +10,10 @@ import { UserStatus } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { RolesService } from '../roles/roles.service';
 import { resolveStyleRoleSlug } from '../roles/style-role.util';
+import { PERMISSIONS } from '../roles/permissions.constant';
 import { UpdateProfileDto } from './dto/update-profile.dto';
 import { ChangePasswordDto } from './dto/change-password.dto';
+import { CreateProfileMessageDto } from './dto/create-profile-message.dto';
 
 @Injectable()
 export class UsersService {
@@ -30,6 +33,7 @@ export class UsersService {
         bio: true,
         emailVerifiedAt: true,
         createdAt: true,
+        displayNameChangedAt: true,
         primaryRoleId: true,
         roles: {
           select: {
@@ -40,7 +44,14 @@ export class UsersService {
         },
       },
     });
-    const { emailVerifiedAt, primaryRoleId, roles, ...rest } = user;
+    const {
+      emailVerifiedAt,
+      primaryRoleId,
+      roles,
+      displayNameChangedAt,
+      ...rest
+    } = user;
+    const permissions = await this.roles.getUserPermissionKeys(userId);
     return {
       ...rest,
       emailVerified: emailVerifiedAt !== null,
@@ -49,6 +60,11 @@ export class UsersService {
       // vai trò của chính họ + slug hiệu lực, trang Tài khoản dùng để hiện selector khi >1 role.
       styleRoles: roles.map((r) => ({ slug: r.role.slug, name: r.role.name })),
       primaryRoleSlug: resolveStyleRoleSlug(primaryRoleId, roles),
+      // Super Moderator trở lên (quyền user.manage) đổi tên hiển thị tự do; còn lại chỉ 1 lần —
+      // FE dùng để khoá ô nhập + hiện đúng thông báo (xem updateProfile()).
+      canChangeDisplayName:
+        permissions.includes(PERMISSIONS.USER_MANAGE) ||
+        displayNameChangedAt === null,
     };
   }
 
@@ -76,14 +92,40 @@ export class UsersService {
     return this.getProfile(userId);
   }
 
+  // Đổi tên hiển thị: Super Moderator trở lên (user.manage) đổi tự do; Moderator trở xuống chỉ
+  // đổi được 1 lần trong đời tài khoản (đánh dấu bằng displayNameChangedAt, xem schema.prisma).
   async updateProfile(userId: string, dto: UpdateProfileDto) {
+    const data: {
+      displayName?: string;
+      bio?: string;
+      avatarUrl?: string;
+      displayNameChangedAt?: Date;
+    } = {
+      ...(dto.bio !== undefined && { bio: dto.bio }),
+      ...(dto.avatarUrl !== undefined && { avatarUrl: dto.avatarUrl }),
+    };
+
+    if (dto.displayName !== undefined) {
+      const current = await this.prisma.user.findUniqueOrThrow({
+        where: { id: userId },
+        select: { displayName: true, displayNameChangedAt: true },
+      });
+      if (dto.displayName !== current.displayName) {
+        const permissions = await this.roles.getUserPermissionKeys(userId);
+        const canChangeFreely = permissions.includes(PERMISSIONS.USER_MANAGE);
+        if (!canChangeFreely && current.displayNameChangedAt !== null) {
+          throw new BadRequestException(
+            'Bạn chỉ được đổi tên hiển thị 1 lần — liên hệ Admin/Super Moderator nếu cần đổi lại.',
+          );
+        }
+        data.displayName = dto.displayName;
+        if (!canChangeFreely) data.displayNameChangedAt = new Date();
+      }
+    }
+
     const user = await this.prisma.user.update({
       where: { id: userId },
-      data: {
-        ...(dto.displayName !== undefined && { displayName: dto.displayName }),
-        ...(dto.bio !== undefined && { bio: dto.bio }),
-        ...(dto.avatarUrl !== undefined && { avatarUrl: dto.avatarUrl }),
-      },
+      data,
       select: {
         id: true,
         email: true,
@@ -209,5 +251,144 @@ export class UsersService {
       where: { userId, roleId: role.id },
     });
     return this.roles.getUserRoleSlugs(userId);
+  }
+
+  // ───────────────────────── Trang profile công khai ─────────────────────────
+
+  // Công khai — không lộ email/status, chỉ thông tin đã hiển thị ở byline/bình luận trở lên.
+  async getPublicProfile(id: string) {
+    const user = await this.prisma.user.findUnique({
+      where: { id },
+      select: {
+        id: true,
+        displayName: true,
+        avatarUrl: true,
+        bio: true,
+        createdAt: true,
+        primaryRoleId: true,
+        roles: {
+          select: {
+            roleId: true,
+            role: { select: { slug: true, name: true } },
+          },
+          orderBy: { role: { createdAt: 'asc' } },
+        },
+      },
+    });
+    if (!user) throw new NotFoundException('Không tìm thấy người dùng');
+    const { primaryRoleId, roles, ...rest } = user;
+    return {
+      ...rest,
+      styleRoleSlug: resolveStyleRoleSlug(primaryRoleId, roles),
+      roleNames: roles.map((r) => r.role.name),
+    };
+  }
+
+  private mapMessageAuthor<
+    T extends {
+      author: {
+        id: string;
+        displayName: string;
+        avatarUrl: string | null;
+        primaryRoleId: string | null;
+        roles: { roleId: string; role: { slug: string } }[];
+      };
+    },
+  >(message: T) {
+    const { author, ...rest } = message;
+    const { primaryRoleId, roles, ...authorRest } = author;
+    return {
+      ...rest,
+      author: {
+        ...authorRest,
+        styleRoleSlug: resolveStyleRoleSlug(primaryRoleId, roles),
+      },
+    };
+  }
+
+  async listProfileMessages(profileUserId: string, skip: number, take: number) {
+    const [items, total] = await this.prisma.$transaction([
+      this.prisma.profileMessage.findMany({
+        where: { profileUserId },
+        orderBy: { createdAt: 'desc' },
+        skip,
+        take,
+        select: {
+          id: true,
+          content: true,
+          createdAt: true,
+          author: {
+            select: {
+              id: true,
+              displayName: true,
+              avatarUrl: true,
+              primaryRoleId: true,
+              roles: {
+                select: { roleId: true, role: { select: { slug: true } } },
+                orderBy: { role: { createdAt: 'asc' } },
+              },
+            },
+          },
+        },
+      }),
+      this.prisma.profileMessage.count({ where: { profileUserId } }),
+    ]);
+    return { items: items.map((m) => this.mapMessageAuthor(m)), total };
+  }
+
+  async createProfileMessage(
+    profileUserId: string,
+    authorId: string,
+    dto: CreateProfileMessageDto,
+  ) {
+    const profileUser = await this.prisma.user.findUnique({
+      where: { id: profileUserId },
+    });
+    if (!profileUser) throw new NotFoundException('Không tìm thấy người dùng');
+
+    const message = await this.prisma.profileMessage.create({
+      data: { profileUserId, authorId, content: dto.content },
+      select: {
+        id: true,
+        content: true,
+        createdAt: true,
+        author: {
+          select: {
+            id: true,
+            displayName: true,
+            avatarUrl: true,
+            primaryRoleId: true,
+            roles: {
+              select: { roleId: true, role: { select: { slug: true } } },
+              orderBy: { role: { createdAt: 'asc' } },
+            },
+          },
+        },
+      },
+    });
+    return this.mapMessageAuthor(message);
+  }
+
+  // Xoá được bởi: chính tác giả lời nhắn, chủ profile (được nhắn cho họ), hoặc Moderator+
+  // (comment.moderate — tái dùng đúng quyền kiểm duyệt bình luận, không thêm permission riêng).
+  async removeProfileMessage(
+    messageId: string,
+    requesterId: string,
+  ): Promise<void> {
+    const message = await this.prisma.profileMessage.findUnique({
+      where: { id: messageId },
+    });
+    if (!message) throw new NotFoundException('Không tìm thấy lời nhắn');
+
+    if (
+      message.authorId !== requesterId &&
+      message.profileUserId !== requesterId
+    ) {
+      const permissions = await this.roles.getUserPermissionKeys(requesterId);
+      if (!permissions.includes(PERMISSIONS.COMMENT_MODERATE)) {
+        throw new ForbiddenException('Bạn không có quyền xoá lời nhắn này');
+      }
+    }
+    await this.prisma.profileMessage.delete({ where: { id: messageId } });
   }
 }

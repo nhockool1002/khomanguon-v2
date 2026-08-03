@@ -14,6 +14,8 @@ export interface Profile extends AuthUser {
   // ở trang Tài khoản khi user thuộc >1 role.
   styleRoles: { slug: string; name: string }[];
   primaryRoleSlug: string | null;
+  // Super Moderator trở lên đổi tên hiển thị tự do; còn lại chỉ 1 lần (xem users.service.ts).
+  canChangeDisplayName: boolean;
 }
 
 export interface AuthResponse {
@@ -212,6 +214,7 @@ export interface DownloadLinkAdmin {
 }
 
 export interface DownloaderInfo {
+  id: string;
   displayName: string;
   styleRoleSlug: string | null;
 }
@@ -329,5 +332,34 @@ export interface MediaFile {
 
 export interface MediaFileListResponse {
   items: MediaFile[];
+  total: number;
+}
+
+export interface PublicProfile {
+  id: string;
+  displayName: string;
+  avatarUrl: string | null;
+  bio: string | null;
+  createdAt: string;
+  styleRoleSlug: string | null;
+  roleNames: string[];
+}
+
+export interface ProfileMessageAuthor {
+  id: string;
+  displayName: string;
+  avatarUrl: string | null;
+  styleRoleSlug: string | null;
+}
+
+export interface ProfileMessage {
+  id: string;
+  content: string;
+  createdAt: string;
+  author: ProfileMessageAuthor;
+}
+
+export interface ProfileMessageListResponse {
+  items: ProfileMessage[];
   total: number;
 }

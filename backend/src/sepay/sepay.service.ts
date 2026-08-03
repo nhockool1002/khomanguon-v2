@@ -362,17 +362,21 @@ export class SepayService {
 
     const user = await this.prisma.user.findUnique({
       where: { id: order.userId },
-      select: { displayName: true },
+      select: { displayName: true, email: true },
     });
     if (user) {
       // Không await — webhook SePay cần phản hồi nhanh (retry nếu chậm/không {success:true}, UC23);
-      // gửi mail là side-effect phụ, tự bắt lỗi bên trong sendTopupSuccessNotification.
-      void this.mailService.sendTopupSuccessNotification({
-        displayName: user.displayName,
-        amountVnd: payload.transferAmount.toLocaleString('vi-VN'),
-        paymentMethod: payload.gateway ?? 'SePay',
-        transactionCode: sepayTransactionCode,
-      });
+      // gửi mail là side-effect phụ, tự bắt lỗi bên trong sendTopupSuccessNotification. Gửi cho cả
+      // Admin (notifyEmail) lẫn chính user vừa nạp (user.email — xem sendTopupSuccessNotification).
+      void this.mailService.sendTopupSuccessNotification(
+        {
+          displayName: user.displayName,
+          amountVnd: payload.transferAmount.toLocaleString('vi-VN'),
+          paymentMethod: payload.gateway ?? 'SePay',
+          transactionCode: sepayTransactionCode,
+        },
+        user.email,
+      );
     }
 
     return { credited: true };

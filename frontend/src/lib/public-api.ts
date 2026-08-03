@@ -4,6 +4,7 @@ import type {
   MenuItem,
   PostDetail,
   PostListResponse,
+  PublicProfile,
   RoleBadgeInfo,
   Widget,
 } from "./types";
@@ -46,6 +47,10 @@ export async function fetchPosts(params: {
 
 export async function fetchPostBySlug(slug: string): Promise<PostDetail | null> {
   return publicFetch<PostDetail>(`/posts/${slug}`);
+}
+
+export async function fetchPublicProfile(id: string): Promise<PublicProfile | null> {
+  return publicFetch<PublicProfile>(`/users/${id}/public-profile`);
 }
 
 export async function fetchCategories(): Promise<Category[]> {

@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useRoleBadges } from "@/context/role-badges-context";
 import { fontVar } from "@/lib/fonts";
 
@@ -19,16 +20,28 @@ export function useRoleNameStyle(styleRoleSlug: string | null): React.CSSPropert
   };
 }
 
+// userId (tuỳ chọn) — khi có thì bấm vào tên chuyển sang trang profile công khai (/nguoi-dung/[id]).
+// Mọi nơi hiển thị tên user (byline bài viết, bình luận, member đã tải...) nên truyền userId vào
+// đây để đồng bộ hành vi "bấm tên -> xem profile" thay vì tự viết Link riêng ở từng nơi.
 export function StyledUserName({
   styleRoleSlug,
+  userId,
   className,
   children,
 }: {
   styleRoleSlug: string | null;
+  userId?: string;
   className?: string;
   children: React.ReactNode;
 }) {
   const style = useRoleNameStyle(styleRoleSlug);
+  if (userId) {
+    return (
+      <Link href={`/nguoi-dung/${userId}`} className={className} style={style}>
+        {children}
+      </Link>
+    );
+  }
   return (
     <span className={className} style={style}>
       {children}
