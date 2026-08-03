@@ -152,6 +152,16 @@ export class DownloadLinksService {
     const link = await this.findPrimary(postId);
     if (!link) throw new NotFoundException('Bài viết này chưa có link tải');
 
+    const post = await this.prisma.post.findUnique({
+      where: { id: postId },
+      select: { title: true },
+    });
+    const fileName = link.objectKey.split('/').pop() || link.label;
+    // Ghi rõ tên bài viết + file vào note của WalletTransaction — trang Quản lý giao dịch ($P) chỉ
+    // có referenceType/referenceId (id thô, không đọc được) nên trước đây không biết ngay giao dịch
+    // ứng với file/game nào nếu không tra riêng.
+    const transactionNote = post ? `${post.title} — ${fileName}` : fileName;
+
     let newBalance: number | null = null;
     await this.prisma.$transaction(async (tx) => {
       if (link.priceP > 0) {
@@ -180,6 +190,7 @@ export class DownloadLinksService {
             status: WalletTxStatus.SUCCESS,
             referenceType: 'download_link',
             referenceId: link.id,
+            note: transactionNote,
           },
         });
         newBalance = balanceAfter;
@@ -197,25 +208,23 @@ export class DownloadLinksService {
       this.walletGateway.emitWalletUpdated(userId, { balance: newBalance });
     }
 
-    const [user, post] = await Promise.all([
-      this.prisma.user.findUnique({
-        where: { id: userId },
-        select: { displayName: true },
-      }),
-      this.prisma.post.findUnique({
-        where: { id: postId },
-        select: { title: true },
-      }),
-    ]);
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { displayName: true, email: true },
+    });
     if (user) {
       // Không await — gửi mail thông báo là side-effect phụ, không được làm chậm việc trả link tải
       // về cho user (sendDownloadUnlockNotification tự bắt lỗi bên trong, không reject ra ngoài).
-      void this.mailService.sendDownloadUnlockNotification({
-        displayName: user.displayName,
-        postTitle: post?.title ?? '',
-        fileName: link.objectKey.split('/').pop() || link.label,
-        priceP: String(link.priceP),
-      });
+      // Gửi cho cả Admin (notifyEmail) lẫn chính user vừa tải (user.email).
+      void this.mailService.sendDownloadUnlockNotification(
+        {
+          displayName: user.displayName,
+          postTitle: post?.title ?? '',
+          fileName,
+          priceP: String(link.priceP),
+        },
+        user.email,
+      );
     }
 
     const url = await this.r2Client.getPresignedDownloadUrl(

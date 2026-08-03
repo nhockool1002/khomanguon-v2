@@ -13,7 +13,7 @@ import {
 import type { UpdateMailTemplatesDto } from './dto/update-mail-templates.dto';
 
 interface SendMailInput {
-  to: string;
+  to: string | string[];
   subject: string;
   html: string;
 }
@@ -41,9 +41,11 @@ export class MailService {
     private readonly config: ConfigService,
     private readonly prisma: PrismaService,
   ) {
+    // Bắt buộc từ admin@khomanguon.org (mặc định) — env MAIL_FROM chỉ nên dùng để đổi khi cần thiết
+    // thật sự (vd chưa xác thực domain khomanguon.org tại Mailjet), không phải để dùng địa chỉ khác.
     this.from =
       this.config.get<string>('MAIL_FROM') ??
-      'khomanguon <no-reply@khomanguon.local>';
+      'khomanguon <admin@khomanguon.org>';
     const host = this.config.get<string>('SMTP_HOST');
 
     this.envTransporter = host
@@ -83,7 +85,9 @@ export class MailService {
   async send({ to, subject, html }: SendMailInput): Promise<void> {
     const transporter = await this.getTransporter();
     if (!transporter) {
-      this.logger.log(`[DEV MAIL] to=${to} subject="${subject}"\n${html}`);
+      this.logger.log(
+        `[DEV MAIL] to=${Array.isArray(to) ? to.join(', ') : to} subject="${subject}"\n${html}`,
+      );
       return;
     }
     await transporter.sendMail({ from: this.from, to, subject, html });
@@ -136,21 +140,26 @@ export class MailService {
     return next;
   }
 
-  // Gửi mail thông báo nội bộ (KHÔNG throw ra ngoài) — đây là side-effect phụ của luồng nạp
-  // tiền/tải file, lỗi gửi mail (Mailjet down, chưa cấu hình notifyEmail...) không được làm hỏng
-  // luồng chính. Bỏ qua im lặng nếu notifyEmail chưa cấu hình.
+  // Gửi mail thông báo (KHÔNG throw ra ngoài) — đây là side-effect phụ của luồng nạp tiền/tải file,
+  // lỗi gửi mail (Mailjet down...) không được làm hỏng luồng chính. Người nhận LUÔN gồm cả
+  // notifyEmail (Admin, để trống thì bỏ qua phần này) VÀ userEmail (chính user vừa nạp/tải, dùng
+  // như email xác nhận giao dịch — luôn gửi, không phụ thuộc notifyEmail có cấu hình hay không).
   private async sendNotification(
     kind: 'topupSuccess' | 'downloadUnlock',
     vars: Record<string, string>,
+    userEmail: string,
   ): Promise<void> {
     try {
       const templates = await this.getTemplates();
-      if (!templates.notifyEmail) return;
+      const recipients = [
+        ...new Set([templates.notifyEmail, userEmail].filter(Boolean)),
+      ];
+      if (recipients.length === 0) return;
       const { subject, html } = renderMailTemplate(templates[kind], {
         timestamp: formatTimestamp(new Date()),
         ...vars,
       });
-      await this.send({ to: templates.notifyEmail, subject, html });
+      await this.send({ to: recipients, subject, html });
     } catch (err) {
       this.logger.warn(
         `Gửi mail thông báo "${kind}" thất bại: ${err instanceof Error ? err.message : String(err)}`,
@@ -158,31 +167,43 @@ export class MailService {
     }
   }
 
-  async sendTopupSuccessNotification(vars: {
-    displayName: string;
-    amountVnd: string;
-    paymentMethod: string;
-    transactionCode: string;
-  }): Promise<void> {
-    await this.sendNotification('topupSuccess', vars);
+  async sendTopupSuccessNotification(
+    vars: {
+      displayName: string;
+      amountVnd: string;
+      paymentMethod: string;
+      transactionCode: string;
+    },
+    userEmail: string,
+  ): Promise<void> {
+    await this.sendNotification('topupSuccess', vars, userEmail);
   }
 
-  async sendDownloadUnlockNotification(vars: {
-    displayName: string;
-    postTitle: string;
-    fileName: string;
-    priceP: string;
-  }): Promise<void> {
-    await this.sendNotification('downloadUnlock', vars);
+  async sendDownloadUnlockNotification(
+    vars: {
+      displayName: string;
+      postTitle: string;
+      fileName: string;
+      priceP: string;
+    },
+    userEmail: string,
+  ): Promise<void> {
+    await this.sendNotification('downloadUnlock', vars, userEmail);
   }
 
-  // Nút "Gửi thử" ở trang Admin — dùng dữ liệu mẫu, trả {success,message} thay vì throw (khớp
-  // pattern testApiConnection() của sepay.service.ts) để FE hiện lỗi thật thay vì 500 chung chung.
+  // Nút "Gửi thử" ở trang Admin — dùng dữ liệu mẫu, gửi đúng cả 2 người nhận thật (notifyEmail +
+  // email của chính admin đang bấm nút) để kiểm chứng đúng logic 2 người nhận của luồng thật. Trả
+  // {success,message} thay vì throw (khớp pattern testApiConnection() của sepay.service.ts) để FE
+  // hiện lỗi thật thay vì 500 chung chung.
   async sendTestNotification(
     kind: 'topupSuccess' | 'downloadUnlock',
+    testerEmail: string,
   ): Promise<{ success: boolean; message: string }> {
     const templates = await this.getTemplates();
-    if (!templates.notifyEmail) {
+    const recipients = [
+      ...new Set([templates.notifyEmail, testerEmail].filter(Boolean)),
+    ];
+    if (recipients.length === 0) {
       return {
         success: false,
         message:
@@ -208,10 +229,10 @@ export class MailService {
       ...sampleVars,
     });
     try {
-      await this.send({ to: templates.notifyEmail, subject, html });
+      await this.send({ to: recipients, subject, html });
       return {
         success: true,
-        message: `Đã gửi email thử tới ${templates.notifyEmail}.`,
+        message: `Đã gửi email thử tới ${recipients.join(', ')}.`,
       };
     } catch (err) {
       return {

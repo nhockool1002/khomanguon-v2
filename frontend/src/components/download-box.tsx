@@ -18,7 +18,6 @@ export function DownloadBox({ postId }: { postId: string }) {
   const [link, setLink] = useState<DownloadLinkPublic | null | undefined>(undefined);
   const [unlocking, setUnlocking] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [downloadUrl, setDownloadUrl] = useState<string | null>(null);
 
   useEffect(() => {
     apiFetch<DownloadLinkPublic | null>(`/posts/${postId}/download-link`)
@@ -26,6 +25,9 @@ export function DownloadBox({ postId }: { postId: string }) {
       .catch(() => setLink(null));
   }, [postId]);
 
+  // Không giữ lại link tải sau khi mở khoá — nút luôn trở về trạng thái khoá ngay sau khi mở tab
+  // tải, bấm lại lần nữa tính như 1 lượt mở khoá mới (trừ $P mới), khớp đúng "mỗi lần tải trừ $P"
+  // (không phải trả 1 lần dùng mãi mãi trong cùng phiên xem trang).
   async function handleUnlock() {
     if (!user) {
       router.push("/dang-nhap");
@@ -37,7 +39,6 @@ export function DownloadBox({ postId }: { postId: string }) {
       const res = await apiFetch<{ url: string }>(`/posts/${postId}/download-link/unlock`, {
         method: "POST",
       });
-      setDownloadUrl(res.url);
       window.open(res.url, "_blank", "noopener,noreferrer");
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "Có lỗi xảy ra");
@@ -116,15 +117,6 @@ export function DownloadBox({ postId }: { postId: string }) {
           </Link>{" "}
           trước.
         </p>
-      ) : downloadUrl ? (
-        <a
-          href={downloadUrl}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="rounded-lg bg-gradient-to-r from-[#ff5da2] to-[#ffcf3f] px-5 py-3 text-center text-sm font-semibold text-white shadow-sm hover:opacity-90"
-        >
-          ⬇ Tải xuống ngay
-        </a>
       ) : (
         <button
           type="button"

@@ -53,7 +53,10 @@ const DOWNLOAD_UNLOCK_HTML = `<p>Xin chào Admin,</p>
 <p>Vui lòng truy cập trang quản trị để đánh giá.</p>`;
 
 export const DEFAULT_MAIL_TEMPLATES: MailTemplates = {
-  notifyEmail: '',
+  // Mặc định email chủ dự án — Admin đổi lại qua /quan-tri/cai-dat/email nếu cần. Email này LUÔN
+  // được cộng thêm vào danh sách nhận (cùng với chính email của user vừa nạp/tải) — xem
+  // mail.service.ts sendNotification().
+  notifyEmail: 'nhut.nguyenminh.it@gmail.com',
   topupSuccess: {
     subject:
       'User [{{displayName}}] đã thực hiện một khoản thanh toán tại KHOMANGUON.ORG [{{timestamp}}]',
