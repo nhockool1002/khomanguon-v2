@@ -7,6 +7,7 @@ import {
   Patch,
   Post,
   UseGuards,
+  UseInterceptors,
 } from '@nestjs/common';
 import { CategoriesService } from './categories.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
@@ -15,6 +16,8 @@ import { Permissions } from '../roles/decorators/permissions.decorator';
 import { PERMISSIONS } from '../roles/permissions.constant';
 import { CreateCategoryDto } from './dto/create-category.dto';
 import { UpdateCategoryDto } from './dto/update-category.dto';
+import { Cacheable } from '../cache/cacheable.decorator';
+import { HttpCacheInterceptor } from '../cache/http-cache.interceptor';
 
 // Chưa có quyền "category.manage" riêng trong ma trận RBAC (mục 06 tài liệu thiết kế) —
 // tái dùng post.publish vì đây cũng là thao tác cấu trúc nội dung chỉ Admin/Super Mod được làm.
@@ -22,6 +25,8 @@ import { UpdateCategoryDto } from './dto/update-category.dto';
 export class CategoriesController {
   constructor(private readonly categoriesService: CategoriesService) {}
 
+  @UseInterceptors(HttpCacheInterceptor)
+  @Cacheable('categories', 300)
   @Get()
   list() {
     return this.categoriesService.list();

@@ -6,6 +6,7 @@ import {
 import { PrismaService } from '../prisma/prisma.service';
 import { buildUniqueSlug } from '../common/slugify';
 import { DEFAULT_ROLES } from './permissions.constant';
+import { CacheService } from '../cache/cache.service';
 
 const roleWithPermissionsSelect = {
   id: true,
@@ -30,7 +31,10 @@ export interface RoleStyleInput {
 
 @Injectable()
 export class RolesService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly cache: CacheService,
+  ) {}
 
   async getUserPermissionKeys(userId: string): Promise<string[]> {
     const rows = await this.prisma.rolePermission.findMany({
@@ -141,6 +145,7 @@ export class RolesService {
       },
     });
     await this.syncRolePermissions(role.id, dto.permissionKeys);
+    await this.cache.invalidatePrefix('roles');
     return this.getRole(role.id);
   }
 
@@ -165,6 +170,7 @@ export class RolesService {
     if (dto.permissionKeys !== undefined) {
       await this.syncRolePermissions(id, dto.permissionKeys);
     }
+    await this.cache.invalidatePrefix('roles');
     return this.getRole(id);
   }
 
@@ -190,6 +196,7 @@ export class RolesService {
       throw new BadRequestException('Không thể xoá vai trò hệ thống');
     }
     await this.prisma.role.delete({ where: { id } });
+    await this.cache.invalidatePrefix('roles');
   }
 
   private toRoleDto(role: {

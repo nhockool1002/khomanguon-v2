@@ -7,6 +7,7 @@ import {
   Patch,
   Post,
   UseGuards,
+  UseInterceptors,
 } from '@nestjs/common';
 import { WidgetsService } from './widgets.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
@@ -16,6 +17,8 @@ import { PERMISSIONS } from '../roles/permissions.constant';
 import { CreateWidgetDto } from './dto/create-widget.dto';
 import { UpdateWidgetDto } from './dto/update-widget.dto';
 import { ReorderWidgetDto } from './dto/reorder-widget.dto';
+import { Cacheable } from '../cache/cacheable.decorator';
+import { HttpCacheInterceptor } from '../cache/http-cache.interceptor';
 
 // PermissionsGuard chỉ đọc metadata gắn trực tiếp trên từng handler — @Permissions phải khai báo
 // lại ở mỗi method, không đặt 1 lần ở class (xem storage-providers.controller.ts).
@@ -24,6 +27,8 @@ export class WidgetsController {
   constructor(private readonly widgetsService: WidgetsService) {}
 
   // Public — trang chủ/trang bài viết đọc để render sidebar (UC tương đương UC16 menu).
+  @UseInterceptors(HttpCacheInterceptor)
+  @Cacheable('widgets', 300)
   @Get()
   list() {
     return this.widgetsService.list();

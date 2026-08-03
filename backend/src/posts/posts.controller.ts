@@ -8,6 +8,7 @@ import {
   Post,
   Query,
   UseGuards,
+  UseInterceptors,
 } from '@nestjs/common';
 import { PostStatus } from '@prisma/client';
 import { PostsService } from './posts.service';
@@ -18,6 +19,8 @@ import { PERMISSIONS } from '../roles/permissions.constant';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { CreatePostDto } from './dto/create-post.dto';
 import { UpdatePostDto } from './dto/update-post.dto';
+import { Cacheable } from '../cache/cacheable.decorator';
+import { HttpCacheInterceptor } from '../cache/http-cache.interceptor';
 
 interface AuthUser {
   id: string;
@@ -33,6 +36,8 @@ export class PostsController {
   constructor(private readonly postsService: PostsService) {}
 
   // Danh sách công khai — chỉ bài PUBLISHED (wireframe #01/#02), hỗ trợ tìm kiếm + sắp xếp (UC05).
+  @UseInterceptors(HttpCacheInterceptor)
+  @Cacheable('posts', 60)
   @Get()
   list(
     @Query('category') categorySlug?: string,
@@ -73,7 +78,10 @@ export class PostsController {
     return this.postsService.getByIdAdmin(id);
   }
 
-  // Chi tiết công khai theo slug (wireframe #03).
+  // Chi tiết công khai theo slug (wireframe #03) — cache 120s dù có tăng viewCount mỗi lượt xem,
+  // xem PostsService.getBySlugPublic để hiểu đánh đổi độ trễ viewCount vs hiệu quả cache.
+  @UseInterceptors(HttpCacheInterceptor)
+  @Cacheable('posts', 120)
   @Get(':slug')
   getBySlug(@Param('slug') slug: string) {
     return this.postsService.getBySlugPublic(slug);

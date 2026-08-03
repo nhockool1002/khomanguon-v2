@@ -8,6 +8,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { CreateMenuDto } from './dto/create-menu.dto';
 import { UpdateMenuDto } from './dto/update-menu.dto';
 import { ReorderMenuDto } from './dto/reorder-menu.dto';
+import { CacheService } from '../cache/cache.service';
 
 const menuSelect = {
   id: true,
@@ -29,7 +30,10 @@ function toMenuDto(menu: MenuRow) {
 
 @Injectable()
 export class MenusService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly cache: CacheService,
+  ) {}
 
   async list() {
     const rows = await this.prisma.menu.findMany({
@@ -58,6 +62,7 @@ export class MenusService {
       },
     });
     if (dto.roleSlugs) await this.syncRoles(menu.id, dto.roleSlugs);
+    await this.cache.invalidatePrefix('menus');
     return this.getOne(menu.id);
   }
 
@@ -83,12 +88,14 @@ export class MenusService {
       },
     });
     if (dto.roleSlugs !== undefined) await this.syncRoles(id, dto.roleSlugs);
+    await this.cache.invalidatePrefix('menus');
     return this.getOne(id);
   }
 
   async remove(id: string): Promise<void> {
     await this.assertExists(id);
     await this.prisma.menu.delete({ where: { id } });
+    await this.cache.invalidatePrefix('menus');
   }
 
   // Gọi sau mỗi lần kéo-thả — cập nhật order/parentId hàng loạt trong 1 transaction.
@@ -101,6 +108,7 @@ export class MenusService {
         }),
       ),
     );
+    await this.cache.invalidatePrefix('menus');
   }
 
   private async getOne(id: string) {

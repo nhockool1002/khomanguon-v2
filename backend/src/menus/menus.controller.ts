@@ -7,6 +7,7 @@ import {
   Patch,
   Post,
   UseGuards,
+  UseInterceptors,
 } from '@nestjs/common';
 import { MenusService } from './menus.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
@@ -16,12 +17,16 @@ import { PERMISSIONS } from '../roles/permissions.constant';
 import { CreateMenuDto } from './dto/create-menu.dto';
 import { UpdateMenuDto } from './dto/update-menu.dto';
 import { ReorderMenuDto } from './dto/reorder-menu.dto';
+import { Cacheable } from '../cache/cacheable.decorator';
+import { HttpCacheInterceptor } from '../cache/http-cache.interceptor';
 
 @Controller('menus')
 export class MenusController {
   constructor(private readonly menusService: MenusService) {}
 
   // Public — navbar site đọc cây menu để render (UC16).
+  @UseInterceptors(HttpCacheInterceptor)
+  @Cacheable('menus', 300)
   @Get()
   list() {
     return this.menusService.list();

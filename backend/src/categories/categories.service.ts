@@ -7,10 +7,14 @@ import { PrismaService } from '../prisma/prisma.service';
 import { buildUniqueSlug } from '../common/slugify';
 import { CreateCategoryDto } from './dto/create-category.dto';
 import { UpdateCategoryDto } from './dto/update-category.dto';
+import { CacheService } from '../cache/cache.service';
 
 @Injectable()
 export class CategoriesService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly cache: CacheService,
+  ) {}
 
   list() {
     return this.prisma.category.findMany({
@@ -28,10 +32,12 @@ export class CategoriesService {
           this.slugTaken(candidate),
         );
 
-    return this.prisma.category.create({
+    const created = await this.prisma.category.create({
       data: { name: dto.name, slug, parentId: dto.parentId ?? null },
       select: { id: true, name: true, slug: true, parentId: true },
     });
+    await this.cache.invalidatePrefix('categories');
+    return created;
   }
 
   async update(id: string, dto: UpdateCategoryDto) {
@@ -43,7 +49,7 @@ export class CategoriesService {
       await this.assertParentExists(dto.parentId);
     }
 
-    return this.prisma.category.update({
+    const updated = await this.prisma.category.update({
       where: { id },
       data: {
         ...(dto.name !== undefined && { name: dto.name }),
@@ -52,11 +58,14 @@ export class CategoriesService {
       },
       select: { id: true, name: true, slug: true, parentId: true },
     });
+    await this.cache.invalidatePrefix('categories');
+    return updated;
   }
 
   async remove(id: string): Promise<void> {
     await this.getOrThrow(id);
     await this.prisma.category.delete({ where: { id } });
+    await this.cache.invalidatePrefix('categories');
   }
 
   private async getOrThrow(id: string) {

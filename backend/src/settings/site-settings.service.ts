@@ -7,6 +7,7 @@ import {
   GENERAL_SETTINGS_KEY,
   type GeneralSettings,
 } from './site-settings.types';
+import { CacheService } from '../cache/cache.service';
 
 // Ép kiểu an toàn cho cột Json của Prisma — round-trip qua JSON luôn thoả Prisma.InputJsonValue
 // (giống hệt lý do trong sepay.service.ts: nest start --watch dùng SWC transpile-only).
@@ -16,7 +17,10 @@ function toJsonValue<T>(value: T): Prisma.InputJsonValue {
 
 @Injectable()
 export class SiteSettingsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly cache: CacheService,
+  ) {}
 
   async getGeneralSettings(): Promise<GeneralSettings> {
     const row = await this.prisma.siteSetting.findUnique({
@@ -90,6 +94,7 @@ export class SiteSettingsService {
       update: { value: toJsonValue(next) },
       create: { key: GENERAL_SETTINGS_KEY, value: toJsonValue(next) },
     });
+    await this.cache.invalidatePrefix('settings');
     return next;
   }
 }

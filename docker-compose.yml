@@ -35,6 +35,11 @@ services:
       REDIS_URL: redis://redis:6379
       PORT: 4000
       FRONTEND_URL: http://localhost:3000
+      # "Xoá cache" gọi POST {FRONTEND_URL}/api/revalidate — nhưng từ trong container backend,
+      # "localhost:3000" trỏ vào chính nó, không phải container frontend. Override riêng cho lượt
+      # gọi này qua tên service Docker (xem backend/src/cache/frontend-revalidate.service.ts).
+      FRONTEND_INTERNAL_URL: http://frontend:3000
+      REVALIDATE_SECRET: dev-only-change-me-revalidate-secret
     ports:
       - "4000:4000"
     depends_on:
@@ -52,6 +57,8 @@ services:
     command: sh -c "corepack enable && pnpm install --frozen-lockfile && pnpm run dev"
     environment:
       NEXT_PUBLIC_API_URL: http://localhost:4000
+      NEXT_PUBLIC_SITE_URL: http://localhost:3000
+      REVALIDATE_SECRET: dev-only-change-me-revalidate-secret
     ports:
       - "3000:3000"
     depends_on:

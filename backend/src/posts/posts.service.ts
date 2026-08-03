@@ -10,6 +10,7 @@ import { RolesService } from '../roles/roles.service';
 import { PERMISSIONS } from '../roles/permissions.constant';
 import { resolveStyleRoleSlug } from '../roles/style-role.util';
 import { buildUniqueSlug } from '../common/slugify';
+import { CacheService } from '../cache/cache.service';
 import { CreatePostDto } from './dto/create-post.dto';
 import { UpdatePostDto } from './dto/update-post.dto';
 
@@ -81,6 +82,7 @@ export class PostsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly roles: RolesService,
+    private readonly cache: CacheService,
   ) {}
 
   // "sort=popular" sắp theo viewCount — tìm kiếm dùng ILIKE trên title/excerpt (đơn giản, đủ
@@ -120,6 +122,9 @@ export class PostsService {
     return { items: items.map(mapAuthor), total };
   }
 
+  // Route GET :slug được @Cacheable ở controller — cố tình KHÔNG invalidatePrefix('posts') ở đây
+  // dù có update viewCount, nếu không object cache sẽ bị xoá lại ngay ở mỗi lượt xem, mất hết tác
+  // dụng. Chấp nhận viewCount hiển thị có độ trễ tối đa bằng TTL cache của route này.
   async getBySlugPublic(slug: string) {
     const post = await this.prisma.post.findFirst({
       where: { slug, status: PostStatus.PUBLISHED },
@@ -192,6 +197,7 @@ export class PostsService {
       },
       select: detailSelect,
     });
+    await this.cache.invalidatePrefix('posts');
     return mapAuthor(created);
   }
 
@@ -242,6 +248,7 @@ export class PostsService {
       },
       select: detailSelect,
     });
+    await this.cache.invalidatePrefix('posts');
     return mapAuthor(updated);
   }
 
@@ -249,6 +256,7 @@ export class PostsService {
     const post = await this.prisma.post.findUnique({ where: { id } });
     if (!post) throw new NotFoundException('Không tìm thấy bài viết');
     await this.prisma.post.delete({ where: { id } });
+    await this.cache.invalidatePrefix('posts');
   }
 
   // Chỉ user có quyền post.publish mới được đặt status PUBLISHED trực tiếp

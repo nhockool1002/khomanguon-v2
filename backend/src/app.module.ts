@@ -23,6 +23,7 @@ import { WidgetsModule } from './widgets/widgets.module';
 import { NotificationsModule } from './notifications/notifications.module';
 import { SiteSettingsModule } from './settings/site-settings.module';
 import { MediaModule } from './media/media.module';
+import { CacheModule } from './cache/cache.module';
 
 @Module({
   imports: [
@@ -32,6 +33,7 @@ import { MediaModule } from './media/media.module';
     MailModule,
     RolesModule,
     AuthModule,
+    CacheModule,
     UsersModule,
     CategoriesModule,
     PostsModule,
