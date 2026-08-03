@@ -28,12 +28,95 @@ body {
  * @tailwindcss/typography mặc định "display: block" cho mọi <img> trong .prose — đúng cho ảnh đơn,
  * nhưng làm vỡ layout các bài đã migrate từ WordPress, nơi nhiều <img> đứng liền kề nhau trong cùng
  * một <div>/<p> (không có gallery block riêng) để hiển thị thành 1 hàng như bản v1. Chỉ override
- * những ảnh có ảnh liền kề (img + img / img:has(+ img)) sang inline-block — ảnh đơn lẻ giữ nguyên
- * hành vi mặc định (block, căn giữa).
+ * những ảnh có ảnh liền kề sang margin/vertical-align kiểu hàng ngang — ảnh đơn lẻ giữ nguyên hành
+ * vi mặc định (block). ProseContent (prose-content.tsx) bọc mỗi <img> trong span.img-shine (hiệu
+ * ứng hover) nên selector "liền kề" nhắm vào .img-shine chứ không phải img trực tiếp nữa.
  */
-.prose img + img,
-.prose img:has(+ img) {
-  display: inline-block;
+.prose .img-shine + .img-shine,
+.prose .img-shine:has(+ .img-shine) {
   margin: 0.25rem;
   vertical-align: top;
+}
+
+/*
+ * Khối "Tải về siêu tốc" (download-box.tsx) — viền cầu vồng xoay liên tục + nút CTA gradient chạy
+ * màu, khớp hiệu ứng bản v1 cũ (khomanguon.org). Dùng @property để animate góc quay của
+ * conic-gradient mượt bằng CSS thuần, không cần JS/pseudo-element lồng nhau.
+ */
+@property --download-box-angle {
+  syntax: "<angle>";
+  inherits: false;
+  initial-value: 0deg;
+}
+
+.download-box-border {
+  background: conic-gradient(
+    from var(--download-box-angle),
+    #ff5da2,
+    #ff8a3d,
+    #ffcf3f,
+    #6dd67a,
+    #3fd4d4,
+    #4d7cff,
+    #b45df0,
+    #ff5da2
+  );
+  animation: download-box-spin 4s linear infinite;
+}
+
+@keyframes download-box-spin {
+  to {
+    --download-box-angle: 360deg;
+  }
+}
+
+.download-box-cta {
+  background-image: linear-gradient(
+    90deg,
+    #ff5da2,
+    #ff8a3d,
+    #ffcf3f,
+    #6dd67a,
+    #3fd4d4,
+    #4d7cff,
+    #b45df0,
+    #ff5da2
+  );
+  background-size: 200% 100%;
+  animation: download-box-cta-shift 3s linear infinite;
+}
+
+@keyframes download-box-cta-shift {
+  to {
+    background-position: -200% 0;
+  }
+}
+
+/*
+ * Ảnh trong bài viết — hiệu ứng "tráng gương" (dải sáng chạy chéo) khi hover. <img> là replaced
+ * element nên không nhận ::before/::after — cần bọc wrapper .img-shine (xem prose-content.tsx).
+ */
+.img-shine {
+  position: relative;
+  display: inline-block;
+  overflow: hidden;
+}
+
+.img-shine::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  transform: translateX(-130%);
+  background: linear-gradient(
+    115deg,
+    transparent 40%,
+    rgba(255, 255, 255, 0.55) 50%,
+    transparent 60%
+  );
+  pointer-events: none;
+}
+
+.img-shine:hover::after {
+  transform: translateX(130%);
+  transition: transform 0.8s ease;
 }

@@ -278,7 +278,7 @@ export class AuthService {
       },
     });
     const resetUrl = `${this.config.get<string>('FRONTEND_URL')}/dat-lai-mat-khau?token=${rawToken}`;
-    await this.mail.sendPasswordResetEmail(email, resetUrl);
+    await this.mail.sendPasswordResetEmail(email, user.displayName, resetUrl);
   }
 
   async resetPassword(rawToken: string, newPassword: string): Promise<void> {

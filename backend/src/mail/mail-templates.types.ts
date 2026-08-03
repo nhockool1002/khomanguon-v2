@@ -12,6 +12,9 @@ export interface MailTemplates {
   notifyEmail: string;
   topupSuccess: MailTemplateConfig;
   downloadUnlock: MailTemplateConfig;
+  // Gửi CHO USER (không phải thông báo Admin) — dùng chung cho cả luồng tự phục vụ
+  // (/auth/forgot-password) lẫn admin bấm "Đặt lại mật khẩu" ở trang quản lý user.
+  passwordReset: MailTemplateConfig;
 }
 
 export const MAIL_TEMPLATES_KEY = 'mail_templates';
@@ -52,6 +55,11 @@ const DOWNLOAD_UNLOCK_HTML = `<p>Xin chào Admin,</p>
 </table>
 <p>Vui lòng truy cập trang quản trị để đánh giá.</p>`;
 
+const PASSWORD_RESET_HTML = `<p>Chào {{displayName}},</p>
+<p>Bấm vào link sau để đặt lại mật khẩu (hết hạn sau 15 phút, chỉ dùng được 1 lần):</p>
+<p><a href="{{resetUrl}}">{{resetUrl}}</a></p>
+<p>Nếu không phải bạn yêu cầu, hãy bỏ qua email này.</p>`;
+
 export const DEFAULT_MAIL_TEMPLATES: MailTemplates = {
   // Mặc định email chủ dự án — Admin đổi lại qua /quan-tri/cai-dat/email nếu cần. Email này LUÔN
   // được cộng thêm vào danh sách nhận (cùng với chính email của user vừa nạp/tải) — xem
@@ -66,6 +74,10 @@ export const DEFAULT_MAIL_TEMPLATES: MailTemplates = {
     subject:
       'User [{{displayName}}] đã tải file tại KHOMANGUON.ORG [{{timestamp}}]',
     html: DOWNLOAD_UNLOCK_HTML,
+  },
+  passwordReset: {
+    subject: 'Đặt lại mật khẩu khomanguon',
+    html: PASSWORD_RESET_HTML,
   },
 };
 

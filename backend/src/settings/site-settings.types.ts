@@ -14,6 +14,18 @@ export interface GeneralSettings {
   // % vị trí ảnh nền (0 = trái/trên, 100 = phải/dưới) — cho phép "kéo" ảnh tới vị trí tuỳ ý.
   headerBackgroundPositionX: number;
   headerBackgroundPositionY: number;
+  // Chiều cao tối thiểu khối banner (px) — nội dung ít vẫn giữ đủ cao, nội dung dài hơn thì banner
+  // tự giãn theo (dùng min-height, không phải height cố định).
+  headerMinHeight: number;
+  // Style chữ khối banner — fontFamily là key trong FONT_OPTIONS (frontend/src/lib/fonts.ts, đã
+  // dùng cho role badge), null = dùng font mặc định của site (Arial).
+  headerTitleColor: string;
+  headerTitleFontFamily: string | null;
+  headerTitleBold: boolean;
+  headerSloganColor: string;
+  headerSloganFontFamily: string | null;
+  headerSloganBold: boolean;
+  headerSloganItalic: boolean;
   // PLAN.md 2.6 (SEO toàn site) — để trống thì không render thẻ/script tương ứng.
   gaTrackingId: string; // "G-XXXXXXX" — gắn gtag.js vào layout.tsx
   googleSiteVerification: string; // nội dung thẻ <meta name="google-site-verification">
@@ -32,6 +44,14 @@ export const DEFAULT_GENERAL_SETTINGS: GeneralSettings = {
   headerBackgroundAttachment: 'scroll',
   headerBackgroundPositionX: 50,
   headerBackgroundPositionY: 50,
+  headerMinHeight: 260,
+  headerTitleColor: '#c7d2e0',
+  headerTitleFontFamily: null,
+  headerTitleBold: false,
+  headerSloganColor: '#ffffff',
+  headerSloganFontFamily: null,
+  headerSloganBold: true,
+  headerSloganItalic: false,
   gaTrackingId: '',
   googleSiteVerification: '',
 };

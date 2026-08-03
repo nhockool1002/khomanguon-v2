@@ -6,20 +6,25 @@ import {
   UnauthorizedException,
 } from '@nestjs/common';
 import * as argon2 from 'argon2';
-import { UserStatus } from '@prisma/client';
+import { Prisma, UserStatus } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { RolesService } from '../roles/roles.service';
 import { resolveStyleRoleSlug } from '../roles/style-role.util';
 import { PERMISSIONS } from '../roles/permissions.constant';
+import { AuthService } from '../auth/auth.service';
 import { UpdateProfileDto } from './dto/update-profile.dto';
 import { ChangePasswordDto } from './dto/change-password.dto';
 import { CreateProfileMessageDto } from './dto/create-profile-message.dto';
+
+export type UserSortBy = 'email' | 'displayName' | 'status' | 'createdAt';
+export type SortDir = 'asc' | 'desc';
 
 @Injectable()
 export class UsersService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly roles: RolesService,
+    private readonly authService: AuthService,
   ) {}
 
   async getProfile(userId: string) {
@@ -179,12 +184,27 @@ export class UsersService {
     });
   }
 
-  async list(skip: number, take: number) {
+  async list(
+    skip: number,
+    take: number,
+    search?: string,
+    sortBy: UserSortBy = 'createdAt',
+    sortDir: SortDir = 'desc',
+  ) {
+    const where: Prisma.UserWhereInput | undefined = search?.trim()
+      ? {
+          OR: [
+            { email: { contains: search.trim(), mode: 'insensitive' } },
+            { displayName: { contains: search.trim(), mode: 'insensitive' } },
+          ],
+        }
+      : undefined;
     const [items, total] = await this.prisma.$transaction([
       this.prisma.user.findMany({
+        where,
         skip,
         take,
-        orderBy: { createdAt: 'desc' },
+        orderBy: { [sortBy]: sortDir },
         select: {
           id: true,
           email: true,
@@ -194,7 +214,7 @@ export class UsersService {
           roles: { select: { role: { select: { slug: true, name: true } } } },
         },
       }),
-      this.prisma.user.count(),
+      this.prisma.user.count({ where }),
     ]);
     return {
       items: items.map((u) => ({
@@ -203,6 +223,17 @@ export class UsersService {
       })),
       total,
     };
+  }
+
+  // Admin bấm "Đặt lại mật khẩu" thay user — tái dùng thẳng luồng forgotPassword() tự phục vụ (đã có
+  // sẵn sinh token + gửi mail), không viết lại logic token riêng. Không throw nếu user không tồn tại
+  // (đồng nhất hành vi với forgotPassword), nhưng ở đây id lấy từ danh sách admin nên luôn tồn tại.
+  async sendResetPasswordEmail(userId: string): Promise<void> {
+    const user = await this.prisma.user.findUniqueOrThrow({
+      where: { id: userId },
+      select: { email: true },
+    });
+    await this.authService.forgotPassword(user.email);
   }
 
   // Khoá/mở tài khoản (UC08 — chặn user spam bình luận) — khoá xong thu hồi hết refresh

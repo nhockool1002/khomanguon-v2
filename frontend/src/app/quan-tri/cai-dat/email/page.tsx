@@ -19,18 +19,44 @@ const TEMPLATE_INFO = {
     title: "Khi user tải file thành công",
     placeholders: ["displayName", "postTitle", "fileName", "priceP", "timestamp"],
   },
+  passwordReset: {
+    title: "Khi user yêu cầu đặt lại mật khẩu",
+    placeholders: ["displayName", "resetUrl", "timestamp"],
+  },
 } as const;
 
 type Kind = keyof typeof TEMPLATE_INFO;
+type SectionKey = "notifyEmail" | Kind;
+
+function ChevronIcon({ open }: { open: boolean }) {
+  return (
+    <svg
+      width="14"
+      height="14"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2.5"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className={`flex-none text-zinc-400 transition-transform ${open ? "" : "-rotate-90"}`}
+    >
+      <path d="M6 9l6 6 6-6" />
+    </svg>
+  );
+}
 
 export default function MailTemplatesPage() {
   const { user, loading } = useAuth();
   const router = useRouter();
 
+  // Accordion — chỉ 1 mục mở tại 1 thời điểm cho đỡ rối, mặc định đóng hết.
+  const [openSection, setOpenSection] = useState<SectionKey | null>(null);
   const [notifyEmail, setNotifyEmail] = useState("");
   const [templates, setTemplates] = useState<Record<Kind, MailTemplateConfig>>({
     topupSuccess: { subject: "", html: "" },
     downloadUnlock: { subject: "", html: "" },
+    passwordReset: { subject: "", html: "" },
   });
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
@@ -46,7 +72,11 @@ export default function MailTemplatesPage() {
     apiFetch<MailTemplates>("/mail/templates")
       .then((res) => {
         setNotifyEmail(res.notifyEmail);
-        setTemplates({ topupSuccess: res.topupSuccess, downloadUnlock: res.downloadUnlock });
+        setTemplates({
+          topupSuccess: res.topupSuccess,
+          downloadUnlock: res.downloadUnlock,
+          passwordReset: res.passwordReset,
+        });
       })
       .catch((err) => setError(err instanceof ApiError ? err.message : "Có lỗi xảy ra"));
   }, []);
@@ -111,59 +141,102 @@ export default function MailTemplatesPage() {
       <ErrorBanner message={error} />
       <SuccessBanner message={message} />
 
-      <div className="flex flex-col gap-3 rounded-md border border-zinc-200 p-4">
-        <label className="flex flex-col gap-1 text-sm text-zinc-700">
-          Email nhận thông báo
-          <input
-            type="email"
-            value={notifyEmail}
-            onChange={(e) => setNotifyEmail(e.target.value)}
-            placeholder="admin@khomanguon.org"
-            className={inputClass}
-          />
-          <span className="text-xs text-zinc-400">
-            Để trống thì tắt hẳn tính năng gửi thông báo (không gửi email nào).
+      <div className="rounded-md border border-zinc-200">
+        <button
+          type="button"
+          onClick={() => setOpenSection((s) => (s === "notifyEmail" ? null : "notifyEmail"))}
+          className="flex w-full items-center justify-between gap-2 px-4 py-3 text-left"
+        >
+          <span className="flex flex-col">
+            <span className="text-xs font-semibold uppercase tracking-wide text-zinc-500">
+              Email nhận thông báo
+            </span>
+            {openSection !== "notifyEmail" && (
+              <span className="mt-0.5 text-xs text-zinc-400">
+                {notifyEmail || "Chưa cấu hình — tắt gửi thông báo"}
+              </span>
+            )}
           </span>
-        </label>
+          <ChevronIcon open={openSection === "notifyEmail"} />
+        </button>
+        {openSection === "notifyEmail" && (
+          <div className="border-t border-zinc-100 px-4 pb-4 pt-3">
+            <label className="flex flex-col gap-1 text-sm text-zinc-700">
+              Email nhận thông báo
+              <input
+                type="email"
+                value={notifyEmail}
+                onChange={(e) => setNotifyEmail(e.target.value)}
+                placeholder="admin@khomanguon.org"
+                className={inputClass}
+              />
+              <span className="text-xs text-zinc-400">
+                Để trống thì tắt hẳn tính năng gửi thông báo (không gửi email nào).
+              </span>
+            </label>
+          </div>
+        )}
       </div>
 
-      {(Object.keys(TEMPLATE_INFO) as Kind[]).map((kind) => (
-        <div key={kind} className="flex flex-col gap-3 rounded-md border border-zinc-200 p-4">
-          <div className="flex items-center justify-between gap-2">
-            <p className="text-xs font-semibold uppercase tracking-wide text-zinc-500">
-              {TEMPLATE_INFO[kind].title}
-            </p>
+      {(Object.keys(TEMPLATE_INFO) as Kind[]).map((kind) => {
+        const isOpen = openSection === kind;
+        return (
+          <div key={kind} className="rounded-md border border-zinc-200">
             <button
               type="button"
-              onClick={() => handleTestSend(kind)}
-              disabled={testing === kind}
-              className="rounded-md border border-zinc-300 px-3 py-1.5 text-xs font-medium text-zinc-700 hover:bg-zinc-50 disabled:opacity-50"
+              onClick={() => setOpenSection((s) => (s === kind ? null : kind))}
+              className="flex w-full items-center justify-between gap-2 px-4 py-3 text-left"
             >
-              {testing === kind ? "Đang gửi..." : "Gửi thử"}
+              <span className="flex flex-col">
+                <span className="text-xs font-semibold uppercase tracking-wide text-zinc-500">
+                  {TEMPLATE_INFO[kind].title}
+                </span>
+                {!isOpen && (
+                  <span className="mt-0.5 truncate text-xs text-zinc-400">
+                    {templates[kind].subject || "Chưa có tiêu đề"}
+                  </span>
+                )}
+              </span>
+              <ChevronIcon open={isOpen} />
             </button>
+            {isOpen && (
+              <div className="flex flex-col gap-3 border-t border-zinc-100 px-4 pb-4 pt-3">
+                <div className="flex items-center justify-between gap-2">
+                  <p className="text-xs text-zinc-400">
+                    Biến dùng được:{" "}
+                    {TEMPLATE_INFO[kind].placeholders.map((p) => `{{${p}}}`).join(", ")}
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => handleTestSend(kind)}
+                    disabled={testing === kind}
+                    className="flex-none rounded-md border border-zinc-300 px-3 py-1.5 text-xs font-medium text-zinc-700 hover:bg-zinc-50 disabled:opacity-50"
+                  >
+                    {testing === kind ? "Đang gửi..." : "Gửi thử"}
+                  </button>
+                </div>
+                <label className="flex flex-col gap-1 text-sm text-zinc-700">
+                  Tiêu đề
+                  <input
+                    value={templates[kind].subject}
+                    onChange={(e) => updateTemplate(kind, "subject", e.target.value)}
+                    className={inputClass}
+                  />
+                </label>
+                <label className="flex flex-col gap-1 text-sm text-zinc-700">
+                  Nội dung (HTML)
+                  <textarea
+                    value={templates[kind].html}
+                    onChange={(e) => updateTemplate(kind, "html", e.target.value)}
+                    rows={8}
+                    className={`${inputClass} font-mono text-xs`}
+                  />
+                </label>
+              </div>
+            )}
           </div>
-          <p className="text-xs text-zinc-400">
-            Biến dùng được: {TEMPLATE_INFO[kind].placeholders.map((p) => `{{${p}}}`).join(", ")}
-          </p>
-          <label className="flex flex-col gap-1 text-sm text-zinc-700">
-            Tiêu đề
-            <input
-              value={templates[kind].subject}
-              onChange={(e) => updateTemplate(kind, "subject", e.target.value)}
-              className={inputClass}
-            />
-          </label>
-          <label className="flex flex-col gap-1 text-sm text-zinc-700">
-            Nội dung (HTML)
-            <textarea
-              value={templates[kind].html}
-              onChange={(e) => updateTemplate(kind, "html", e.target.value)}
-              rows={8}
-              className={`${inputClass} font-mono text-xs`}
-            />
-          </label>
-        </div>
-      ))}
+        );
+      })}
 
       {testResult && (
         <p className={`text-sm ${testResult.success ? "text-emerald-600" : "text-red-600"}`}>

@@ -21,7 +21,11 @@ interface AuthUser {
   email: string;
 }
 
-const VALID_KINDS = ['topupSuccess', 'downloadUnlock'] as const;
+const VALID_KINDS = [
+  'topupSuccess',
+  'downloadUnlock',
+  'passwordReset',
+] as const;
 type NotificationKind = (typeof VALID_KINDS)[number];
 
 @Controller('mail/templates')
