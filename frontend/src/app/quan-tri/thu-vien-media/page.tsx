@@ -10,10 +10,6 @@ import { ErrorBanner, SuccessBanner } from "@/components/ui";
 
 const PAGE_SIZE = 24;
 
-function isImage(mimeType: string): boolean {
-  return mimeType.startsWith("image/");
-}
-
 function absoluteUrl(url: string): string {
   return url.startsWith("http") ? url : `${API_URL}${url}`;
 }
@@ -57,6 +53,16 @@ export default function MediaLibraryPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user, page, q]);
 
+  // Đóng modal xem chi tiết bằng phím Esc.
+  useEffect(() => {
+    if (!selected) return;
+    function handleKey(e: KeyboardEvent) {
+      if (e.key === "Escape") setSelected(null);
+    }
+    window.addEventListener("keydown", handleKey);
+    return () => window.removeEventListener("keydown", handleKey);
+  }, [selected]);
+
   function handleSearch(e: React.FormEvent) {
     e.preventDefault();
     setPage(1);
@@ -74,7 +80,7 @@ export default function MediaLibraryPage() {
       for (const file of files) {
         const formData = new FormData();
         formData.append("file", file);
-        await apiFetch<MediaFile>("/media", { method: "POST", body: formData });
+        await apiFetch("/media", { method: "POST", body: formData });
       }
       setMessage(`Đã tải lên ${files.length} tệp.`);
       setPage(1);
@@ -89,11 +95,11 @@ export default function MediaLibraryPage() {
   }
 
   async function handleDelete(file: MediaFile) {
-    if (!confirm(`Xoá "${file.originalName}"? Không thể hoàn tác.`)) return;
+    if (!confirm(`Xoá "${file.fileName}"? Không thể hoàn tác.`)) return;
     setError(null);
     try {
-      await apiFetch(`/media/${file.id}`, { method: "DELETE" });
-      if (selected?.id === file.id) setSelected(null);
+      await apiFetch(`/media?path=${encodeURIComponent(file.path)}`, { method: "DELETE" });
+      if (selected?.path === file.path) setSelected(null);
       loadFiles();
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "Có lỗi xảy ra");
@@ -102,7 +108,7 @@ export default function MediaLibraryPage() {
 
   async function handleCopyUrl(file: MediaFile) {
     await navigator.clipboard.writeText(absoluteUrl(file.url));
-    setMessage(`Đã copy URL: ${file.originalName}`);
+    setMessage(`Đã copy URL: ${file.fileName}`);
     setTimeout(() => setMessage(null), 2000);
   }
 
@@ -117,7 +123,9 @@ export default function MediaLibraryPage() {
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="text-xl font-semibold text-zinc-900">Thư viện Media</h1>
-          <p className="text-sm text-zinc-500">Quản lý ảnh đã tải lên — tương tự Media Library của WordPress.</p>
+          <p className="text-sm text-zinc-500">
+            Quản lý ảnh đã tải lên (uploads/posts/yyyy/mm/dd) — tương tự Media Library của WordPress.
+          </p>
         </div>
         <label className="w-fit cursor-pointer rounded-md bg-[#1d3557] px-4 py-2 text-sm font-medium text-white hover:bg-[#16294a]">
           {uploading ? "Đang tải lên..." : "＋ Tải tệp lên"}
@@ -163,130 +171,128 @@ export default function MediaLibraryPage() {
         )}
       </form>
 
-      <div className="flex gap-4">
-        <div className="flex-1">
-          {fetching ? (
-            <p className="px-4 py-10 text-center text-sm text-zinc-400">Đang tải...</p>
-          ) : items.length === 0 ? (
-            <p className="rounded-lg border border-dashed border-zinc-300 px-4 py-10 text-center text-sm text-zinc-400">
-              {q ? "Không tìm thấy tệp nào khớp." : "Chưa có tệp media nào — bấm \"Tải tệp lên\" để bắt đầu."}
-            </p>
-          ) : (
-            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
-              {items.map((file) => (
-                <button
-                  key={file.id}
-                  type="button"
-                  onClick={() => setSelected(file)}
-                  className={`group flex flex-col overflow-hidden rounded-md border text-left transition-colors ${
-                    selected?.id === file.id
-                      ? "border-[#1d3557] ring-1 ring-[#1d3557]"
-                      : "border-zinc-200 hover:border-zinc-300"
-                  }`}
-                >
-                  <div className="flex aspect-square items-center justify-center bg-zinc-100">
-                    {isImage(file.mimeType) ? (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img
-                        src={absoluteUrl(file.url)}
-                        alt={file.originalName}
-                        className="h-full w-full object-cover"
-                      />
-                    ) : (
-                      <span className="text-3xl" aria-hidden>
-                        📄
-                      </span>
-                    )}
-                  </div>
-                  <p className="truncate px-2 py-1.5 text-xs text-zinc-600" title={file.originalName}>
-                    {file.originalName}
-                  </p>
-                </button>
-              ))}
-            </div>
-          )}
-
-          {totalPages > 1 && (
-            <div className="flex items-center justify-center gap-3 py-6 text-sm">
-              <button
-                type="button"
-                onClick={() => setPage((p) => Math.max(p - 1, 1))}
-                disabled={page <= 1}
-                className="rounded-md px-3 py-1.5 text-zinc-600 hover:bg-zinc-100 disabled:opacity-40"
-              >
-                ‹ Trước
-              </button>
-              <span className="text-zinc-500">
-                Trang {page} / {totalPages}
-              </span>
-              <button
-                type="button"
-                onClick={() => setPage((p) => Math.min(p + 1, totalPages))}
-                disabled={page >= totalPages}
-                className="rounded-md px-3 py-1.5 text-zinc-600 hover:bg-zinc-100 disabled:opacity-40"
-              >
-                Sau ›
-              </button>
-            </div>
-          )}
+      {fetching ? (
+        <p className="px-4 py-10 text-center text-sm text-zinc-400">Đang tải...</p>
+      ) : items.length === 0 ? (
+        <p className="rounded-lg border border-dashed border-zinc-300 px-4 py-10 text-center text-sm text-zinc-400">
+          {q ? "Không tìm thấy tệp nào khớp." : 'Chưa có tệp media nào — bấm "Tải tệp lên" để bắt đầu.'}
+        </p>
+      ) : (
+        // Grid ảnh thumbnail cùng kích thước (aspect-square + object-cover) kiểu WordPress —
+        // bấm vào mở modal xem chi tiết thay vì panel bên cạnh.
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6">
+          {items.map((file) => (
+            <button
+              key={file.path}
+              type="button"
+              onClick={() => setSelected(file)}
+              className="group flex aspect-square overflow-hidden rounded-md border border-zinc-200 bg-zinc-100 transition-colors hover:border-[#1d3557]"
+            >
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={absoluteUrl(file.url)}
+                alt={file.fileName}
+                className="h-full w-full object-cover transition-transform group-hover:scale-105"
+              />
+            </button>
+          ))}
         </div>
+      )}
 
-        {selected && (
-          <aside className="w-72 flex-none rounded-md border border-zinc-200 p-4">
-            <div className="mb-3 flex aspect-video items-center justify-center overflow-hidden rounded-md bg-zinc-100">
-              {isImage(selected.mimeType) ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img
-                  src={absoluteUrl(selected.url)}
-                  alt={selected.originalName}
-                  className="h-full w-full object-contain"
-                />
-              ) : (
-                <span className="text-4xl" aria-hidden>
-                  📄
-                </span>
-              )}
+      {totalPages > 1 && (
+        <div className="flex items-center justify-center gap-3 py-2 text-sm">
+          <button
+            type="button"
+            onClick={() => setPage((p) => Math.max(p - 1, 1))}
+            disabled={page <= 1}
+            className="rounded-md px-3 py-1.5 text-zinc-600 hover:bg-zinc-100 disabled:opacity-40"
+          >
+            ‹ Trước
+          </button>
+          <span className="text-zinc-500">
+            Trang {page} / {totalPages}
+          </span>
+          <button
+            type="button"
+            onClick={() => setPage((p) => Math.min(p + 1, totalPages))}
+            disabled={page >= totalPages}
+            className="rounded-md px-3 py-1.5 text-zinc-600 hover:bg-zinc-100 disabled:opacity-40"
+          >
+            Sau ›
+          </button>
+        </div>
+      )}
+
+      {selected && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4"
+          onClick={() => setSelected(null)}
+        >
+          <div
+            className="flex w-full max-w-3xl flex-col gap-4 overflow-hidden rounded-lg bg-white p-4 sm:flex-row"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex flex-1 items-center justify-center overflow-hidden rounded-md bg-zinc-100 sm:max-w-md">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={absoluteUrl(selected.url)}
+                alt={selected.fileName}
+                className="max-h-[70vh] w-full object-contain"
+              />
             </div>
-            <p className="break-words text-sm font-medium text-zinc-900">{selected.originalName}</p>
-            <dl className="mt-2 flex flex-col gap-1 text-xs text-zinc-500">
-              <div className="flex justify-between">
-                <dt>Dung lượng</dt>
-                <dd>{formatFileSize(selected.sizeBytes)}</dd>
+            <div className="flex w-full flex-col gap-3 sm:w-64">
+              <div className="flex items-start justify-between gap-2">
+                <p className="break-words text-sm font-medium text-zinc-900">{selected.fileName}</p>
+                <button
+                  type="button"
+                  onClick={() => setSelected(null)}
+                  aria-label="Đóng"
+                  className="flex-none rounded px-1.5 py-0.5 text-zinc-400 hover:bg-zinc-100 hover:text-zinc-700"
+                >
+                  ✕
+                </button>
               </div>
-              <div className="flex justify-between">
-                <dt>Loại</dt>
-                <dd>{selected.mimeType}</dd>
-              </div>
-              <div className="flex justify-between">
-                <dt>Ngày tải lên</dt>
-                <dd>{new Date(selected.createdAt).toLocaleString("vi-VN")}</dd>
-              </div>
-              {selected.uploadedBy && (
+              <dl className="flex flex-col gap-1 text-xs text-zinc-500">
                 <div className="flex justify-between">
-                  <dt>Người tải</dt>
-                  <dd>{selected.uploadedBy.displayName}</dd>
+                  <dt>Dung lượng</dt>
+                  <dd>{formatFileSize(selected.sizeBytes)}</dd>
                 </div>
-              )}
-            </dl>
-            <div className="mt-3 flex gap-2">
-              <button
-                type="button"
-                onClick={() => handleCopyUrl(selected)}
-                className="flex-1 rounded-md border border-zinc-300 px-2 py-1.5 text-xs font-medium text-zinc-700 hover:bg-zinc-50"
-              >
-                Copy URL
-              </button>
-              <button
-                type="button"
-                onClick={() => handleDelete(selected)}
-                className="flex-1 rounded-md border border-red-200 px-2 py-1.5 text-xs font-medium text-red-600 hover:bg-red-50"
-              >
-                Xoá
-              </button>
+                <div className="flex justify-between">
+                  <dt>Loại</dt>
+                  <dd>{selected.mimeType}</dd>
+                </div>
+                <div className="flex justify-between">
+                  <dt>Ngày tải lên</dt>
+                  <dd>{new Date(selected.createdAt).toLocaleString("vi-VN")}</dd>
+                </div>
+                {selected.uploadedBy && (
+                  <div className="flex justify-between">
+                    <dt>Người tải</dt>
+                    <dd>{selected.uploadedBy.displayName}</dd>
+                  </div>
+                )}
+              </dl>
+              <p className="break-all text-xs text-zinc-400">{selected.path}</p>
+              <div className="mt-auto flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => handleCopyUrl(selected)}
+                  className="flex-1 rounded-md border border-zinc-300 px-2 py-1.5 text-xs font-medium text-zinc-700 hover:bg-zinc-50"
+                >
+                  Copy URL
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleDelete(selected)}
+                  className="flex-1 rounded-md border border-red-200 px-2 py-1.5 text-xs font-medium text-red-600 hover:bg-red-50"
+                >
+                  Xoá
+                </button>
+              </div>
             </div>
-          </aside>
-        )}
-      </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -5,7 +5,6 @@ import {
   Controller,
   Delete,
   Get,
-  Param,
   Post,
   Query,
   UploadedFile,
@@ -20,6 +19,7 @@ import { PermissionsGuard } from '../roles/guards/permissions.guard';
 import { Permissions } from '../roles/decorators/permissions.decorator';
 import { PERMISSIONS } from '../roles/permissions.constant';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
+import { datedUploadDestination } from '../common/dated-upload.util';
 
 interface AuthUser {
   id: string;
@@ -59,7 +59,7 @@ export class MediaController {
   @UseInterceptors(
     FileInterceptor('file', {
       storage: diskStorage({
-        destination: './uploads',
+        destination: datedUploadDestination,
         filename: (_req, file, callback) => {
           callback(
             null,
@@ -80,18 +80,22 @@ export class MediaController {
       },
     }),
   )
-  upload(
+  async upload(
     @UploadedFile() file: Express.Multer.File,
     @CurrentUser() user: AuthUser,
   ) {
     if (!file) throw new BadRequestException('Thiếu file');
-    return this.mediaService.record(file, user.id);
+    await this.mediaService.record(file, user.id);
+    return { ok: true };
   }
 
+  // path (không phải id DB) — Thư viện Media liệt kê trực tiếp từ đĩa nên định danh 1 file là
+  // đường dẫn tương đối của nó, giống cách cloud-files dùng ?key= (xem cloud-files.controller.ts).
   @UseGuards(JwtAuthGuard, PermissionsGuard)
   @Permissions(PERMISSIONS.MEDIA_MANAGE)
-  @Delete(':id')
-  remove(@Param('id') id: string) {
-    return this.mediaService.remove(id);
+  @Delete()
+  remove(@Query('path') path: string) {
+    if (!path) throw new BadRequestException('Thiếu path');
+    return this.mediaService.remove(path);
   }
 }
