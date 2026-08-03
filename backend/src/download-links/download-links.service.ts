@@ -80,18 +80,46 @@ export class DownloadLinksService {
     const link = await this.findPrimary(postId);
     if (!link) return null;
 
-    const downloaders = await this.prisma.downloadGrant.findMany({
-      where: { downloadLinkId: link.id, ...EXCLUDE_ADMIN_USER_WHERE },
-      orderBy: { purchasedAt: 'desc' },
-      take: DOWNLOADER_LIST_LIMIT,
-      distinct: ['userId'],
-      select: { user: { select: { displayName: true } } },
-    });
+    const [downloaders, sizeBytes] = await Promise.all([
+      this.prisma.downloadGrant.findMany({
+        where: { downloadLinkId: link.id, ...EXCLUDE_ADMIN_USER_WHERE },
+        orderBy: { purchasedAt: 'desc' },
+        take: DOWNLOADER_LIST_LIMIT,
+        distinct: ['userId'],
+        select: { user: { select: { displayName: true } } },
+      }),
+      this.resolveSizeBytes(link),
+    ]);
 
     return {
       ...toPublicShape(link),
+      sizeBytes,
       downloaderNames: downloaders.map((d) => d.user.displayName),
     };
+  }
+
+  // Tự bổ sung dung lượng cho các link đã tạo từ TRƯỚC khi form Admin có ô "Dò dung lượng"/gửi
+  // sizeBytes — không bắt Admin phải vào sửa lại từng bài. Chỉ HEAD object 1 lần rồi lưu vào DB
+  // (best-effort, không throw nếu update lỗi); các lần đọc sau lấy thẳng từ cột đã lưu, không gọi
+  // lại S3/R2 mỗi request.
+  private async resolveSizeBytes(link: {
+    id: string;
+    storageProviderId: string;
+    objectKey: string;
+    sizeBytes: bigint | null;
+  }): Promise<number | null> {
+    if (link.sizeBytes !== null) return Number(link.sizeBytes);
+
+    const detected = await this.r2Client.headObjectSize(
+      link.storageProviderId,
+      link.objectKey,
+    );
+    if (detected === null) return null;
+
+    await this.prisma.downloadLink
+      .update({ where: { id: link.id }, data: { sizeBytes: BigInt(detected) } })
+      .catch(() => {});
+    return detected;
   }
 
   // Mỗi lượt tải luôn kiểm tra + trừ ví trong 1 transaction — KHÔNG có khái niệm "đã mở khoá thì
