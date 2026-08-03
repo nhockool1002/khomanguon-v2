@@ -282,3 +282,34 @@ export interface CloudFile {
   revenueP: number;
   linkedPostTitles: string[];
 }
+
+export type HeaderBackgroundSize = "cover" | "contain" | "auto";
+export type HeaderBackgroundAttachment = "scroll" | "fixed";
+
+export interface GeneralSettings {
+  postsPerPage: number;
+  headerTitle: string;
+  headerSlogan: string;
+  headerBackgroundColor: string;
+  headerBackgroundImageUrl: string | null;
+  headerBackgroundSize: HeaderBackgroundSize;
+  headerBackgroundAttachment: HeaderBackgroundAttachment;
+  headerBackgroundPositionX: number;
+  headerBackgroundPositionY: number;
+}
+
+export interface MediaFile {
+  id: string;
+  fileName: string;
+  originalName: string;
+  mimeType: string;
+  sizeBytes: number;
+  url: string;
+  createdAt: string;
+  uploadedBy: { displayName: string } | null;
+}
+
+export interface MediaFileListResponse {
+  items: MediaFile[];
+  total: number;
+}

@@ -49,6 +49,7 @@ model User {
   topupOrders            TopupOrder[]
   notificationsReceived  Notification[] @relation("NotificationRecipient")
   notificationsCaused    Notification[] @relation("NotificationActor")
+  uploadedMediaFiles     MediaFile[]
 
   @@map("users")
 }
@@ -521,4 +522,22 @@ model SiteSetting {
   updatedAt DateTime @updatedAt
 
   @@map("site_settings")
+}
+
+// Thư viện Media (kiểu WordPress) — mọi file upload qua /media được ghi 1 dòng ở đây (tên gốc,
+// kích thước, người tải lên) để trang quản trị liệt kê/tìm kiếm được; file vật lý vẫn nằm chung
+// đĩa cục bộ ./uploads với endpoint /uploads cũ (avatar, ảnh trong bài viết) — 2 nguồn ghi khác
+// nhau, không ép các endpoint upload cũ phải đổi hành vi.
+model MediaFile {
+  id           String   @id @default(cuid())
+  fileName     String   @unique
+  originalName String
+  mimeType     String
+  sizeBytes    Int
+  url          String
+  uploadedById String?
+  uploadedBy   User?    @relation(fields: [uploadedById], references: [id], onDelete: SetNull)
+  createdAt    DateTime @default(now())
+
+  @@map("media_files")
 }
