@@ -120,11 +120,6 @@ export function DownloadBox({ postId }: { postId: string }) {
               : "⬇ Tải xuống miễn phí"}
         </button>
       )}
-      {link.priceP > 0 && (
-        <p className="text-center text-[11px] text-zinc-400">
-          Mỗi lượt tải sẽ trừ {link.priceP} $P — không phải trả 1 lần dùng mãi mãi.
-        </p>
-      )}
     </div>
   );
 }

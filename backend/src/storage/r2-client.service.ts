@@ -2,6 +2,7 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import {
   DeleteObjectCommand,
   GetObjectCommand,
+  HeadObjectCommand,
   ListObjectsV2Command,
   PutObjectCommand,
   S3Client,
@@ -154,6 +155,29 @@ export class R2ClientService {
         sizeBytes: obj.Size ?? 0,
         lastModified: obj.LastModified ?? null,
       }));
+  }
+
+  // Lấy dung lượng thật của đúng 1 object (HEAD, không cần liệt kê cả bucket như listObjects) —
+  // dùng để tự bổ sung DownloadLink.sizeBytes cho các link đã tạo từ trước khi form Admin có ô
+  // "Dò dung lượng" (xem download-links.service.ts getPublicInfo). Trả null nếu object không tồn
+  // tại/không đọc được — không throw để không chặn hiển thị khối tải khi chỉ thiếu mỗi dung lượng.
+  async headObjectSize(
+    providerId: string,
+    key: string,
+  ): Promise<number | null> {
+    const provider = await this.getProvider(providerId);
+    const client = this.buildClient(provider);
+    try {
+      const result = await client.send(
+        new HeadObjectCommand({
+          Bucket: this.requireBucket(provider),
+          Key: this.toPrefixedKey(provider, key),
+        }),
+      );
+      return result.ContentLength ?? null;
+    } catch {
+      return null;
+    }
   }
 
   async deleteObject(providerId: string, key: string): Promise<void> {
