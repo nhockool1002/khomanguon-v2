@@ -259,6 +259,9 @@ export class AuthService {
         data: { consumedAt: new Date() },
       }),
     ]);
+    // Nâng UNVERIFIED -> MEMBER sau khi transaction commit — không gộp vào $transaction ở trên vì
+    // upgradeAfterVerification tự có transaction riêng (2 bước xoá/tạo UserRole).
+    await this.roles.upgradeAfterVerification(record.userId);
   }
 
   async forgotPassword(email: string): Promise<void> {

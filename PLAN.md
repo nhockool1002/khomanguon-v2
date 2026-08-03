@@ -36,7 +36,7 @@ Quy ước: mỗi phase có **Definition of Done (DoD)** rõ ràng — không sa
 | Module | Vai trò |
 |---|---|
 | `auth/` | Đăng ký/đăng nhập/refresh token, quên/đặt lại mật khẩu, xác minh email |
-| `users/` | Hồ sơ user, admin quản lý user, tìm user (autocomplete @mention/filter) |
+| `users/` | Hồ sơ user, admin quản lý user, tìm user (autocomplete @mention/filter), trang profile công khai + lời nhắn kiểu guestbook (`ProfileMessage`) |
 | `roles/` | RBAC: permissions, role CRUD, custom role, style badge role (title/màu/đậm/nghiêng/font) |
 | `posts/` | Bài viết CRUD, workflow xuất bản |
 | `categories/` | Danh mục bài viết |
@@ -60,7 +60,7 @@ Quy ước: mỗi phase có **Definition of Done (DoD)** rõ ràng — không sa
 
 **`frontend/src/`** — Next.js App Router:
 
-- `app/` — route theo tiếng Việt, URL thân thiện: `/dang-nhap`, `/dang-ky`, `/quen-mat-khau`, `/dat-lai-mat-khau`, `/xac-minh-email`, `/bai-viet/[slug]`, `/danh-muc/[slug]`, `/tim-kiem`, `/tai-khoan` (+ `/tai-khoan/vi`), `/quan-tri/*` (toàn bộ khu quản trị: `bai-viet`, `danh-muc`, `menu`, `widget`, `nguoi-dung`, `giao-dich`, `binh-luan`, `vai-tro`, `cai-dat/storage`, `cai-dat/sepay`, `cai-dat/chung`, `tep-cloud`, `thu-vien-media`)
+- `app/` — route theo tiếng Việt, URL thân thiện: `/dang-nhap`, `/dang-ky`, `/quen-mat-khau`, `/dat-lai-mat-khau`, `/xac-minh-email`, `/bai-viet/[slug]`, `/danh-muc/[slug]`, `/tim-kiem`, `/tai-khoan` (+ `/tai-khoan/vi`), `/nguoi-dung/[id]` (trang profile công khai), `/sitemap.xml`, `/robots.txt`, `/quan-tri/*` (toàn bộ khu quản trị: `bai-viet`, `danh-muc`, `menu`, `widget`, `nguoi-dung`, `giao-dich`, `binh-luan`, `vai-tro`, `cai-dat/storage`, `cai-dat/sepay`, `cai-dat/email`, `cai-dat/chung`, `tep-cloud`, `thu-vien-media`)
 - `components/` — component dùng chung (UI cơ bản, rich-text-editor, comment-section, mention-textarea, styled-user-name, notification-bell...)
 - `context/` — React context (`auth-context`, `role-badges-context`)
 - `lib/` — `api.ts` (client có token, tự refresh), `public-api.ts` (fetch phía server không token), `types.ts`, `format.ts`, `fonts.ts`, `socket.ts`
@@ -115,15 +115,19 @@ Quy ước: mỗi phase có **Definition of Done (DoD)** rõ ràng — không sa
 - [x] API đăng nhập (JWT access 15p + refresh 30 ngày xoay vòng, cookie httpOnly `path=/auth`), khoá tạm 15 phút sau 5 lần sai — UC01, UC02
 - [x] API quên/đặt lại mật khẩu (token hết hạn 15 phút, one-time use, đổi xong thu hồi hết refresh token) — UC03
 - [x] UI Đăng nhập (`/dang-nhap`), Đăng ký (`/dang-ky`), Quên mật khẩu (`/quen-mat-khau`), Đặt lại mật khẩu (`/dat-lai-mat-khau`), Xác minh email (`/xac-minh-email`) — theo wireframe #04/#05, đã test qua trình duyệt thật
+- [x] **Đổi thiết kế 2026-08-03 (yêu cầu thực tế):** đăng ký giờ gán role `unverified` (Chưa kích hoạt — không có permission nào) thay vì `member` ngay — chặn tài khoản chưa xác minh email bình luận/xem ví/tải file, "chỉ xem được bài viết" (bài viết vốn public, không cần permission). `verifyEmail()` tự nâng lên `member` ngay khi xác minh thành công (`roles.service.ts` `upgradeAfterVerification` — chỉ đụng vào nếu user còn giữ đúng role `unverified`, không ghi đè nếu Admin đã tự gán role khác). Test e2e đầy đủ: đăng ký → role `unverified` → tạo token xác minh thật (không qua email) → `verify-email` → role `member`.
 
 ### 1.2 Hồ sơ người dùng
 - [x] API `GET/PATCH /users/me`, `PATCH /users/me/password` (đổi mật khẩu thu hồi hết session), `POST /auth/resend-verification` — UC04. Bổ sung thêm `PATCH /users/me/style-role` (user thuộc nhiều role tự chọn role nào áp style tên hiển thị)
 - [x] UI trang `/tai-khoan` với tab Thông tin (tên hiển thị, bio, badge vai trò, banner + nút gửi lại email xác minh) và Bảo mật (đổi mật khẩu) — theo wireframe #06, đã test qua trình duyệt thật. Avatar upload thật (ảnh file) để dành Phase 3 khi có R2/S3 — hiện chỉ nhận `avatarUrl` dạng URL.
+- [x] Bổ sung 2026-08-03: giới hạn đổi tên hiển thị — Super Moderator trở lên (quyền `user.manage`) đổi tự do; Moderator trở xuống chỉ đổi được **1 lần trong đời tài khoản** (cột `User.displayNameChangedAt`, `null` = còn lượt free). `PATCH /users/me` trả `400` nếu cố đổi lần 2; `GET /users/me` trả thêm `canChangeDisplayName` để FE khoá ô nhập + hiện đúng thông báo.
+- [x] Bổ sung 2026-08-03: trang profile công khai `/nguoi-dung/[id]` — ai cũng xem được (không cần đăng nhập), hiện avatar/tên style theo role/bio/ngày tham gia/tên role, kèm khối "Lời nhắn" kiểu guestbook (`ProfileMessage` model mới, `GET/POST /users/:id/messages`, xoá được bởi tác giả/chủ profile/Moderator+ qua `DELETE /users/:id/messages/:messageId`). `StyledUserName` (`components/styled-user-name.tsx`) nhận thêm prop `userId` tuỳ chọn — bấm tên chuyển sang trang profile; đã áp dụng ở byline bài viết, bình luận, danh sách "Member đã tải" (riêng `PostCard` ở trang chủ không áp được vì cả thẻ đã là 1 `<Link>` bọc ngoài, lồng thêm `<Link>` cho tên tác giả sẽ vi phạm HTML — bấm vào thẻ vẫn mở đúng bài viết, chỉ tên tác giả trong lưới bài viết chưa bấm ra profile riêng được).
 
 ### 1.3 RBAC cơ bản
 - [x] Bảng `roles`, `permissions`, `role_permissions`, `user_roles`; seed permission + 4 role mặc định (Admin/Super Mod/Mod/Member) đúng ma trận quyền mục 06 tài liệu thiết kế (`prisma/seed.ts`)
 - [x] `PermissionsGuard` + `@Permissions(...)` kiểm tra theo mã quyền (không hard-code theo tên role) — đã test 403 đúng khi member gọi endpoint cần `user.manage`
 - [x] `GET /users` (list, cần `user.manage`), `POST/DELETE /users/:id/roles` (gán/gỡ role, cần `user.assign_role`) — UC18, đã test admin gán role thành công + member bị chặn
+- [x] Bổ sung 2026-08-03: role thứ 5 `unverified` (Chưa kích hoạt) — xem mục 1.1.
 
 ### 1.4 CMS bài viết (khung cơ bản)
 - [x] Model Post, Category (chưa có Tag/SEO nâng cao) — đã có sẵn từ ERD Phase 0, không cần migration mới

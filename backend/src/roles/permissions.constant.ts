@@ -36,6 +36,10 @@ export const DEFAULT_ROLES = {
   SUPER_MODERATOR: { slug: 'super-moderator', name: 'Super Moderator' },
   MODERATOR: { slug: 'moderator', name: 'Moderator' },
   MEMBER: { slug: 'member', name: 'Member' },
+  // Gán mặc định lúc đăng ký — chưa xác minh email thì chỉ xem được bài viết (đã public, không
+  // cần permission riêng), không bình luận/không tải file được. Nâng cấp lên MEMBER tự động ngay
+  // khi verifyEmail() thành công (xem roles.service.ts upgradeAfterVerification).
+  UNVERIFIED: { slug: 'unverified', name: 'Chưa kích hoạt' },
 } as const;
 
 // Mặc định khi khởi tạo hệ thống — Admin chỉnh lại tự do qua trang Phân quyền (UC17)
@@ -67,4 +71,8 @@ export const DEFAULT_ROLE_PERMISSIONS: Record<string, PermissionKey[]> = {
     PERMISSIONS.WALLET_VIEW_OWN,
     PERMISSIONS.DOWNLOAD_PURCHASE,
   ],
+  // Không có quyền nào — "chỉ xem được bài viết" (xem bài viết vốn đã public, không cần permission)
+  // "nhưng không tải được": cũng chặn luôn bình luận/ví cho tới khi xác minh email, đúng nghĩa
+  // "chưa kích hoạt". Admin có thể nới lỏng qua trang Phân quyền nếu muốn cho bình luận trước.
+  [DEFAULT_ROLES.UNVERIFIED.slug]: [],
 };

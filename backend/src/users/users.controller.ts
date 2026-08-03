@@ -20,6 +20,7 @@ import { ChangePasswordDto } from './dto/change-password.dto';
 import { AssignRoleDto } from './dto/assign-role.dto';
 import { UpdateStatusDto } from './dto/update-status.dto';
 import { UpdateStyleRoleDto } from './dto/update-style-role.dto';
+import { CreateProfileMessageDto } from './dto/create-profile-message.dto';
 
 interface AuthUser {
   id: string;
@@ -98,5 +99,41 @@ export class UsersController {
   @Delete(':id/roles/:roleSlug')
   removeRole(@Param('id') id: string, @Param('roleSlug') roleSlug: string) {
     return this.usersService.removeRole(id, roleSlug);
+  }
+
+  // Trang profile công khai — bất kỳ ai cũng xem được, kể cả khách vãng lai chưa đăng nhập.
+  @Get(':id/public-profile')
+  getPublicProfile(@Param('id') id: string) {
+    return this.usersService.getPublicProfile(id);
+  }
+
+  @Get(':id/messages')
+  listMessages(
+    @Param('id') id: string,
+    @Query('page') page = '1',
+    @Query('limit') limit = '20',
+  ) {
+    const take = Math.min(Number(limit) || 20, 50);
+    const skip = (Math.max(Number(page) || 1, 1) - 1) * take;
+    return this.usersService.listProfileMessages(id, skip, take);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Post(':id/messages')
+  createMessage(
+    @Param('id') id: string,
+    @CurrentUser() user: AuthUser,
+    @Body() dto: CreateProfileMessageDto,
+  ) {
+    return this.usersService.createProfileMessage(id, user.id, dto);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Delete(':id/messages/:messageId')
+  removeMessage(
+    @Param('messageId') messageId: string,
+    @CurrentUser() user: AuthUser,
+  ) {
+    return this.usersService.removeProfileMessage(messageId, user.id);
   }
 }

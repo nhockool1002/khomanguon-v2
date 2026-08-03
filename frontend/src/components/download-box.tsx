@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { apiFetch, ApiError } from "@/lib/api";
 import { useAuth } from "@/context/auth-context";
@@ -94,8 +95,10 @@ export function DownloadBox({ postId }: { postId: string }) {
         ) : (
           <p className="mt-1 text-sm text-zinc-700">
             {link.downloaders.map((d, i) => (
-              <span key={`${d.displayName}-${i}`}>
-                <StyledUserName styleRoleSlug={d.styleRoleSlug}>{d.displayName}</StyledUserName>
+              <span key={d.id}>
+                <StyledUserName styleRoleSlug={d.styleRoleSlug} userId={d.id}>
+                  {d.displayName}
+                </StyledUserName>
                 {i < link.downloaders.length - 1 && ", "}
               </span>
             ))}
@@ -105,7 +108,15 @@ export function DownloadBox({ postId }: { postId: string }) {
 
       {error && <p className="text-xs text-red-600">{error}</p>}
 
-      {downloadUrl ? (
+      {user && !user.emailVerified ? (
+        <p className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-center text-sm text-amber-800">
+          Tài khoản của bạn chưa xác minh email nên chưa tải file được — xác minh email ở{" "}
+          <Link href="/tai-khoan" className="font-medium underline">
+            trang Tài khoản
+          </Link>{" "}
+          trước.
+        </p>
+      ) : downloadUrl ? (
         <a
           href={downloadUrl}
           target="_blank"

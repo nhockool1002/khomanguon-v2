@@ -31,6 +31,11 @@ model User {
   createdAt           DateTime   @default(now())
   updatedAt           DateTime   @updatedAt
 
+  // Đổi tên hiển thị: Super Moderator trở lên (quyền user.manage) đổi tự do; Moderator trở xuống
+  // chỉ đổi được 1 lần — null nghĩa là còn quyền đổi miễn phí, có giá trị nghĩa là đã dùng hết
+  // (xem users.service.ts updateProfile).
+  displayNameChangedAt DateTime?
+
   // User thuộc nhiều role thì tự chọn 1 role để áp style hiển thị tên (màu/đậm/nghiêng/font) —
   // để trống thì tự fallback về role gán sớm nhất (xem roles/style-role.util.ts resolveStyleRoleSlug).
   primaryRoleId String?
@@ -50,8 +55,24 @@ model User {
   notificationsReceived  Notification[] @relation("NotificationRecipient")
   notificationsCaused    Notification[] @relation("NotificationActor")
   uploadedMediaFiles     MediaFile[]
+  profileMessagesReceived ProfileMessage[] @relation("ProfileMessagesReceived")
+  profileMessagesSent     ProfileMessage[] @relation("ProfileMessagesSent")
 
   @@map("users")
+}
+
+// Lời nhắn công khai trên trang profile của user (giống guestbook) — bất kỳ user đăng nhập nào
+// cũng để lại được, xoá được bởi chính tác giả, chủ profile, hoặc Moderator+ (comment.moderate).
+model ProfileMessage {
+  id            String   @id @default(cuid())
+  profileUserId String
+  profileUser   User     @relation("ProfileMessagesReceived", fields: [profileUserId], references: [id], onDelete: Cascade)
+  authorId      String
+  author        User     @relation("ProfileMessagesSent", fields: [authorId], references: [id], onDelete: Cascade)
+  content       String
+  createdAt     DateTime @default(now())
+
+  @@map("profile_messages")
 }
 
 // Token opaque gửi qua email — chỉ lưu bản hash (sha256), không lưu token gốc (UC01)

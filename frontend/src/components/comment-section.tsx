@@ -336,7 +336,11 @@ function CommentItem({
           <span className="flex h-6 w-6 items-center justify-center rounded-full bg-[#2b3f5c] text-[10px] uppercase text-white">
             {node.user.displayName.charAt(0)}
           </span>
-          <StyledUserName styleRoleSlug={node.user.styleRoleSlug} className="font-medium text-zinc-700">
+          <StyledUserName
+            styleRoleSlug={node.user.styleRoleSlug}
+            userId={node.user.id}
+            className="font-medium text-zinc-700"
+          >
             {node.user.displayName}
           </StyledUserName>
           <span>·</span>

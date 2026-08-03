@@ -5,6 +5,7 @@ import { App } from 'supertest/types';
 import cookieParser from 'cookie-parser';
 import { AppModule } from './../src/app.module';
 import { PrismaService } from '../src/prisma/prisma.service';
+import { generateOpaqueToken, hashToken } from '../src/common/token.util';
 
 interface AuthResponseBody {
   accessToken: string;
@@ -41,7 +42,7 @@ describe('Auth (e2e)', () => {
     await app.close();
   });
 
-  it('đăng ký -> nhận access token, gán role member mặc định', async () => {
+  it('đăng ký -> nhận access token, gán role unverified mặc định (chưa xác minh email)', async () => {
     const res = await request(app.getHttpServer())
       .post('/auth/register')
       .send({ email, password, displayName: 'E2E Tester' })
@@ -65,7 +66,7 @@ describe('Auth (e2e)', () => {
     await request(app.getHttpServer()).get('/users/me').expect(401);
   });
 
-  it('đăng nhập đúng mật khẩu -> lấy được /users/me, role = member', async () => {
+  it('đăng nhập đúng mật khẩu -> lấy được /users/me, role = unverified (chưa xác minh email)', async () => {
     const loginRes = await request(app.getHttpServer())
       .post('/auth/login')
       .send({ email, password })
@@ -79,7 +80,7 @@ describe('Auth (e2e)', () => {
     const me = meRes.body as MeResponseBody;
 
     expect(me.email).toBe(email);
-    expect(me.roles).toEqual(['member']);
+    expect(me.roles).toEqual(['unverified']);
   });
 
   it('đăng nhập sai mật khẩu -> 401', async () => {
@@ -110,7 +111,7 @@ describe('Auth (e2e)', () => {
       .expect(401);
   });
 
-  it('member gọi endpoint cần quyền user.manage -> 403', async () => {
+  it('user chưa xác minh gọi endpoint cần quyền user.manage -> 403', async () => {
     const loginRes = await request(app.getHttpServer())
       .post('/auth/login')
       .send({ email, password })
@@ -121,5 +122,39 @@ describe('Auth (e2e)', () => {
       .get('/users')
       .set('Authorization', `Bearer ${accessToken}`)
       .expect(403);
+  });
+
+  it('verify-email -> nâng role unverified lên member', async () => {
+    const user = await prisma.user.findUniqueOrThrow({ where: { email } });
+
+    // Tự tạo bản ghi token thay vì đọc email thật — chỉ raw token gửi qua email/log, DB chỉ lưu
+    // hash (đúng cơ chế thật, xem common/token.util.ts).
+    const rawToken = generateOpaqueToken();
+    await prisma.emailVerificationToken.create({
+      data: {
+        userId: user.id,
+        tokenHash: hashToken(rawToken),
+        expiresAt: new Date(Date.now() + 60_000),
+      },
+    });
+
+    await request(app.getHttpServer())
+      .post('/auth/verify-email')
+      .send({ token: rawToken })
+      .expect(200);
+
+    const loginRes = await request(app.getHttpServer())
+      .post('/auth/login')
+      .send({ email, password })
+      .expect(200);
+    const { accessToken } = loginRes.body as AuthResponseBody;
+
+    const meRes = await request(app.getHttpServer())
+      .get('/users/me')
+      .set('Authorization', `Bearer ${accessToken}`)
+      .expect(200);
+    const me = meRes.body as MeResponseBody;
+
+    expect(me.roles).toEqual(['member']);
   });
 });

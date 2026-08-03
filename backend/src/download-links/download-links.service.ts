@@ -92,6 +92,7 @@ export class DownloadLinksService {
         select: {
           user: {
             select: {
+              id: true,
               displayName: true,
               primaryRoleId: true,
               roles: {
@@ -110,7 +111,9 @@ export class DownloadLinksService {
       sizeBytes,
       // Style tên (màu/đậm/nghiêng/font theo role) — khớp cách bình luận/byline bài viết đã làm,
       // không phải plain string như trước (xem components/download-box.tsx + StyledUserName).
+      // id để FE link sang trang profile công khai (/nguoi-dung/[id]).
       downloaders: downloaders.map(({ user }) => ({
+        id: user.id,
         displayName: user.displayName,
         styleRoleSlug: resolveStyleRoleSlug(user.primaryRoleId, user.roles),
       })),
