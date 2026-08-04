@@ -183,6 +183,7 @@ model Category {
   id       String     @id @default(cuid())
   name     String
   slug     String     @unique
+  order    Int        @default(0)
   parentId String?
   parent   Category?  @relation("CategoryTree", fields: [parentId], references: [id], onDelete: SetNull)
   children Category[] @relation("CategoryTree")

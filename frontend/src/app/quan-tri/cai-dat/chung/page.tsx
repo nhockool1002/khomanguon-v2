@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/auth-context";
 import { apiFetch, ApiError } from "@/lib/api";
@@ -38,8 +39,6 @@ export default function GeneralSettingsPage() {
   const [headerSloganFontFamily, setHeaderSloganFontFamily] = useState<string | null>(null);
   const [headerSloganBold, setHeaderSloganBold] = useState(true);
   const [headerSloganItalic, setHeaderSloganItalic] = useState(false);
-  const [gaTrackingId, setGaTrackingId] = useState("");
-  const [googleSiteVerification, setGoogleSiteVerification] = useState("");
 
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
@@ -73,8 +72,6 @@ export default function GeneralSettingsPage() {
         setHeaderSloganFontFamily(res.headerSloganFontFamily);
         setHeaderSloganBold(res.headerSloganBold);
         setHeaderSloganItalic(res.headerSloganItalic);
-        setGaTrackingId(res.gaTrackingId);
-        setGoogleSiteVerification(res.googleSiteVerification);
       })
       .catch((err) => setError(err instanceof ApiError ? err.message : "Có lỗi xảy ra"));
   }, [user]);
@@ -104,8 +101,6 @@ export default function GeneralSettingsPage() {
           headerSloganFontFamily,
           headerSloganBold,
           headerSloganItalic,
-          gaTrackingId,
-          googleSiteVerification,
         }),
       });
       setMessage("Đã lưu cấu hình chung.");
@@ -435,34 +430,13 @@ export default function GeneralSettingsPage() {
         </div>
       </div>
 
-      <div className="flex flex-col gap-3 rounded-md border border-zinc-200 p-4">
-        <p className="text-xs font-semibold uppercase tracking-wide text-zinc-500">SEO toàn site</p>
-        <label className="flex flex-col gap-1 text-sm text-zinc-700">
-          Google Analytics Tracking ID
-          <input
-            value={gaTrackingId}
-            onChange={(e) => setGaTrackingId(e.target.value)}
-            placeholder="G-XXXXXXXXXX"
-            className={inputClass}
-          />
-          <span className="text-xs text-zinc-400">
-            Để trống thì không gắn Google Analytics vào site.
-          </span>
-        </label>
-        <label className="flex flex-col gap-1 text-sm text-zinc-700">
-          Google Search Console — mã xác minh
-          <input
-            value={googleSiteVerification}
-            onChange={(e) => setGoogleSiteVerification(e.target.value)}
-            placeholder="Nội dung thẻ meta google-site-verification"
-            className={inputClass}
-          />
-          <span className="text-xs text-zinc-400">
-            Lấy ở Search Console → Cài đặt → Xác minh quyền sở hữu → HTML tag — chỉ dán phần nội
-            dung (content=&quot;...&quot;), không dán cả thẻ.
-          </span>
-        </label>
-      </div>
+      <p className="text-xs text-zinc-400">
+        Google Analytics / Search Console đã chuyển sang trang{" "}
+        <Link href="/quan-tri/cai-dat/storage" className="font-medium text-[#1d3557] hover:underline">
+          Cài đặt Provider
+        </Link>
+        .
+      </p>
 
       <button
         type="button"

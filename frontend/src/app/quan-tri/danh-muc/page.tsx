@@ -1,32 +1,12 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/auth-context";
 import { apiFetch, ApiError } from "@/lib/api";
 import type { Category } from "@/lib/types";
 import { ErrorBanner } from "@/components/ui";
-
-interface CategoryNode extends Category {
-  children: CategoryNode[];
-}
-
-function buildTree(items: Category[]): CategoryNode[] {
-  const byParent = new Map<string, Category[]>();
-  for (const item of items) {
-    const key = item.parentId ?? "";
-    byParent.set(key, [...(byParent.get(key) ?? []), item]);
-  }
-  const attach = (parentId: string | null): CategoryNode[] =>
-    (byParent.get(parentId ?? "") ?? [])
-      .sort((a, b) => a.name.localeCompare(b.name))
-      .map((item) => ({ ...item, children: attach(item.id) }));
-  return attach(null);
-}
-
-function flatten(nodes: CategoryNode[], depth = 0): { node: CategoryNode; depth: number }[] {
-  return nodes.flatMap((node) => [{ node, depth }, ...flatten(node.children, depth + 1)]);
-}
+import { CategoryTreeEditor } from "@/components/category-tree-editor";
 
 // Loại bỏ chính nó + toàn bộ hậu duệ khỏi danh sách chọn "danh mục cha" khi sửa — tránh vòng lặp.
 function excludeSubtree(items: Category[], excludeId: string): Category[] {
@@ -83,6 +63,22 @@ export default function AdminCategoriesPage() {
     }
   }
 
+  async function handleReorder(
+    updates: { id: string; parentId: string | null; order: number }[],
+  ) {
+    setError(null);
+    try {
+      await apiFetch("/categories/reorder", {
+        method: "PATCH",
+        body: JSON.stringify({ items: updates }),
+      });
+      await reload();
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : "Có lỗi xảy ra");
+      await reload();
+    }
+  }
+
   async function handleSave(values: { name: string; slug: string; parentId: string }) {
     setError(null);
     try {
@@ -105,9 +101,6 @@ export default function AdminCategoriesPage() {
       setError(err instanceof ApiError ? err.message : "Có lỗi xảy ra");
     }
   }
-
-  const tree = useMemo(() => (categories ? buildTree(categories) : []), [categories]);
-  const rows = useMemo(() => flatten(tree), [tree]);
 
   if (loading || !user) {
     return <div className="px-8 py-16 text-center text-sm text-zinc-400">Đang tải...</div>;
@@ -134,35 +127,13 @@ export default function AdminCategoriesPage() {
         </p>
       )}
 
-      {rows.length > 0 && (
-        <div className="flex flex-col gap-1">
-          {rows.map(({ node, depth }) => (
-            <div
-              key={node.id}
-              style={{ marginLeft: depth * 24 }}
-              className="flex items-center gap-2 rounded-md border border-zinc-200 bg-white px-3 py-2 text-sm"
-            >
-              <span className="font-medium text-zinc-800">{node.name}</span>
-              <span className="font-mono text-xs text-zinc-400">/{node.slug}</span>
-              <div className="ml-auto flex items-center gap-1">
-                <button
-                  type="button"
-                  onClick={() => setEditing(node)}
-                  className="rounded px-2 py-0.5 text-xs font-medium text-[#1d3557] hover:bg-zinc-100"
-                >
-                  sửa
-                </button>
-                <button
-                  type="button"
-                  onClick={() => handleDelete(node)}
-                  className="rounded px-2 py-0.5 text-xs font-medium text-red-600 hover:bg-zinc-100"
-                >
-                  xoá
-                </button>
-              </div>
-            </div>
-          ))}
-        </div>
+      {categories && categories.length > 0 && (
+        <CategoryTreeEditor
+          items={categories}
+          onReorder={handleReorder}
+          onEdit={setEditing}
+          onDelete={handleDelete}
+        />
       )}
 
       {editing && (
