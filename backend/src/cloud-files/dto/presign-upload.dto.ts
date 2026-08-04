@@ -13,4 +13,12 @@ export class PresignUploadDto {
   @IsString()
   @MaxLength(200)
   folder?: string;
+
+  // Chỉ multipart/init dùng tới (xem cloud-files.service.ts) — PUT đơn không ký kèm Content-Type
+  // (tránh SignatureDoesNotMatch) nên bỏ qua field này; multipart thì content-type phải khai báo
+  // ngay lúc CreateMultipartUpload vì API S3 không cho set theo từng phần.
+  @IsOptional()
+  @IsString()
+  @MaxLength(255)
+  contentType?: string;
 }

@@ -121,6 +121,60 @@ export class CloudFilesService {
     return { url, key };
   }
 
+  // ───────── Multipart (file > 5GB — trần cứng của PUT đơn, xem r2-client.service.ts) ─────────
+
+  async initMultipartUpload(
+    providerId: string,
+    filename: string,
+    folder?: string,
+    contentType?: string,
+  ): Promise<{ key: string; uploadId: string }> {
+    const key = this.buildUploadKey(filename, folder);
+    const uploadId = await this.r2Client.createMultipartUpload(
+      providerId,
+      key,
+      contentType,
+    );
+    return { key, uploadId };
+  }
+
+  async presignUploadPart(
+    providerId: string,
+    key: string,
+    uploadId: string,
+    partNumber: number,
+  ): Promise<{ url: string }> {
+    const url = await this.r2Client.getPresignedUploadPartUrl(
+      providerId,
+      key,
+      uploadId,
+      partNumber,
+    );
+    return { url };
+  }
+
+  async completeMultipartUpload(
+    providerId: string,
+    key: string,
+    uploadId: string,
+    parts: { partNumber: number; eTag: string }[],
+  ): Promise<void> {
+    await this.r2Client.completeMultipartUpload(
+      providerId,
+      key,
+      uploadId,
+      parts,
+    );
+  }
+
+  async abortMultipartUpload(
+    providerId: string,
+    key: string,
+    uploadId: string,
+  ): Promise<void> {
+    await this.r2Client.abortMultipartUpload(providerId, key, uploadId);
+  }
+
   // Không tái dùng slugify() (bỏ hết dấu chấm — mất luôn phần đuôi file ".zip"/".apk"). Giữ nguyên
   // ký tự an toàn, thay phần còn lại bằng "-", chèn thêm timestamp+random để 2 lần tải cùng tên file
   // không đè lên nhau (khác quy ước danh mục/slug bài viết vốn cố tình trùng thì báo lỗi ngay).
