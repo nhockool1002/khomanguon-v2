@@ -88,6 +88,7 @@ export class SiteSettingsService {
       ...(dto.googleSiteVerification !== undefined && {
         googleSiteVerification: dto.googleSiteVerification,
       }),
+      ...(dto.footerText !== undefined && { footerText: dto.footerText }),
     };
     await this.prisma.siteSetting.upsert({
       where: { key: GENERAL_SETTINGS_KEY },

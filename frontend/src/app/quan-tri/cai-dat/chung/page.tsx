@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/auth-context";
 import { apiFetch, ApiError } from "@/lib/api";
 import { uploadImage } from "@/lib/upload";
+import { PERMISSIONS } from "@/lib/permissions";
 import { FONT_OPTIONS, fontVar } from "@/lib/fonts";
 import type {
   GeneralSettings,
@@ -13,6 +14,7 @@ import type {
   HeaderBackgroundSize,
 } from "@/lib/types";
 import { ErrorBanner, SuccessBanner } from "@/components/ui";
+import { ForbiddenPage } from "@/components/forbidden-page";
 
 const inputClass =
   "rounded-md border border-zinc-300 px-3 py-2 text-sm outline-none focus:border-[#1d3557] focus:ring-1 focus:ring-[#1d3557]";
@@ -39,6 +41,7 @@ export default function GeneralSettingsPage() {
   const [headerSloganFontFamily, setHeaderSloganFontFamily] = useState<string | null>(null);
   const [headerSloganBold, setHeaderSloganBold] = useState(true);
   const [headerSloganItalic, setHeaderSloganItalic] = useState(false);
+  const [footerText, setFooterText] = useState("");
 
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
@@ -72,6 +75,7 @@ export default function GeneralSettingsPage() {
         setHeaderSloganFontFamily(res.headerSloganFontFamily);
         setHeaderSloganBold(res.headerSloganBold);
         setHeaderSloganItalic(res.headerSloganItalic);
+        setFooterText(res.footerText);
       })
       .catch((err) => setError(err instanceof ApiError ? err.message : "Có lỗi xảy ra"));
   }, [user]);
@@ -101,6 +105,7 @@ export default function GeneralSettingsPage() {
           headerSloganFontFamily,
           headerSloganBold,
           headerSloganItalic,
+          footerText,
         }),
       });
       setMessage("Đã lưu cấu hình chung.");
@@ -166,6 +171,9 @@ export default function GeneralSettingsPage() {
 
   if (loading || !user) {
     return <div className="px-8 py-16 text-center text-sm text-zinc-400">Đang tải...</div>;
+  }
+  if (!user.permissionKeys?.includes(PERMISSIONS.SETTINGS_GENERAL)) {
+    return <ForbiddenPage />;
   }
 
   return (
@@ -428,6 +436,18 @@ export default function GeneralSettingsPage() {
             </div>
           )}
         </div>
+      </div>
+
+      <div className="flex flex-col gap-3 rounded-md border border-zinc-200 p-4">
+        <p className="text-xs font-semibold uppercase tracking-wide text-zinc-500">Chân trang</p>
+        <label className="flex flex-col gap-1 text-sm text-zinc-700">
+          Text hiển thị ở footer toàn site
+          <input
+            value={footerText}
+            onChange={(e) => setFooterText(e.target.value)}
+            className={inputClass}
+          />
+        </label>
       </div>
 
       <p className="text-xs text-zinc-400">

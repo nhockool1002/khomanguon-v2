@@ -102,6 +102,7 @@ export const DEFAULT_GENERAL_SETTINGS: GeneralSettings = {
   headerSloganItalic: false,
   gaTrackingId: "",
   googleSiteVerification: "",
+  footerText: "KHOMANGUON Version 2 (C) 2026. All Rights Reserved.",
 };
 
 export async function fetchGeneralSettings(): Promise<GeneralSettings> {

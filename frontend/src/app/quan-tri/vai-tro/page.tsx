@@ -4,9 +4,11 @@ import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/auth-context";
 import { apiFetch, ApiError } from "@/lib/api";
+import { PERMISSIONS } from "@/lib/permissions";
 import type { Permission, Role } from "@/lib/types";
 import { ErrorBanner, SuccessBanner } from "@/components/ui";
 import { FONT_OPTIONS, fontVar } from "@/lib/fonts";
+import { ForbiddenPage } from "@/components/forbidden-page";
 
 const MODULE_LABELS: Record<string, string> = {
   post: "Bài viết",
@@ -192,6 +194,9 @@ export default function AdminRolesPage() {
 
   if (loading || !user) {
     return <div className="px-8 py-16 text-center text-sm text-zinc-400">Đang tải...</div>;
+  }
+  if (!user.permissionKeys?.includes(PERMISSIONS.ROLE_MANAGE)) {
+    return <ForbiddenPage />;
   }
 
   return (

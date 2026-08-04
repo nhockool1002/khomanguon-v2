@@ -4,9 +4,11 @@ import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useAuth } from "@/context/auth-context";
 import { apiFetch, ApiError } from "@/lib/api";
+import { PERMISSIONS } from "@/lib/permissions";
 import type { PostDetail } from "@/lib/types";
 import { PostForm, type PostFormValues } from "@/components/post-form";
 import { ErrorBanner } from "@/components/ui";
+import { ForbiddenPage } from "@/components/forbidden-page";
 
 export default function EditPostPage() {
   const { id } = useParams<{ id: string }>();
@@ -28,6 +30,9 @@ export default function EditPostPage() {
 
   if (loading || !user) {
     return <div className="px-8 py-16 text-center text-sm text-zinc-400">Đang tải...</div>;
+  }
+  if (!user.permissionKeys?.includes(PERMISSIONS.POST_CREATE)) {
+    return <ForbiddenPage />;
   }
 
   async function handleSubmit(values: PostFormValues) {

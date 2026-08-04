@@ -101,20 +101,29 @@ async function CategoriesWidget({ title }: { title: string }) {
 async function RecentPostsWidget({ title, limit }: { title: string; limit: number }) {
   const { items: posts } = await fetchPosts({ limit, sort: "newest" });
   return (
-    <div className="rounded-lg border border-zinc-200 bg-white p-4">
-      {title && (
-        <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-zinc-500">{title}</h3>
-      )}
+    <div className="rounded-lg border border-zinc-200 bg-white p-5">
+      <h3 className="mb-3 text-lg font-bold text-zinc-900">{title || "Bài viết mới"}</h3>
       {posts.length === 0 ? (
         <p className="text-xs text-zinc-400">Chưa có bài viết.</p>
       ) : (
-        <ul className="flex flex-col gap-2">
+        <ul className="flex flex-col gap-3.5">
           {posts.map((post) => (
-            <li key={post.id}>
-              <Link href={`/bai-viet/${post.slug}`} className="text-sm text-zinc-700 hover:text-[#1d3557]">
-                {post.title}
-              </Link>
-              <p className="font-mono text-xs text-zinc-400">{formatDate(post.publishedAt ?? post.createdAt)}</p>
+            <li key={post.id} className="flex items-start gap-2.5">
+              <span
+                className="recent-post-dot mt-1.5 h-2.5 w-2.5 shrink-0 rounded-full"
+                aria-hidden
+              />
+              <div>
+                <Link
+                  href={`/bai-viet/${post.slug}`}
+                  className="text-sm font-semibold text-rose-600 hover:text-rose-700 hover:underline"
+                >
+                  {post.title}
+                </Link>
+                <p className="mt-0.5 font-mono text-xs text-zinc-400">
+                  {formatDate(post.publishedAt ?? post.createdAt)}
+                </p>
+              </div>
             </li>
           ))}
         </ul>

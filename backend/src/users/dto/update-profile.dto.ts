@@ -1,4 +1,5 @@
 import {
+  IsBoolean,
   IsOptional,
   IsString,
   IsUrl,
@@ -21,4 +22,9 @@ export class UpdateProfileDto {
   @IsOptional()
   @IsUrl({}, { message: 'avatarUrl phải là một URL hợp lệ' })
   avatarUrl?: string;
+
+  // Bật/tắt popup gợi ý bài viết ngẫu nhiên (post-popup.tsx) — chỉnh ở trang Tài khoản.
+  @IsOptional()
+  @IsBoolean()
+  showPostPopup?: boolean;
 }

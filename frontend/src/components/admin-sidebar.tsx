@@ -1,96 +1,15 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import {
-  ArrowLeft,
-  ChevronDown,
-  Cloud,
-  CreditCard,
-  FileText,
-  FolderTree,
-  Image as ImageIcon,
-  LayoutGrid,
-  LayoutTemplate,
-  Mail,
-  MessageSquare,
-  Menu as MenuIcon,
-  Server,
-  Settings,
-  ShieldCheck,
-  SlidersHorizontal,
-  User,
-  Users,
-  Wallet,
-  type LucideIcon,
-} from "lucide-react";
+import { ChevronDown } from "lucide-react";
+import { useAuth } from "@/context/auth-context";
+import { ADMIN_NAV, BACK_HOME_ICON, type MatchMode, type NavLeaf, type NavGroup } from "@/lib/admin-nav";
 
-type MatchMode = "exact" | "prefix" | "exact-prefix";
-
-interface NavLeaf {
-  href: string;
-  label: string;
-  icon: LucideIcon;
-  match: MatchMode;
-}
-
-interface NavGroup {
-  label: string;
-  icon: LucideIcon;
-  // Nhóm không có trang riêng (vd "Cài Đặt") thì để trống — bấm chỉ đóng/mở.
-  href?: string;
-  match?: MatchMode;
-  children: NavLeaf[];
-}
-
-type NavEntry = ({ kind: "leaf" } & NavLeaf) | ({ kind: "group" } & NavGroup);
-
-// "Quản lý bài viết" vừa là link (danh sách bài viết) vừa có menu con "Danh mục" — bỏ hẳn mục
-// "Viết bài mới" riêng vì trang Quản lý bài viết đã có nút tạo bài mới ngay trên đầu trang.
-const NAV: NavEntry[] = [
-  {
-    kind: "group",
-    label: "Quản lý bài viết",
-    icon: FileText,
-    href: "/quan-tri/bai-viet",
-    match: "exact-prefix",
-    children: [{ href: "/quan-tri/danh-muc", label: "Danh mục", icon: FolderTree, match: "prefix" }],
-  },
-  { kind: "leaf", href: "/quan-tri/thu-vien-media", label: "Thư viện Media", icon: ImageIcon, match: "prefix" },
-  { kind: "leaf", href: "/quan-tri/binh-luan", label: "Quản lý bình luận", icon: MessageSquare, match: "prefix" },
-  {
-    kind: "group",
-    label: "Quản lý Giao diện",
-    icon: LayoutTemplate,
-    children: [
-      { href: "/quan-tri/widget", label: "Quản lý Widget", icon: LayoutGrid, match: "prefix" },
-      { href: "/quan-tri/menu", label: "Quản lý Menu", icon: MenuIcon, match: "prefix" },
-    ],
-  },
-  { kind: "leaf", href: "/quan-tri/giao-dich", label: "Quản lý Giao Dịch", icon: Wallet, match: "prefix" },
-  {
-    kind: "group",
-    label: "Quản lý User & Role",
-    icon: Users,
-    children: [
-      { href: "/quan-tri/nguoi-dung", label: "Quản lý User", icon: User, match: "prefix" },
-      { href: "/quan-tri/vai-tro", label: "Quản Lý Phân Quyền", icon: ShieldCheck, match: "prefix" },
-    ],
-  },
-  { kind: "leaf", href: "/quan-tri/tep-cloud", label: "Quản lý File Cloud", icon: Cloud, match: "prefix" },
-  {
-    kind: "group",
-    label: "Cài Đặt",
-    icon: Settings,
-    children: [
-      { href: "/quan-tri/cai-dat/storage", label: "Cài đặt Provider", icon: Server, match: "prefix" },
-      { href: "/quan-tri/cai-dat/sepay", label: "Cài đặt SePay", icon: CreditCard, match: "prefix" },
-      { href: "/quan-tri/cai-dat/email", label: "Cài đặt Email", icon: Mail, match: "prefix" },
-      { href: "/quan-tri/cai-dat/chung", label: "Cài đặt chung", icon: SlidersHorizontal, match: "prefix" },
-    ],
-  },
-];
+type FilteredNavEntry =
+  | ({ kind: "leaf" } & NavLeaf)
+  | ({ kind: "group"; ownLinkVisible: boolean } & NavGroup);
 
 function isActive(pathname: string, href: string, mode: MatchMode): boolean {
   if (mode === "exact") return pathname === href;
@@ -105,33 +24,52 @@ function groupIsActive(pathname: string, group: NavGroup): boolean {
   return group.children.some((child) => isActive(pathname, child.href, child.match));
 }
 
-function activeGroupLabels(pathname: string): string[] {
-  return NAV.filter((entry): entry is { kind: "group" } & NavGroup => entry.kind === "group")
-    .filter((group) => groupIsActive(pathname, group))
-    .map((group) => group.label);
-}
-
 const rowToneClass = (active: boolean) =>
   active ? "bg-[#1d3557] text-white" : "text-zinc-300 hover:bg-white/10 hover:text-white";
 
 const itemClass = (active: boolean) =>
   `flex items-center gap-2.5 rounded-md px-3 py-2 text-sm transition-colors ${rowToneClass(active)}`;
 
-// Menu quản trị nằm bên trái, kiểu WordPress admin — thay cho việc rải link trên navbar.
+// Menu quản trị nằm bên trái, kiểu WordPress admin — thay cho việc rải link trên navbar. Mỗi mục
+// chỉ hiện với user có đúng quyền tương ứng (lib/admin-nav.ts) — chức năng không có quyền thì ẩn
+// hẳn khỏi menu, không phải cứ bấm vào rồi mới báo không có quyền.
 export function AdminSidebar() {
   const pathname = usePathname() ?? "";
-  const [expanded, setExpanded] = useState<Set<string>>(() => new Set(activeGroupLabels(pathname)));
+  const { user } = useAuth();
+  const permissionKeys = useMemo(() => new Set(user?.permissionKeys ?? []), [user]);
+
+  const nav = useMemo((): FilteredNavEntry[] => {
+    return ADMIN_NAV.flatMap((entry): FilteredNavEntry[] => {
+      if (entry.kind === "leaf") {
+        return permissionKeys.has(entry.permission) ? [entry] : [];
+      }
+      const children = entry.children.filter((c) => permissionKeys.has(c.permission));
+      const ownLinkVisible = !!entry.permission && permissionKeys.has(entry.permission);
+      if (children.length === 0 && !ownLinkVisible) return [];
+      return [{ ...entry, children, ownLinkVisible }];
+    });
+  }, [permissionKeys]);
+
+  const activeGroupLabels = useMemo(
+    () =>
+      nav
+        .filter((entry): entry is (typeof nav)[number] & { kind: "group" } => entry.kind === "group")
+        .filter((group) => groupIsActive(pathname, group))
+        .map((group) => group.label),
+    [nav, pathname],
+  );
+
+  const [expanded, setExpanded] = useState<Set<string>>(() => new Set(activeGroupLabels));
   const [syncedPathname, setSyncedPathname] = useState(pathname);
 
   // Tự mở nhóm đang active khi điều hướng sang, không tự đóng nhóm người dùng đã mở tay — cập nhật
   // ngay trong lúc render (theo khuyến nghị React thay vì setState trong useEffect, tránh render thừa).
   if (pathname !== syncedPathname) {
     setSyncedPathname(pathname);
-    const active = activeGroupLabels(pathname);
-    if (!active.every((label) => expanded.has(label))) {
+    if (!activeGroupLabels.every((label) => expanded.has(label))) {
       setExpanded((prev) => {
         const next = new Set(prev);
-        active.forEach((label) => next.add(label));
+        activeGroupLabels.forEach((label) => next.add(label));
         return next;
       });
     }
@@ -152,7 +90,7 @@ export function AdminSidebar() {
         Quản trị
       </p>
 
-      {NAV.map((entry) => {
+      {nav.map((entry) => {
         if (entry.kind === "leaf") {
           const Icon = entry.icon;
           return (
@@ -181,7 +119,7 @@ export function AdminSidebar() {
 
         return (
           <div key={entry.label} className="flex flex-col">
-            {entry.href && entry.match ? (
+            {entry.href && entry.match && entry.ownLinkVisible ? (
               <div className={`flex items-stretch rounded-md text-sm transition-colors ${rowToneClass(active)}`}>
                 <Link href={entry.href} className="flex flex-1 items-center gap-2.5 px-3 py-2">
                   <Icon size={17} strokeWidth={1.75} aria-hidden />
@@ -233,7 +171,7 @@ export function AdminSidebar() {
           href="/"
           className="flex items-center gap-2.5 rounded-md px-3 py-2 text-sm text-zinc-400 transition-colors hover:bg-white/10 hover:text-white"
         >
-          <ArrowLeft size={17} strokeWidth={1.75} aria-hidden />
+          <BACK_HOME_ICON size={17} strokeWidth={1.75} aria-hidden />
           Về trang chủ
         </Link>
       </div>

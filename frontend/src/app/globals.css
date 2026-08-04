@@ -120,3 +120,47 @@ body {
   transform: translateX(130%);
   transition: transform 0.8s ease;
 }
+
+/*
+ * Chấm tròn cầu vồng xoay trước mỗi mục trong widget "Bài viết mới" (widget-area.tsx
+ * RecentPostsWidget) — cùng kỹ thuật @property + conic-gradient với download-box-border, chỉ thu
+ * nhỏ lại thành 1 chấm tròn thay vì viền khung.
+ */
+@property --recent-post-dot-angle {
+  syntax: "<angle>";
+  inherits: false;
+  initial-value: 0deg;
+}
+
+.recent-post-dot {
+  background: conic-gradient(
+    from var(--recent-post-dot-angle),
+    #3fd4d4,
+    #4d7cff,
+    #b45df0,
+    #ff5da2,
+    #ff8a3d,
+    #ffcf3f,
+    #6dd67a,
+    #3fd4d4
+  );
+  animation: recent-post-dot-spin 3s linear infinite;
+}
+
+@keyframes recent-post-dot-spin {
+  to {
+    --recent-post-dot-angle: 360deg;
+  }
+}
+
+/* Popup gợi ý bài viết (post-popup.tsx) — trượt lên + mờ dần vào từ góc phải-dưới. */
+@keyframes post-popup-in {
+  from {
+    transform: translateY(16px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}

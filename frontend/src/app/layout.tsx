@@ -5,6 +5,8 @@ import "./globals.css";
 import { AuthProvider } from "@/context/auth-context";
 import { RoleBadgesProvider } from "@/context/role-badges-context";
 import { Navbar } from "@/components/navbar";
+import { PostPopup } from "@/components/post-popup";
+import { Footer } from "@/components/footer";
 import { fetchGeneralSettings, fetchMenus, fetchRoleBadges } from "@/lib/public-api";
 import { ROLE_FONT_VARS } from "@/lib/fonts";
 
@@ -67,6 +69,8 @@ gtag('config', '${settings.gaTrackingId}');`}
           <RoleBadgesProvider badges={roleBadges}>
             <Navbar menus={menus} />
             {children}
+            <Footer text={settings.footerText} />
+            <PostPopup />
           </RoleBadgesProvider>
         </AuthProvider>
       </body>

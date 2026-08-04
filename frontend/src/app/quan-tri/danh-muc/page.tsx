@@ -4,9 +4,11 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/auth-context";
 import { apiFetch, ApiError } from "@/lib/api";
+import { PERMISSIONS } from "@/lib/permissions";
 import type { Category } from "@/lib/types";
 import { ErrorBanner } from "@/components/ui";
 import { CategoryTreeEditor } from "@/components/category-tree-editor";
+import { ForbiddenPage } from "@/components/forbidden-page";
 
 // Loại bỏ chính nó + toàn bộ hậu duệ khỏi danh sách chọn "danh mục cha" khi sửa — tránh vòng lặp.
 function excludeSubtree(items: Category[], excludeId: string): Category[] {
@@ -104,6 +106,9 @@ export default function AdminCategoriesPage() {
 
   if (loading || !user) {
     return <div className="px-8 py-16 text-center text-sm text-zinc-400">Đang tải...</div>;
+  }
+  if (!user.permissionKeys?.includes(PERMISSIONS.POST_PUBLISH)) {
+    return <ForbiddenPage />;
   }
 
   return (

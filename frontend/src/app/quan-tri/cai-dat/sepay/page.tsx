@@ -4,8 +4,10 @@ import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/auth-context";
 import { apiFetch, ApiError } from "@/lib/api";
+import { PERMISSIONS } from "@/lib/permissions";
 import type { SepayConfigPublic, TopupPreset } from "@/lib/types";
 import { ErrorBanner, SuccessBanner } from "@/components/ui";
+import { ForbiddenPage } from "@/components/forbidden-page";
 
 export default function AdminSepaySettingsPage() {
   const { user, loading } = useAuth();
@@ -108,6 +110,9 @@ export default function AdminSepaySettingsPage() {
 
   if (loading || !user) {
     return <div className="px-8 py-16 text-center text-sm text-zinc-400">Đang tải...</div>;
+  }
+  if (!user.permissionKeys?.includes(PERMISSIONS.SETTINGS_PAYMENT)) {
+    return <ForbiddenPage />;
   }
 
   return (

@@ -4,9 +4,11 @@ import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/auth-context";
 import { apiFetch, ApiError, API_URL } from "@/lib/api";
+import { PERMISSIONS } from "@/lib/permissions";
 import { formatFileSize } from "@/lib/format";
 import type { MediaFile, MediaFileListResponse } from "@/lib/types";
 import { ErrorBanner, SuccessBanner } from "@/components/ui";
+import { ForbiddenPage } from "@/components/forbidden-page";
 
 const PAGE_SIZE = 24;
 
@@ -116,6 +118,9 @@ export default function MediaLibraryPage() {
 
   if (loading || !user) {
     return <div className="px-8 py-16 text-center text-sm text-zinc-400">Đang tải...</div>;
+  }
+  if (!user.permissionKeys?.includes(PERMISSIONS.MEDIA_MANAGE)) {
+    return <ForbiddenPage />;
   }
 
   return (

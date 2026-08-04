@@ -29,6 +29,8 @@ export interface GeneralSettings {
   // PLAN.md 2.6 (SEO toàn site) — để trống thì không render thẻ/script tương ứng.
   gaTrackingId: string; // "G-XXXXXXX" — gắn gtag.js vào layout.tsx
   googleSiteVerification: string; // nội dung thẻ <meta name="google-site-verification">
+  // Text chân trang toàn site (footer.tsx) — Admin tự đổi ở Cài đặt chung.
+  footerText: string;
 }
 
 export const GENERAL_SETTINGS_KEY = 'general_settings';
@@ -54,4 +56,5 @@ export const DEFAULT_GENERAL_SETTINGS: GeneralSettings = {
   headerSloganItalic: false,
   gaTrackingId: '',
   googleSiteVerification: '',
+  footerText: 'KHOMANGUON Version 2 (C) 2026. All Rights Reserved.',
 };

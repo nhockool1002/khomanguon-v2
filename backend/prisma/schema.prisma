@@ -41,6 +41,10 @@ model User {
   primaryRoleId String?
   primaryRole   Role?   @relation("UserPrimaryRole", fields: [primaryRoleId], references: [id], onDelete: SetNull)
 
+  // Bật/tắt popup gợi ý bài viết ngẫu nhiên góc phải màn hình (frontend/src/components/post-popup.tsx)
+  // — mặc định bật, user tự tắt ở trang Tài khoản nếu thấy phiền.
+  showPostPopup Boolean @default(true)
+
   roles                  UserRole[]
   wallet                 Wallet?
   posts                  Post[]

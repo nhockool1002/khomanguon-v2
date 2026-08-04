@@ -4,9 +4,11 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/auth-context";
 import { apiFetch, ApiError } from "@/lib/api";
+import { PERMISSIONS } from "@/lib/permissions";
 import type { MenuItem } from "@/lib/types";
 import { ErrorBanner } from "@/components/ui";
 import { MenuTreeEditor, DEFAULT_ROLE_OPTIONS } from "@/components/menu-tree-editor";
+import { ForbiddenPage } from "@/components/forbidden-page";
 
 export default function AdminMenuPage() {
   const { user, loading } = useAuth();
@@ -103,6 +105,9 @@ export default function AdminMenuPage() {
 
   if (loading || !user) {
     return <div className="px-8 py-16 text-center text-sm text-zinc-400">Đang tải...</div>;
+  }
+  if (!user.permissionKeys?.includes(PERMISSIONS.MENU_MANAGE)) {
+    return <ForbiddenPage />;
   }
 
   return (

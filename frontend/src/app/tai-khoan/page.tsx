@@ -7,6 +7,7 @@ import { ShieldCheck, Trash2, Wallet as WalletIcon } from "lucide-react";
 import { useAuth } from "@/context/auth-context";
 import { apiFetch, ApiError } from "@/lib/api";
 import { PERMISSIONS } from "@/lib/permissions";
+import { hasAdminAccess } from "@/lib/admin-nav";
 import { useWalletSocket } from "@/lib/socket";
 import type { Profile, Wallet } from "@/lib/types";
 import { ErrorBanner, FormField, SubmitButton, SuccessBanner } from "@/components/ui";
@@ -57,10 +58,10 @@ export default function AccountPage() {
     return <div className="flex-1 px-6 py-16 text-center text-sm text-zinc-400">Đang tải...</div>;
   }
 
-  // "Có quyền truy cập quản trị" = có ít nhất 1 permission (member/unverified không có
-  // permission nào — xem prisma/seed.ts) — menu quản trị hiện chưa lọc theo quyền chi tiết,
-  // dựa vào 403 từ backend khi vào từng trang con (xem components/admin-sidebar.tsx).
-  const hasAdminAccess = !!user.permissionKeys?.length;
+  // "Có quyền truy cập quản trị" = có ít nhất 1 quyền mở được 1 trang /quan-tri/* nào đó (lib/admin-nav.ts)
+  // — KHÔNG phải cứ có permission bất kỳ, vì Member thường cũng có vài quyền tự phục vụ
+  // (comment.create/wallet.view.own/download.purchase) nhưng không nên thấy nút này (lỗi thật đã gặp).
+  const canAccessAdmin = hasAdminAccess(user.permissionKeys);
 
   return (
     <div className="mx-auto flex w-full max-w-3xl flex-1 flex-col gap-6 px-4 py-10">
@@ -76,7 +77,7 @@ export default function AccountPage() {
               {wallet.balance} $P
             </Link>
           )}
-          {hasAdminAccess && (
+          {canAccessAdmin && (
             <Link
               href="/quan-tri/bai-viet"
               className="flex items-center gap-1.5 rounded-md border border-zinc-300 px-3 py-1.5 text-sm text-zinc-700 hover:bg-zinc-50"
@@ -165,6 +166,7 @@ function ProfileTab({ onSaved }: { onSaved: () => Promise<void> }) {
   const [saving, setSaving] = useState(false);
   const [resending, setResending] = useState(false);
   const [savingStyleRole, setSavingStyleRole] = useState(false);
+  const [savingPopupPref, setSavingPopupPref] = useState(false);
 
   useEffect(() => {
     apiFetch<Profile>("/users/me").then((p) => {
@@ -206,6 +208,22 @@ function ProfileTab({ onSaved }: { onSaved: () => Promise<void> }) {
       setError(err instanceof ApiError ? err.message : "Có lỗi xảy ra");
     } finally {
       setSaving(false);
+    }
+  }
+
+  async function handleTogglePopup(next: boolean) {
+    setSavingPopupPref(true);
+    setError(null);
+    try {
+      const updated = await apiFetch<Profile>("/users/me", {
+        method: "PATCH",
+        body: JSON.stringify({ showPostPopup: next }),
+      });
+      setProfile(updated);
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : "Có lỗi xảy ra");
+    } finally {
+      setSavingPopupPref(false);
     }
   }
 
@@ -279,6 +297,20 @@ function ProfileTab({ onSaved }: { onSaved: () => Promise<void> }) {
         </div>
       )}
 
+      <div className="flex items-center justify-between gap-3 rounded-md border border-zinc-200 px-3 py-2.5">
+        <div>
+          <p className="text-sm font-medium text-zinc-800">Popup gợi ý bài viết</p>
+          <p className="text-xs text-zinc-500">
+            Thẻ bài viết ngẫu nhiên hiện ở góc màn hình khi lướt web — tắt nếu thấy phiền.
+          </p>
+        </div>
+        <ToggleSwitch
+          checked={profile.showPostPopup !== false}
+          disabled={savingPopupPref}
+          onChange={handleTogglePopup}
+        />
+      </div>
+
       <form onSubmit={handleSave} className="flex flex-col gap-4">
         <FormField label="Email" value={profile.email} disabled readOnly />
         <FormField
@@ -313,6 +345,35 @@ function ProfileTab({ onSaved }: { onSaved: () => Promise<void> }) {
         </div>
       </form>
     </div>
+  );
+}
+
+function ToggleSwitch({
+  checked,
+  disabled,
+  onChange,
+}: {
+  checked: boolean;
+  disabled?: boolean;
+  onChange: (next: boolean) => void;
+}) {
+  return (
+    <button
+      type="button"
+      role="switch"
+      aria-checked={checked}
+      disabled={disabled}
+      onClick={() => onChange(!checked)}
+      className={`relative h-6 w-11 shrink-0 rounded-full transition-colors disabled:opacity-50 ${
+        checked ? "bg-[#1d3557]" : "bg-zinc-300"
+      }`}
+    >
+      <span
+        className={`absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition-transform ${
+          checked ? "translate-x-5" : "translate-x-0.5"
+        }`}
+      />
+    </button>
   );
 }
 
