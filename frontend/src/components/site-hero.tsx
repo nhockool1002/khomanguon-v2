@@ -1,19 +1,10 @@
 import { fontVar } from "@/lib/fonts";
 import type { GeneralSettings } from "@/lib/types";
 
-// Banner dùng chung phong cách hero trang chủ (app/page.tsx) nhưng nội dung riêng theo từng trang
-// (vd "Ví $P" thay vì tiêu đề site) — cùng đọc màu/ảnh nền từ Cài đặt chung để đồng bộ nhận diện.
-export function PageHero({
-  settings,
-  eyebrow,
-  title,
-  minHeight = 160,
-}: {
-  settings: GeneralSettings;
-  eyebrow: string;
-  title: string;
-  minHeight?: number;
-}) {
+// Banner "hero" dùng CHUNG NGUYÊN VĂN với trang chủ (trước đây trích từ app/page.tsx) — luôn hiện
+// đúng headerTitle/headerSlogan cấu hình ở Cài đặt chung, KHÔNG override bằng text riêng theo
+// từng trang (yêu cầu thực tế: trang Nạp tiền phải dùng chung banner với trang chủ).
+export function SiteHero({ settings }: { settings: GeneralSettings }) {
   const heroStyle: React.CSSProperties = settings.headerBackgroundImageUrl
     ? {
         backgroundColor: settings.headerBackgroundColor,
@@ -27,8 +18,8 @@ export function PageHero({
 
   return (
     <section
-      className="flex flex-col justify-center rounded-lg px-8 py-8 text-white"
-      style={{ ...heroStyle, minHeight }}
+      className="flex flex-col justify-center rounded-lg px-8 py-10 text-white"
+      style={{ ...heroStyle, minHeight: settings.headerMinHeight }}
     >
       <p
         className="font-mono text-xs uppercase tracking-widest"
@@ -38,18 +29,21 @@ export function PageHero({
           fontWeight: settings.headerTitleBold ? 700 : undefined,
         }}
       >
-        {eyebrow}
+        {settings.headerTitle}
       </p>
-      <h1
-        className="mt-2 text-2xl"
-        style={{
-          color: settings.headerSloganColor,
-          fontFamily: fontVar(settings.headerSloganFontFamily),
-          fontWeight: settings.headerSloganBold ? 700 : undefined,
-        }}
-      >
-        {title}
-      </h1>
+      {settings.headerSlogan && (
+        <h1
+          className="mt-2 max-w-lg text-2xl"
+          style={{
+            color: settings.headerSloganColor,
+            fontFamily: fontVar(settings.headerSloganFontFamily),
+            fontWeight: settings.headerSloganBold ? 700 : undefined,
+            fontStyle: settings.headerSloganItalic ? "italic" : undefined,
+          }}
+        >
+          {settings.headerSlogan}
+        </h1>
+      )}
     </section>
   );
 }

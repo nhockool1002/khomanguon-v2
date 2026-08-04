@@ -131,7 +131,7 @@ export const ADMIN_NAV: NavEntry[] = [
       },
       {
         href: "/quan-tri/vai-tro",
-        label: "Quản Lý Phân Quyền",
+        label: "Quản lý Permission",
         icon: ShieldCheck,
         match: "prefix",
         permission: PERMISSIONS.ROLE_MANAGE,
