@@ -1,11 +1,15 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import {
+  AbortMultipartUploadCommand,
+  CompleteMultipartUploadCommand,
+  CreateMultipartUploadCommand,
   DeleteObjectCommand,
   GetObjectCommand,
   HeadObjectCommand,
   ListObjectsV2Command,
   PutObjectCommand,
   S3Client,
+  UploadPartCommand,
 } from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import { PrismaService } from '../prisma/prisma.service';
@@ -203,6 +207,93 @@ export class R2ClientService {
     } catch {
       return null;
     }
+  }
+
+  // ───────────────────────── Multipart upload (file lớn hơn 5GB) ─────────────────────────
+  // PutObject/presigned PUT đơn chỉ nhận tối đa 5GB — giới hạn cứng của chuẩn S3 API, không phải
+  // do code hạn chế. File lớn hơn bắt buộc phải chia phần (part 5MB-5GB, tối đa 10.000 phần), mỗi
+  // phần ký + PUT riêng rồi "ráp" lại bằng CompleteMultipartUpload. Quy trình chuẩn:
+  // createMultipartUpload -> getPresignedUploadPartUrl (từng phần, ngay trước khi PUT phần đó, để
+  // không phụ thuộc UPLOAD_EXPIRES_SECONDS cho toàn bộ file) -> completeMultipartUpload (gửi kèm
+  // ETag của từng phần, đọc từ response header lúc PUT — bucket cần CORS ExposeHeaders: ["ETag"]
+  // thì trình duyệt mới đọc được, xem cloud-files.service.ts).
+
+  async createMultipartUpload(
+    providerId: string,
+    key: string,
+    contentType?: string,
+  ): Promise<string> {
+    const provider = await this.getProvider(providerId);
+    const client = this.buildClient(provider);
+    const result = await client.send(
+      new CreateMultipartUploadCommand({
+        Bucket: this.requireBucket(provider),
+        Key: this.toPrefixedKey(provider, key),
+        ContentType: contentType,
+      }),
+    );
+    if (!result.UploadId) {
+      throw new Error('Bucket không trả về UploadId cho multipart upload');
+    }
+    return result.UploadId;
+  }
+
+  async getPresignedUploadPartUrl(
+    providerId: string,
+    key: string,
+    uploadId: string,
+    partNumber: number,
+    expiresInSeconds: number = UPLOAD_EXPIRES_SECONDS,
+  ): Promise<string> {
+    const provider = await this.getProvider(providerId);
+    const client = this.buildClient(provider);
+    const command = new UploadPartCommand({
+      Bucket: this.requireBucket(provider),
+      Key: this.toPrefixedKey(provider, key),
+      UploadId: uploadId,
+      PartNumber: partNumber,
+    });
+    return getSignedUrl(client, command, { expiresIn: expiresInSeconds });
+  }
+
+  async completeMultipartUpload(
+    providerId: string,
+    key: string,
+    uploadId: string,
+    parts: { partNumber: number; eTag: string }[],
+  ): Promise<void> {
+    const provider = await this.getProvider(providerId);
+    const client = this.buildClient(provider);
+    await client.send(
+      new CompleteMultipartUploadCommand({
+        Bucket: this.requireBucket(provider),
+        Key: this.toPrefixedKey(provider, key),
+        UploadId: uploadId,
+        MultipartUpload: {
+          Parts: [...parts]
+            .sort((a, b) => a.partNumber - b.partNumber)
+            .map((p) => ({ ETag: p.eTag, PartNumber: p.partNumber })),
+        },
+      }),
+    );
+  }
+
+  // Dọn phần đã tải lên dở dang khi user huỷ/lỗi giữa chừng — S3/R2 vẫn tính phí lưu trữ các phần
+  // chưa complete nếu không abort tường minh (không tự hết hạn như presigned URL).
+  async abortMultipartUpload(
+    providerId: string,
+    key: string,
+    uploadId: string,
+  ): Promise<void> {
+    const provider = await this.getProvider(providerId);
+    const client = this.buildClient(provider);
+    await client.send(
+      new AbortMultipartUploadCommand({
+        Bucket: this.requireBucket(provider),
+        Key: this.toPrefixedKey(provider, key),
+        UploadId: uploadId,
+      }),
+    );
   }
 
   async deleteObject(providerId: string, key: string): Promise<void> {

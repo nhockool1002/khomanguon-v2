@@ -21,25 +21,77 @@ import type { StorageProvider } from "@/lib/types";
 import { ErrorBanner } from "@/components/ui";
 import { ForbiddenPage } from "@/components/forbidden-page";
 
-type UploadStatus = "queued" | "signing" | "uploading" | "success" | "error" | "cancelled";
+type UploadStatus =
+  | "queued"
+  | "signing"
+  | "uploading"
+  | "completing"
+  | "success"
+  | "error"
+  | "cancelled";
+
+interface PartState {
+  partNumber: number;
+  start: number;
+  end: number;
+  status: "pending" | "uploading" | "success" | "error";
+  uploadedBytes: number;
+  eTag: string | null;
+  xhr: XMLHttpRequest | null;
+}
 
 interface UploadItem {
   id: string;
   file: File;
+  // Chụp lại provider/thư mục NGAY lúc thêm file — người dùng có thể đổi tab provider hoặc thư mục
+  // trong lúc file khác vẫn đang tải, không được để việc đó ảnh hưởng ngược tới các item đã xếp hàng.
+  providerId: string;
+  folder: string;
   status: UploadStatus;
-  progress: number; // 0-100
+  progress: number; // 0-100, chỉ chạm mốc 100 khi thật sự xong (kể cả bước "ráp" multipart)
   key: string | null;
   error: string | null;
-  xhr: XMLHttpRequest | null;
+  xhr: XMLHttpRequest | null; // dùng cho đường PUT đơn
+  // Chỉ có giá trị với file > MULTIPART_THRESHOLD_BYTES (xem buildParts).
+  uploadId: string | null;
+  parts: PartState[] | null;
 }
 
-const MAX_CONCURRENT = 3;
-// Giới hạn kỹ thuật của presigned PUT single-object (S3/R2 đều theo chuẩn S3 API) — file lớn hơn
-// phải chia multipart, chưa hỗ trợ ở bản này nên chặn sớm thay vì để bucket từ chối giữa chừng.
-const MAX_FILE_BYTES = 5 * 1024 * 1024 * 1024;
+const MAX_CONCURRENT = 3; // số FILE tải song song
+const PART_CONCURRENCY = 3; // số PHẦN tải song song trong 1 file multipart
+
+// Trần cứng của PutObject/presigned PUT đơn theo chuẩn S3 API (không phải giới hạn tự đặt) — file
+// lớn hơn bắt buộc phải chia phần (multipart), nhỏ hơn hoặc bằng thì PUT thẳng 1 lần cho gọn.
+const MULTIPART_THRESHOLD_BYTES = 5 * 1024 * 1024 * 1024;
+const MIN_PART_BYTES = 5 * 1024 * 1024; // tối thiểu 5MB/phần theo yêu cầu S3 (trừ phần cuối)
+const PREFERRED_PART_BYTES = 64 * 1024 * 1024; // cân bằng số request vs độ song song
+const MAX_PARTS = 10000; // trần cứng số phần multipart của S3
 
 function newId(): string {
   return `${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
+}
+
+function choosePartSize(fileSize: number): number {
+  const minNeeded = Math.ceil(fileSize / MAX_PARTS);
+  return Math.max(MIN_PART_BYTES, PREFERRED_PART_BYTES, minNeeded);
+}
+
+function buildParts(file: File): PartState[] {
+  const partSize = choosePartSize(file.size);
+  const parts: PartState[] = [];
+  let start = 0;
+  let partNumber = 1;
+  while (start < file.size) {
+    const end = Math.min(start + partSize, file.size);
+    parts.push({ partNumber, start, end, status: "pending", uploadedBytes: 0, eTag: null, xhr: null });
+    start = end;
+    partNumber += 1;
+  }
+  if (parts.length === 0) {
+    // File 0 byte vẫn cần đúng 1 phần — multipart không chấp nhận danh sách phần rỗng.
+    parts.push({ partNumber: 1, start: 0, end: 0, status: "pending", uploadedBytes: 0, eTag: null, xhr: null });
+  }
+  return parts;
 }
 
 export default function UploadCloudFilePage() {
@@ -56,6 +108,13 @@ export default function UploadCloudFilePage() {
   useEffect(() => {
     itemsRef.current = items;
   }, [items]);
+  // Đánh dấu item đã được effect hàng đợi dispatch — cần thiết vì runSingleUpload/runMultipartUpload
+  // gọi API thật (side effect không idempotent), còn cập nhật status "queued" -> "signing" là setState
+  // BẤT ĐỒNG BỘ. Nếu effect hàng đợi chạy lại trước khi state đó kịp flush (React Strict Mode dev cố
+  // tình double-invoke effect để bắt lỗi này, hoặc 2 lần setItems dồn dập bất kỳ lý do gì), item vẫn
+  // còn "queued" trong closure cũ nên bị dispatch (gọi initMultipartUpload/presign-upload) 2 LẦN —
+  // lỗi thật đã gặp: multipart init 2 lần trùng nhau tạo 2 uploadId, complete() sau đó luôn thất bại.
+  const dispatchedIdsRef = useRef<Set<string>>(new Set());
 
   useEffect(() => {
     if (!loading && !user) router.replace("/dang-nhap");
@@ -79,21 +138,40 @@ export default function UploadCloudFilePage() {
     setItems((prev) => prev.map((it) => (it.id === id ? { ...it, ...patch } : it)));
   }, []);
 
-  // Chạy 1 upload: xin presigned URL từ backend (request nhỏ, apiFetch bình thường) rồi PUT thẳng
-  // file lên R2/S3 bằng XMLHttpRequest thô — không qua backend nên backend không giữ request nào
-  // mở suốt lúc tải (tránh timeout với file nặng), và XHR cho progress event mà fetch() không có.
-  const runUpload = useCallback(
-    (item: UploadItem, activeProviderId: string, activeFolder: string) => {
+  const updatePart = useCallback(
+    (itemId: string, partNumber: number, patch: Partial<PartState>) => {
+      setItems((prev) =>
+        prev.map((it) => {
+          if (it.id !== itemId || !it.parts) return it;
+          const parts = it.parts.map((p) => (p.partNumber === partNumber ? { ...p, ...patch } : p));
+          const uploadedTotal = parts.reduce(
+            (sum, p) => sum + (p.status === "success" ? p.end - p.start : p.uploadedBytes),
+            0,
+          );
+          // Giữ dưới 100 tới khi complete hẳn — 100% "ảo" trong lúc còn chờ ráp file dễ gây hiểu lầm đã xong.
+          const progress =
+            it.file.size > 0 ? Math.min(99, Math.round((uploadedTotal / it.file.size) * 100)) : 99;
+          return { ...it, parts, progress };
+        }),
+      );
+    },
+    [],
+  );
+
+  // Đường PUT đơn (file <= 5GB) — không đổi so với bản trước: xin presigned URL rồi PUT thẳng bằng
+  // XMLHttpRequest thô (progress event mà fetch() không có), backend không giữ request nào mở suốt
+  // lúc tải nên không sợ timeout.
+  const runSingleUpload = useCallback(
+    (item: UploadItem) => {
       updateItem(item.id, { status: "signing", error: null });
       apiFetch<{ url: string; key: string }>(
-        `/storage-providers/${activeProviderId}/files/presign-upload`,
+        `/storage-providers/${item.providerId}/files/presign-upload`,
         {
           method: "POST",
-          body: JSON.stringify({ filename: item.file.name, folder: activeFolder || undefined }),
+          body: JSON.stringify({ filename: item.file.name, folder: item.folder || undefined }),
         },
       )
         .then(({ url, key }) => {
-          // Đọc lại state mới nhất — người dùng có thể đã bấm Huỷ trong lúc chờ xin URL.
           const current = itemsRef.current.find((it) => it.id === item.id);
           if (!current || current.status === "cancelled") return;
 
@@ -134,44 +212,211 @@ export default function UploadCloudFilePage() {
     [updateItem],
   );
 
-  // Hàng đợi giới hạn số upload chạy song song (MAX_CONCURRENT) — kéo thả 20 file cùng lúc không
-  // dí băng thông trình duyệt vào 1 request khổng lồ hay mở tràn lan 20 kết nối song song.
+  // PUT 1 phần multipart: xin presigned URL riêng cho đúng partNumber này (ký ngay trước khi tải,
+  // không phụ thuộc hạn của các phần khác), rồi PUT bằng XHR để lấy progress + đọc ETag từ response
+  // header (bucket PHẢI bật CORS ExposeHeaders: ["ETag"] thì trình duyệt mới đọc được header này —
+  // thiếu cấu hình đó sẽ báo lỗi rõ ràng thay vì âm thầm gửi ETag rỗng lên completeMultipartUpload).
+  // Trả kết quả {partNumber, eTag} thẳng qua Promise thay vì buộc bên gọi đọc lại từ React state —
+  // lỗi thật đã gặp: đọc lại "parts" từ itemsRef ngay sau khi Promise.all() resolve bị stale (setState
+  // của lần cập nhật "success" cuối cùng chưa kịp flush/re-render), rớt mất phần vừa upload xong
+  // khỏi danh sách gửi lên completeMultipartUpload dù chính phần đó đã PUT thành công lên bucket.
+  const uploadPart = useCallback(
+    (item: UploadItem, part: PartState): Promise<{ partNumber: number; eTag: string }> => {
+      return apiFetch<{ url: string }>(
+        `/storage-providers/${item.providerId}/files/presign-upload/multipart/part`,
+        {
+          method: "POST",
+          body: JSON.stringify({ key: item.key, uploadId: item.uploadId, partNumber: part.partNumber }),
+        },
+      ).then(
+        ({ url }) =>
+          new Promise<{ partNumber: number; eTag: string }>((resolve, reject) => {
+            const current = itemsRef.current.find((it) => it.id === item.id);
+            if (!current || current.status === "cancelled") {
+              reject(new Error("cancelled"));
+              return;
+            }
+
+            const blob = item.file.slice(part.start, part.end);
+            const xhr = new XMLHttpRequest();
+            xhr.open("PUT", url);
+            xhr.upload.onprogress = (e) => {
+              if (e.lengthComputable) {
+                updatePart(item.id, part.partNumber, { uploadedBytes: e.loaded });
+              }
+            };
+            xhr.onload = () => {
+              if (xhr.status >= 200 && xhr.status < 300) {
+                const eTag = xhr.getResponseHeader("ETag");
+                if (!eTag) {
+                  reject(
+                    new Error(
+                      `Không đọc được ETag của phần ${part.partNumber} — bucket cần thêm "ETag" vào CORS ExposeHeaders.`,
+                    ),
+                  );
+                  return;
+                }
+                updatePart(item.id, part.partNumber, {
+                  status: "success",
+                  eTag,
+                  uploadedBytes: blob.size,
+                  xhr: null,
+                });
+                resolve({ partNumber: part.partNumber, eTag });
+              } else {
+                reject(new Error(`Phần ${part.partNumber} bị từ chối (HTTP ${xhr.status}).`));
+              }
+            };
+            xhr.onerror = () => reject(new Error(`Lỗi mạng lúc tải phần ${part.partNumber}.`));
+            xhr.onabort = () => reject(new Error("cancelled"));
+            updatePart(item.id, part.partNumber, { status: "uploading", xhr });
+            xhr.send(blob);
+          }),
+      );
+    },
+    [updatePart],
+  );
+
+  // Chạy tối đa PART_CONCURRENCY phần song song trong 1 file — chỉ tải lại phần CHƯA xong, nên bấm
+  // Thử lại sau khi lỗi giữa chừng sẽ tiếp tục từ chỗ dở dang thay vì tải lại từ đầu. Trả về TOÀN BỘ
+  // danh sách phần đã xong (gộp phần vừa tải + phần đã xong từ trước, nếu là resume) trực tiếp từ
+  // biến cục bộ — không đọc lại React state, tránh race điều kiện đã ghi ở uploadPart.
+  const runPartsPool = useCallback(
+    async (
+      item: UploadItem,
+      parts: PartState[],
+    ): Promise<{ partNumber: number; eTag: string }[]> => {
+      const alreadyDone = parts
+        .filter((p) => p.status === "success" && p.eTag)
+        .map((p) => ({ partNumber: p.partNumber, eTag: p.eTag! }));
+      const pending = parts.filter((p) => p.status !== "success");
+      const newlyDone: { partNumber: number; eTag: string }[] = [];
+      let index = 0;
+      let firstError: Error | null = null;
+
+      async function worker() {
+        while (index < pending.length) {
+          const current = itemsRef.current.find((it) => it.id === item.id);
+          if (!current || current.status === "cancelled") return;
+          const part = pending[index];
+          index += 1;
+          try {
+            const result = await uploadPart(item, part);
+            newlyDone.push(result);
+          } catch (err) {
+            firstError ??= err instanceof Error ? err : new Error("Lỗi không rõ khi tải phần");
+          }
+        }
+      }
+
+      await Promise.all(
+        Array.from({ length: Math.min(PART_CONCURRENCY, pending.length) }, () => worker()),
+      );
+      if (firstError) throw firstError;
+      return [...alreadyDone, ...newlyDone];
+    },
+    [uploadPart],
+  );
+
+  // Đường multipart (file > 5GB): init (hoặc dùng lại uploadId đã có nếu đây là lần thử lại) ->
+  // tải song song từng phần -> ráp file bằng complete. Giữ nguyên key/uploadId/parts trong state
+  // xuyên suốt các lần thử lại để không phải tải lại phần đã xong.
+  const runMultipartUpload = useCallback(
+    async (item: UploadItem) => {
+      try {
+        let key = item.key;
+        let uploadId = item.uploadId;
+        let parts = item.parts;
+
+        if (!key || !uploadId || !parts) {
+          updateItem(item.id, { status: "signing", error: null });
+          const init = await apiFetch<{ key: string; uploadId: string }>(
+            `/storage-providers/${item.providerId}/files/presign-upload/multipart/init`,
+            {
+              method: "POST",
+              body: JSON.stringify({
+                filename: item.file.name,
+                folder: item.folder || undefined,
+                contentType: item.file.type || undefined,
+              }),
+            },
+          );
+          key = init.key;
+          uploadId = init.uploadId;
+          parts = buildParts(item.file);
+          updateItem(item.id, { key, uploadId, parts, status: "uploading" });
+        } else {
+          updateItem(item.id, { status: "uploading", error: null });
+        }
+
+        const current = itemsRef.current.find((it) => it.id === item.id);
+        if (!current || current.status === "cancelled") return;
+
+        const finishedParts = await runPartsPool({ ...item, key, uploadId }, parts);
+
+        const afterParts = itemsRef.current.find((it) => it.id === item.id);
+        if (!afterParts || afterParts.status === "cancelled") return;
+
+        updateItem(item.id, { status: "completing" });
+        await apiFetch(
+          `/storage-providers/${item.providerId}/files/presign-upload/multipart/complete`,
+          {
+            method: "POST",
+            body: JSON.stringify({
+              key,
+              uploadId,
+              parts: finishedParts.map((p) => ({ partNumber: p.partNumber, eTag: p.eTag })),
+            }),
+          },
+        );
+        updateItem(item.id, { status: "success", progress: 100 });
+      } catch (err) {
+        if (err instanceof Error && err.message === "cancelled") return;
+        updateItem(item.id, {
+          status: "error",
+          error: err instanceof ApiError ? err.message : err instanceof Error ? err.message : "Lỗi tải file lớn",
+        });
+      }
+    },
+    [runPartsPool, updateItem],
+  );
+
+  // Hàng đợi giới hạn số FILE tải song song (MAX_CONCURRENT) — kéo thả 20 file cùng lúc không dí
+  // băng thông trình duyệt vào 1 request khổng lồ hay mở tràn lan kết nối song song. File nhỏ đi
+  // đường PUT đơn, file > 5GB tự chuyển sang multipart theo đúng file.size của chính nó.
   useEffect(() => {
-    const uploading = items.filter((it) => it.status === "uploading" || it.status === "signing");
-    const queued = items.filter((it) => it.status === "queued");
-    const slots = MAX_CONCURRENT - uploading.length;
-    if (slots <= 0 || queued.length === 0 || !providerId) return;
-    queued.slice(0, slots).forEach((it) => runUpload(it, providerId, folder));
+    const active = items.filter(
+      (it) => it.status === "uploading" || it.status === "signing" || it.status === "completing",
+    );
+    const queued = items.filter(
+      (it) => it.status === "queued" && !dispatchedIdsRef.current.has(it.id),
+    );
+    const slots = MAX_CONCURRENT - active.length;
+    if (slots <= 0 || queued.length === 0) return;
+    queued.slice(0, slots).forEach((it) => {
+      dispatchedIdsRef.current.add(it.id);
+      if (it.file.size > MULTIPART_THRESHOLD_BYTES) runMultipartUpload(it);
+      else runSingleUpload(it);
+    });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [items, providerId]);
+  }, [items]);
 
   function addFiles(fileList: FileList | File[]) {
     const files = Array.from(fileList);
     if (files.length === 0) return;
-    const next: UploadItem[] = [];
-    for (const file of files) {
-      if (file.size > MAX_FILE_BYTES) {
-        next.push({
-          id: newId(),
-          file,
-          status: "error",
-          progress: 0,
-          key: null,
-          error: `File vượt quá ${formatFileSize(MAX_FILE_BYTES)} — chưa hỗ trợ multipart upload.`,
-          xhr: null,
-        });
-        continue;
-      }
-      next.push({
-        id: newId(),
-        file,
-        status: "queued",
-        progress: 0,
-        key: null,
-        error: null,
-        xhr: null,
-      });
-    }
+    const next: UploadItem[] = files.map((file) => ({
+      id: newId(),
+      file,
+      providerId,
+      folder,
+      status: "queued",
+      progress: 0,
+      key: null,
+      error: null,
+      xhr: null,
+      uploadId: null,
+      parts: null,
+    }));
     setItems((prev) => [...prev, ...next]);
   }
 
@@ -182,18 +427,34 @@ export default function UploadCloudFilePage() {
   }
 
   function handleCancel(item: UploadItem) {
+    if (item.status === "queued" || item.status === "signing" || item.status === "completing") {
+      updateItem(item.id, { status: "cancelled" });
+      return;
+    }
+    if (item.parts) {
+      item.parts.forEach((p) => p.xhr?.abort());
+      updateItem(item.id, { status: "cancelled" });
+      if (item.key && item.uploadId) {
+        apiFetch(`/storage-providers/${item.providerId}/files/presign-upload/multipart/abort`, {
+          method: "POST",
+          body: JSON.stringify({ key: item.key, uploadId: item.uploadId }),
+        }).catch(() => {});
+      }
+      return;
+    }
     if (item.status === "uploading" && item.xhr) {
       item.xhr.abort();
-    } else if (item.status === "queued" || item.status === "signing") {
-      updateItem(item.id, { status: "cancelled" });
     }
   }
 
   function handleRetry(item: UploadItem) {
-    updateItem(item.id, { status: "queued", progress: 0, error: null, xhr: null, key: null });
+    // Không xoá key/uploadId/parts — multipart resume từ phần dở dang, PUT đơn tự xin URL mới.
+    dispatchedIdsRef.current.delete(item.id);
+    updateItem(item.id, { status: "queued", error: null, xhr: null });
   }
 
   function handleRemove(id: string) {
+    dispatchedIdsRef.current.delete(id);
     setItems((prev) => prev.filter((it) => it.id !== id));
   }
 
@@ -214,7 +475,9 @@ export default function UploadCloudFilePage() {
 
   const total = items.length;
   const doneCount = items.filter((it) => it.status === "success").length;
-  const activeCount = items.filter((it) => it.status === "uploading" || it.status === "signing").length;
+  const activeCount = items.filter(
+    (it) => it.status === "uploading" || it.status === "signing" || it.status === "completing",
+  ).length;
 
   return (
     <div className="flex w-full max-w-4xl flex-col gap-4 px-8 py-8">
@@ -227,7 +490,8 @@ export default function UploadCloudFilePage() {
       <h1 className="text-xl font-semibold text-zinc-900">Upload File Cloud</h1>
       <p className="text-sm text-zinc-500">
         Tải file lên thẳng bucket R2/S3 — trình duyệt gửi trực tiếp tới provider, không qua server
-        trung gian nên không sợ timeout với file nặng.
+        trung gian nên không sợ timeout với file nặng. File trên {formatFileSize(MULTIPART_THRESHOLD_BYTES)}{" "}
+        tự động chia phần (multipart) để tải song song, không giới hạn dung lượng.
       </p>
 
       <ErrorBanner message={loadError} />
@@ -290,7 +554,7 @@ export default function UploadCloudFilePage() {
               Kéo thả file vào đây, hoặc <span className="text-[#1d3557] underline">chọn file</span>
             </p>
             <p className="text-xs text-zinc-400">
-              Hỗ trợ nhiều file cùng lúc · tối đa {formatFileSize(MAX_FILE_BYTES)}/file
+              Hỗ trợ nhiều file cùng lúc · không giới hạn dung lượng
             </p>
             <input
               ref={fileInputRef}
@@ -330,6 +594,7 @@ export default function UploadCloudFilePage() {
                   <UploadRow
                     key={item.id}
                     item={item}
+                    providerLabel={providers.find((p) => p.id === item.providerId)?.label}
                     onCancel={() => handleCancel(item)}
                     onRetry={() => handleRetry(item)}
                     onRemove={() => handleRemove(item.id)}
@@ -345,20 +610,38 @@ export default function UploadCloudFilePage() {
   );
 }
 
+const STATUS_LABEL: Record<UploadStatus, string> = {
+  queued: "Đang chờ...",
+  signing: "Đang xin URL...",
+  uploading: "Đang tải...",
+  completing: "Đang ráp file...",
+  success: "",
+  error: "",
+  cancelled: "Đã huỷ.",
+};
+
 function UploadRow({
   item,
+  providerLabel,
   onCancel,
   onRetry,
   onRemove,
   onCopyKey,
 }: {
   item: UploadItem;
+  providerLabel?: string;
   onCancel: () => void;
   onRetry: () => void;
   onRemove: () => void;
   onCopyKey: () => void;
 }) {
   const [copied, setCopied] = useState(false);
+  const isBusy =
+    item.status === "uploading" || item.status === "signing" || item.status === "completing";
+  const partsSummary =
+    item.parts && item.parts.length > 1
+      ? `${item.parts.filter((p) => p.status === "success").length}/${item.parts.length} phần`
+      : null;
 
   return (
     <div className="flex items-center gap-3 rounded-lg border border-zinc-200 bg-white px-3 py-2.5">
@@ -367,7 +650,7 @@ function UploadRow({
           <CheckCircle2 size={18} className="text-emerald-600" aria-hidden />
         ) : item.status === "error" ? (
           <XCircle size={18} className="text-red-500" aria-hidden />
-        ) : item.status === "uploading" || item.status === "signing" ? (
+        ) : isBusy ? (
           <Loader2 size={18} className="animate-spin text-[#1d3557]" aria-hidden />
         ) : (
           <FileIcon size={18} className="text-zinc-400" aria-hidden />
@@ -384,7 +667,7 @@ function UploadRow({
           </span>
         </div>
 
-        {(item.status === "uploading" || item.status === "signing") && (
+        {isBusy && (
           <div className="h-1.5 w-full overflow-hidden rounded-full bg-zinc-100">
             <div
               className="h-full rounded-full bg-[#1d3557] transition-[width] duration-200"
@@ -393,6 +676,13 @@ function UploadRow({
           </div>
         )}
 
+        {isBusy && (
+          <p className="text-xs text-zinc-400">
+            {STATUS_LABEL[item.status]}
+            {partsSummary && ` · ${partsSummary}`}
+            {providerLabel && ` · ${providerLabel}`}
+          </p>
+        )}
         {item.status === "error" && item.error && (
           <p className="text-xs text-red-600">{item.error}</p>
         )}
@@ -428,7 +718,7 @@ function UploadRow({
             <RotateCcw size={15} aria-hidden />
           </button>
         )}
-        {(item.status === "uploading" || item.status === "queued" || item.status === "signing") && (
+        {(isBusy || item.status === "queued") && (
           <button
             type="button"
             onClick={onCancel}
