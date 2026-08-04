@@ -25,6 +25,94 @@ body {
 }
 
 /*
+ * Heading & blockquote trong nội dung bài viết (.prose) — style riêng theo màu thương hiệu (xanh
+ * navy #1d3557, gradient hồng->vàng dùng ở GradientUnderline/download-box) thay vì mặc định xám của
+ * @tailwindcss/typography. Selector dùng :is() để có specificity cao hơn rule :where() (specificity 0)
+ * mà plugin dùng, không cần !important.
+ */
+.prose :is(h1, h2, h3, h4) {
+  color: #1d3557;
+  font-weight: 700;
+}
+
+.prose :is(h1, h2) {
+  padding-bottom: 0.35em;
+  border-bottom: 1px solid #e4e4e7;
+}
+
+.prose h2::before {
+  content: "";
+  display: inline-block;
+  width: 4px;
+  height: 0.85em;
+  margin-right: 0.55em;
+  vertical-align: -0.05em;
+  border-radius: 2px;
+  background: linear-gradient(180deg, #ff5da2, #ffcf3f);
+}
+
+.prose h3 {
+  color: #2b3f5c;
+}
+
+.prose h4 {
+  font-size: 0.95em;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: #5c6370;
+}
+
+.prose blockquote {
+  position: relative;
+  border-left: none;
+  border-radius: 0 0.5rem 0.5rem 0;
+  background: #f8fafc;
+  padding: 0.9em 1.25em 0.9em 2.75em;
+  font-style: italic;
+  color: #3f3f46;
+  box-shadow: inset 3px 0 0 0 #ff5da2;
+}
+
+.prose blockquote::before {
+  content: "\201C";
+  position: absolute;
+  top: 0.05em;
+  left: 0.7em;
+  font-size: 2em;
+  line-height: 1;
+  font-style: normal;
+  font-weight: 700;
+  background: linear-gradient(90deg, #ff5da2, #ffcf3f);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.prose blockquote p:first-of-type::before,
+.prose blockquote p:last-of-type::after {
+  content: none;
+}
+
+/*
+ * Chặn tràn ngang trên di động (mobile) — nội dung bài viết soạn từ Tiptap có thể chứa bảng với
+ * cột rộng cố định (px), khối trích dẫn dài, ảnh/khung nhúng kích thước lớn. Không giới hạn thì
+ * các phần tử này đẩy rộng cả trang, gây hiện tượng kéo lệch qua lại trên màn hình nhỏ.
+ */
+.prose {
+  overflow-wrap: anywhere;
+}
+
+.prose table {
+  display: block;
+  max-width: 100%;
+  overflow-x: auto;
+}
+
+.prose :is(iframe, video) {
+  max-width: 100%;
+}
+
+/*
  * @tailwindcss/typography mặc định "display: block" cho mọi <img> trong .prose — đúng cho ảnh đơn,
  * nhưng làm vỡ layout các bài đã migrate từ WordPress, nơi nhiều <img> đứng liền kề nhau trong cùng
  * một <div>/<p> (không có gallery block riêng) để hiển thị thành 1 hàng như bản v1. Chỉ override
