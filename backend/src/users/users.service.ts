@@ -36,6 +36,8 @@ export class UsersService {
         displayName: true,
         avatarUrl: true,
         bio: true,
+        title: true,
+        titleUpdatedAt: true,
         emailVerifiedAt: true,
         createdAt: true,
         displayNameChangedAt: true,
@@ -55,9 +57,11 @@ export class UsersService {
       primaryRoleId,
       roles,
       displayNameChangedAt,
+      titleUpdatedAt,
       ...rest
     } = user;
     const permissions = await this.roles.getUserPermissionKeys(userId);
+    const titleConfig = await this.roles.getUserTitleConfig(userId);
     return {
       ...rest,
       emailVerified: emailVerifiedAt !== null,
@@ -74,7 +78,37 @@ export class UsersService {
       // FE dùng để ẩn/hiện thao tác quản trị nhạy cảm ngay trên UI (vd nút "Xoá cache" ở topbar,
       // xem navbar.tsx) — chỉ là gợi ý hiển thị, backend vẫn luôn kiểm tra lại bằng PermissionsGuard.
       permissionKeys: permissions,
+      // User Title — cấu hình gộp từ mọi role (xem roles/user-title.util.ts) + trạng thái cooldown
+      // hiện tại, FE dùng để khoá ô nhập/đếm ngày còn lại (xem updateTitle()).
+      userTitleConfig: titleConfig,
+      canChangeTitle: this.canChangeTitle(
+        titleUpdatedAt,
+        titleConfig.cooldownDays,
+      ),
+      titleChangeAvailableAt: this.titleChangeAvailableAt(
+        titleUpdatedAt,
+        titleConfig.cooldownDays,
+      ),
     };
+  }
+
+  private canChangeTitle(
+    titleUpdatedAt: Date | null,
+    cooldownDays: number | null,
+  ): boolean {
+    if (titleUpdatedAt === null || cooldownDays === null) return true;
+    const availableAt = titleUpdatedAt.getTime() + cooldownDays * 86_400_000;
+    return Date.now() >= availableAt;
+  }
+
+  private titleChangeAvailableAt(
+    titleUpdatedAt: Date | null,
+    cooldownDays: number | null,
+  ): string | null {
+    if (this.canChangeTitle(titleUpdatedAt, cooldownDays)) return null;
+    return new Date(
+      titleUpdatedAt!.getTime() + cooldownDays! * 86_400_000,
+    ).toISOString();
   }
 
   // Chỉ áp dụng khi user thuộc >1 role — roleSlug rỗng/undefined nghĩa là xoá lựa chọn, quay về
@@ -99,6 +133,53 @@ export class UsersService {
       });
     }
     return this.getProfile(userId);
+  }
+
+  // User Title — dòng chữ tự chọn hiện ở trang hồ sơ. Giới hạn độ dài/HTML/tần suất đổi do role
+  // của user quy định (gộp "ưu tiên nhất" qua roles/user-title.util.ts, xem getProfile()) — khác
+  // hẳn displayName (chỉ 1 lần miễn phí trong đời tài khoản): ở đây MỌI lần đổi đều bị cooldown lại
+  // từ đầu, trừ role có cooldownDays = null (đổi tự do).
+  async updateTitle(userId: string, title: string) {
+    const current = await this.prisma.user.findUniqueOrThrow({
+      where: { id: userId },
+      select: { title: true, titleUpdatedAt: true },
+    });
+    if (title === (current.title ?? '')) return this.getProfile(userId);
+
+    const config = await this.roles.getUserTitleConfig(userId);
+    if (title.length > config.maxLength) {
+      throw new BadRequestException(
+        `Title tối đa ${config.maxLength} ký tự (đang nhập ${title.length}).`,
+      );
+    }
+    if (!config.allowHtml && this.looksLikeHtml(title)) {
+      throw new BadRequestException(
+        'Vai trò của bạn chưa được phép dùng HTML trong Title — liên hệ Admin/Super Moderator nếu cần.',
+      );
+    }
+    if (!this.canChangeTitle(current.titleUpdatedAt, config.cooldownDays)) {
+      const availableAt = this.titleChangeAvailableAt(
+        current.titleUpdatedAt,
+        config.cooldownDays,
+      );
+      throw new BadRequestException(
+        `Bạn chỉ được đổi Title mỗi ${config.cooldownDays} ngày — lần tới có thể đổi vào ${availableAt}.`,
+      );
+    }
+
+    await this.prisma.user.update({
+      where: { id: userId },
+      data: { title, titleUpdatedAt: new Date() },
+    });
+    return this.getProfile(userId);
+  }
+
+  // Heuristic đơn giản (không thêm thư viện sanitize-html/DOMPurify) — chỉ cần biết "có giống thẻ
+  // HTML không" để chặn role không được phép, không cần parse đầy đủ. Role được allowHtml=true vẫn
+  // được tin cậy render thẳng qua dangerouslySetInnerHTML (cùng mức tin cậy với HtmlWidget/
+  // ProseContent — do Admin/Super Moderator quyết định ai được cấp quyền này qua /quan-tri/vai-tro).
+  private looksLikeHtml(value: string): boolean {
+    return /<[a-z][^>]*>/i.test(value);
   }
 
   // Đổi tên hiển thị: Super Moderator trở lên (user.manage) đổi tự do; Moderator trở xuống chỉ
@@ -295,6 +376,7 @@ export class UsersService {
         displayName: true,
         avatarUrl: true,
         bio: true,
+        title: true,
         createdAt: true,
         primaryRoleId: true,
         roles: {
@@ -308,8 +390,13 @@ export class UsersService {
     });
     if (!user) throw new NotFoundException('Không tìm thấy người dùng');
     const { primaryRoleId, roles, ...rest } = user;
+    // Đọc lại quyền HTML hiện tại của CHỦ profile (không phải người xem) — nếu bị hạ role sau khi
+    // đã lưu title chứa HTML thì tự động render lại thành text thường ở lần xem tiếp theo, không
+    // bao giờ tin vào nội dung đã lưu để quyết định có render dangerouslySetInnerHTML hay không.
+    const titleConfig = await this.roles.getUserTitleConfig(id);
     return {
       ...rest,
+      titleAllowHtml: titleConfig.allowHtml,
       styleRoleSlug: resolveStyleRoleSlug(primaryRoleId, roles),
       roleNames: roles.map((r) => r.role.name),
     };

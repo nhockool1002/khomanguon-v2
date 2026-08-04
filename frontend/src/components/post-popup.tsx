@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { X } from "lucide-react";
 import { useAuth } from "@/context/auth-context";
 import { apiFetch } from "@/lib/api";
@@ -26,13 +27,17 @@ function shuffle<T>(items: T[]): T[] {
 // từng lượt (nút X) chứ không có nơi lưu tuỳ chọn vĩnh viễn.
 export function PostPopup() {
   const { user, loading } = useAuth();
+  const pathname = usePathname();
   const [pool, setPool] = useState<PostSummary[] | null>(null);
   const [current, setCurrent] = useState<PostSummary | null>(null);
   const [visible, setVisible] = useState(false);
   const queueRef = useRef<PostSummary[]>([]);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const enabled = !loading && user?.showPostPopup !== false;
+  // Không hiện trong khu quản trị — gợi ý bài viết chỉ có ý nghĩa ở phần công khai, hiện ở
+  // /quan-tri/* chỉ gây rối khi Admin/Mod đang thao tác.
+  const inAdmin = pathname?.startsWith("/quan-tri") ?? false;
+  const enabled = !inAdmin && !loading && user?.showPostPopup !== false;
 
   useEffect(() => {
     if (!enabled || pool !== null) return;

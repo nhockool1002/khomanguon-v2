@@ -71,6 +71,10 @@ export default function AdminRolesPage() {
   const [bold, setBold] = useState(false);
   const [italic, setItalic] = useState(false);
   const [fontFamily, setFontFamily] = useState("");
+  const [cooldownUnlimited, setCooldownUnlimited] = useState(false);
+  const [cooldownDaysValue, setCooldownDaysValue] = useState(60);
+  const [titleAllowHtml, setTitleAllowHtml] = useState(false);
+  const [titleMaxLength, setTitleMaxLength] = useState(150);
   const [selectedKeys, setSelectedKeys] = useState<Set<string>>(new Set());
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
@@ -109,6 +113,10 @@ export default function AdminRolesPage() {
     setBold(role.bold);
     setItalic(role.italic);
     setFontFamily(role.fontFamily ?? "");
+    setCooldownUnlimited(role.userTitleCooldownDays === null);
+    setCooldownDaysValue(role.userTitleCooldownDays ?? 60);
+    setTitleAllowHtml(role.userTitleAllowHtml);
+    setTitleMaxLength(role.userTitleMaxLength);
     setSelectedKeys(new Set(role.permissionKeys));
     setMessage(null);
     setError(null);
@@ -122,6 +130,10 @@ export default function AdminRolesPage() {
     setBold(false);
     setItalic(false);
     setFontFamily("");
+    setCooldownUnlimited(false);
+    setCooldownDaysValue(60);
+    setTitleAllowHtml(false);
+    setTitleMaxLength(150);
     setSelectedKeys(new Set());
     setMessage(null);
     setError(null);
@@ -153,6 +165,9 @@ export default function AdminRolesPage() {
         bold,
         italic,
         fontFamily,
+        userTitleCooldownDays: cooldownUnlimited ? null : cooldownDaysValue,
+        userTitleAllowHtml: titleAllowHtml,
+        userTitleMaxLength: titleMaxLength,
       };
       if (selectedId === "new") {
         const created = await apiFetch<Role>("/roles", {
@@ -343,6 +358,62 @@ export default function AdminRolesPage() {
                   {title || name}
                 </span>
               </div>
+            </div>
+
+            <div className="flex flex-col gap-3 rounded-md border border-zinc-200 p-4">
+              <p className="text-xs font-semibold uppercase tracking-wide text-zinc-500">
+                User Title (dòng chữ user thuộc role này tự đặt ở trang hồ sơ)
+              </p>
+              <div className="flex flex-wrap items-end gap-3">
+                <label className="flex flex-col gap-1 text-sm text-zinc-700">
+                  Đổi tối đa mỗi
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="number"
+                      min={1}
+                      max={3650}
+                      value={cooldownDaysValue}
+                      disabled={cooldownUnlimited}
+                      onChange={(e) => setCooldownDaysValue(Number(e.target.value) || 1)}
+                      className="w-24 rounded-md border border-zinc-300 px-3 py-2 text-sm outline-none focus:border-[#1d3557] focus:ring-1 focus:ring-[#1d3557] disabled:bg-zinc-100"
+                    />
+                    <span className="text-zinc-500">ngày</span>
+                  </div>
+                </label>
+                <label className="flex items-center gap-1.5 text-sm text-zinc-700">
+                  <input
+                    type="checkbox"
+                    checked={cooldownUnlimited}
+                    onChange={(e) => setCooldownUnlimited(e.target.checked)}
+                  />
+                  Không giới hạn (đổi tự do)
+                </label>
+                <label className="flex flex-col gap-1 text-sm text-zinc-700">
+                  Giới hạn ký tự
+                  <input
+                    type="number"
+                    min={10}
+                    max={2000}
+                    value={titleMaxLength}
+                    onChange={(e) => setTitleMaxLength(Number(e.target.value) || 10)}
+                    className="w-24 rounded-md border border-zinc-300 px-3 py-2 text-sm outline-none focus:border-[#1d3557] focus:ring-1 focus:ring-[#1d3557]"
+                  />
+                </label>
+                <label className="flex items-center gap-1.5 text-sm text-zinc-700">
+                  <input
+                    type="checkbox"
+                    checked={titleAllowHtml}
+                    onChange={(e) => setTitleAllowHtml(e.target.checked)}
+                  />
+                  Cho phép dùng HTML
+                </label>
+              </div>
+              {titleAllowHtml && (
+                <p className="text-xs text-amber-600">
+                  ⚠ User thuộc role này có thể nhập thẻ HTML vào Title, hiển thị thẳng (không lọc) ở
+                  trang hồ sơ công khai — chỉ bật cho vai trò thật sự tin cậy (Super Moderator/Admin).
+                </p>
+              )}
             </div>
 
             <p className="text-xs font-semibold uppercase tracking-wide text-zinc-500">

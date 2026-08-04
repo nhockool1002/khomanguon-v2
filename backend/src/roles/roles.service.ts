@@ -5,7 +5,11 @@ import {
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { buildUniqueSlug } from '../common/slugify';
-import { DEFAULT_ROLES } from './permissions.constant';
+import {
+  DEFAULT_ROLES,
+  type RoleUserTitleConfig,
+} from './permissions.constant';
+import { resolveUserTitleConfig } from './user-title.util';
 import { CacheService } from '../cache/cache.service';
 
 const roleWithPermissionsSelect = {
@@ -18,6 +22,9 @@ const roleWithPermissionsSelect = {
   bold: true,
   italic: true,
   fontFamily: true,
+  userTitleCooldownDays: true,
+  userTitleAllowHtml: true,
+  userTitleMaxLength: true,
   permissions: { select: { permission: { select: { key: true } } } },
 } as const;
 
@@ -27,6 +34,14 @@ export interface RoleStyleInput {
   bold?: boolean;
   italic?: boolean;
   fontFamily?: string;
+}
+
+// Khác RoleStyleInput (badge tên hiển thị) — đây là quyền hạn User Title do role này cấp, chỉnh ở
+// cùng trang /quan-tri/vai-tro nhưng là 1 khối riêng.
+export interface RoleUserTitleInput {
+  cooldownDays?: number | null;
+  allowHtml?: boolean;
+  maxLength?: number;
 }
 
 @Injectable()
@@ -42,6 +57,30 @@ export class RolesService {
       select: { permission: { select: { key: true } } },
     });
     return [...new Set(rows.map((r) => r.permission.key))];
+  }
+
+  // Gộp cấu hình User Title từ mọi role user đang giữ — xem user-title.util.ts để biết cách gộp
+  // (độ dài lớn nhất, HTML chỉ cần 1 role cho phép, cooldown null thắng số ngày cụ thể).
+  async getUserTitleConfig(userId: string): Promise<RoleUserTitleConfig> {
+    const rows = await this.prisma.userRole.findMany({
+      where: { userId },
+      select: {
+        role: {
+          select: {
+            userTitleCooldownDays: true,
+            userTitleAllowHtml: true,
+            userTitleMaxLength: true,
+          },
+        },
+      },
+    });
+    return resolveUserTitleConfig(
+      rows.map((r) => ({
+        cooldownDays: r.role.userTitleCooldownDays,
+        allowHtml: r.role.userTitleAllowHtml,
+        maxLength: r.role.userTitleMaxLength,
+      })),
+    );
   }
 
   async getUserRoleSlugs(userId: string): Promise<string[]> {
@@ -132,6 +171,7 @@ export class RolesService {
     name: string;
     permissionKeys: string[];
     style?: RoleStyleInput;
+    userTitle?: RoleUserTitleInput;
   }) {
     const slug = await buildUniqueSlug(dto.name, (candidate) =>
       this.slugTaken(candidate),
@@ -142,6 +182,7 @@ export class RolesService {
         slug,
         isSystem: false,
         ...this.styleData(dto.style),
+        ...this.userTitleData(dto.userTitle),
       },
     });
     await this.syncRolePermissions(role.id, dto.permissionKeys);
@@ -155,6 +196,7 @@ export class RolesService {
       name?: string;
       permissionKeys?: string[];
       style?: RoleStyleInput;
+      userTitle?: RoleUserTitleInput;
     },
   ) {
     const role = await this.prisma.role.findUnique({ where: { id } });
@@ -163,6 +205,7 @@ export class RolesService {
     const data = {
       ...(dto.name !== undefined && { name: dto.name }),
       ...this.styleData(dto.style),
+      ...this.userTitleData(dto.userTitle),
     };
     if (Object.keys(data).length > 0) {
       await this.prisma.role.update({ where: { id }, data });
@@ -189,6 +232,23 @@ export class RolesService {
     };
   }
 
+  // cooldownDays: null từ FE nghĩa là "đổi tự do" (huỷ giới hạn ngày), khác undefined (không đổi
+  // field này) — DTO ở tầng controller phải phân biệt được 2 giá trị này (xem update-role.dto.ts).
+  private userTitleData(input?: RoleUserTitleInput) {
+    if (!input) return {};
+    return {
+      ...(input.cooldownDays !== undefined && {
+        userTitleCooldownDays: input.cooldownDays,
+      }),
+      ...(input.allowHtml !== undefined && {
+        userTitleAllowHtml: input.allowHtml,
+      }),
+      ...(input.maxLength !== undefined && {
+        userTitleMaxLength: input.maxLength,
+      }),
+    };
+  }
+
   async deleteRole(id: string): Promise<void> {
     const role = await this.prisma.role.findUnique({ where: { id } });
     if (!role) throw new NotFoundException('Không tìm thấy vai trò');
@@ -209,6 +269,9 @@ export class RolesService {
     bold: boolean;
     italic: boolean;
     fontFamily: string | null;
+    userTitleCooldownDays: number | null;
+    userTitleAllowHtml: boolean;
+    userTitleMaxLength: number;
     permissions: { permission: { key: string } }[];
   }) {
     return {
@@ -221,6 +284,9 @@ export class RolesService {
       bold: role.bold,
       italic: role.italic,
       fontFamily: role.fontFamily,
+      userTitleCooldownDays: role.userTitleCooldownDays,
+      userTitleAllowHtml: role.userTitleAllowHtml,
+      userTitleMaxLength: role.userTitleMaxLength,
       permissionKeys: role.permissions.map((p) => p.permission.key),
     };
   }

@@ -12,8 +12,15 @@ export interface AuthUser {
   showPostPopup?: boolean;
 }
 
+export interface UserTitleConfig {
+  cooldownDays: number | null; // null = đổi tự do, không giới hạn ngày
+  allowHtml: boolean;
+  maxLength: number;
+}
+
 export interface Profile extends AuthUser {
   bio: string | null;
+  title: string | null;
   createdAt: string;
   roles: string[];
   // Vai trò của chính user này (kèm tên hiển thị) — dùng cho selector "hiển thị theo vai trò"
@@ -22,6 +29,11 @@ export interface Profile extends AuthUser {
   primaryRoleSlug: string | null;
   // Super Moderator trở lên đổi tên hiển thị tự do; còn lại chỉ 1 lần (xem users.service.ts).
   canChangeDisplayName: boolean;
+  // User Title — cấu hình gộp từ mọi role (xem backend roles/user-title.util.ts) + trạng thái
+  // cooldown hiện tại (xem users.service.ts updateTitle()).
+  userTitleConfig: UserTitleConfig;
+  canChangeTitle: boolean;
+  titleChangeAvailableAt: string | null;
 }
 
 export interface AuthResponse {
@@ -162,6 +174,10 @@ export interface Role {
   bold: boolean;
   italic: boolean;
   fontFamily: string | null;
+  // Quyền hạn User Title cho user thuộc role này (xem /quan-tri/vai-tro) — null cooldown = đổi tự do.
+  userTitleCooldownDays: number | null;
+  userTitleAllowHtml: boolean;
+  userTitleMaxLength: number;
   permissionKeys: string[];
 }
 
@@ -307,6 +323,7 @@ export type HeaderBackgroundAttachment = "scroll" | "fixed";
 
 export interface GeneralSettings {
   postsPerPage: number;
+  siteTitle: string;
   headerTitle: string;
   headerSlogan: string;
   headerBackgroundColor: string;
@@ -362,6 +379,11 @@ export interface PublicProfile {
   displayName: string;
   avatarUrl: string | null;
   bio: string | null;
+  title: string | null;
+  // true = render title qua dangerouslySetInnerHTML (role hiện tại của chủ profile cho phép HTML);
+  // false = render như text thường (React tự escape) — luôn tin theo cờ này, không tự đoán bằng
+  // cách "nhìn" nội dung title (xem backend users.service.ts getPublicProfile()).
+  titleAllowHtml: boolean;
   createdAt: string;
   styleRoleSlug: string | null;
   roleNames: string[];
