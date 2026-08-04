@@ -339,6 +339,14 @@ model Comment {
   likes         CommentLike[]
   notifications Notification[]
 
+  // Trước đây không có index nào ngoài khoá chính — bảng phình lên là ORDER BY createdAt / WHERE
+  // postId / WHERE status đều phải quét toàn bảng (lỗi thật đã gặp: trang Quản lý bình luận load
+  // rất chậm). 3 index bên dưới phủ đủ 3 kiểu truy vấn đang dùng: theo bài viết (comments.service.ts
+  // list/listForModeration), theo trạng thái (listAllForModeration có lọc status), và không lọc gì
+  // (listAllForModeration mặc định "Tất cả trạng thái").
+  @@index([postId, createdAt])
+  @@index([status, createdAt])
+  @@index([createdAt])
   @@map("comments")
 }
 

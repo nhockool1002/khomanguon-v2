@@ -69,11 +69,13 @@ export class CommentsController {
     @Query('page') page?: string,
     @Query('limit') limit?: string,
     @Query('status') status?: CommentStatus,
+    @Query('q') q?: string,
   ) {
     return this.commentsService.listAllForModeration(
       Number(page) || 1,
       Number(limit) || 20,
       status,
+      q?.trim() || undefined,
     );
   }
 

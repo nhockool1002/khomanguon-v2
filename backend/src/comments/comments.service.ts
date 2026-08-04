@@ -109,10 +109,20 @@ export class CommentsService {
     page: number,
     limit: number,
     status?: CommentStatus,
+    q?: string,
   ) {
     const take = Math.min(Math.max(limit, 1), 50);
     const skip = (Math.max(page, 1) - 1) * take;
-    const where = status ? { status } : undefined;
+    const where: Prisma.CommentWhereInput = {
+      ...(status && { status }),
+      ...(q && {
+        OR: [
+          { content: { contains: q, mode: 'insensitive' } },
+          { user: { displayName: { contains: q, mode: 'insensitive' } } },
+          { post: { title: { contains: q, mode: 'insensitive' } } },
+        ],
+      }),
+    };
     const [rows, total] = await this.prisma.$transaction([
       this.prisma.comment.findMany({
         where,
