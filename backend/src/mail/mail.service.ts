@@ -45,7 +45,7 @@ export class MailService {
     // thật sự (vd chưa xác thực domain khomanguon.org tại Mailjet), không phải để dùng địa chỉ khác.
     this.from =
       this.config.get<string>('MAIL_FROM') ??
-      'khomanguon <admin@khomanguon.org>';
+      'KHOMANGUON V2 Notification <admin@khomanguon.org>';
     const host = this.config.get<string>('SMTP_HOST');
 
     this.envTransporter = host
