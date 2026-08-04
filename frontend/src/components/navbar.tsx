@@ -1,12 +1,10 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useState } from "react";
+import { LogOut, Wallet as WalletIcon } from "lucide-react";
 import { useAuth } from "@/context/auth-context";
-import { apiFetch } from "@/lib/api";
-import { PERMISSIONS } from "@/lib/permissions";
-import { useWalletSocket } from "@/lib/socket";
-import type { MenuItem, Wallet } from "@/lib/types";
+import type { MenuItem } from "@/lib/types";
 import { LogoMark } from "./logo-mark";
 import { NotificationBell } from "./notification-bell";
 
@@ -18,21 +16,6 @@ export function Navbar({ menus = [] }: { menus?: MenuItem[] }) {
     .sort((a, b) => a.order - b.order);
   const { user, loading, logout } = useAuth();
   const [loggingOut, setLoggingOut] = useState(false);
-  const [wallet, setWallet] = useState<Wallet | null>(null);
-  const [cacheStatus, setCacheStatus] = useState<
-    "idle" | "clearing" | "done" | "error"
-  >("idle");
-
-  useEffect(() => {
-    if (!user) return;
-    apiFetch<Wallet>("/wallet/me").then(setWallet).catch(() => setWallet(null));
-  }, [user]);
-
-  // Đẩy realtime khi SePay xác nhận nạp tiền (hoặc bất kỳ thay đổi ví nào khác sau này) — cập nhật
-  // chip số dư ở mọi trang, không chỉ trang ví (xem backend/src/realtime/wallet.gateway.ts).
-  useWalletSocket(!!user, (payload) => {
-    setWallet((prev) => (prev ? { ...prev, balance: payload.balance } : prev));
-  });
 
   async function handleLogout() {
     setLoggingOut(true);
@@ -40,21 +23,6 @@ export function Navbar({ menus = [] }: { menus?: MenuItem[] }) {
       await logout();
     } finally {
       setLoggingOut(false);
-    }
-  }
-
-  // Nút "Xoá cache" trên topbar — chỉ hiện với user có quyền cache.manage (mặc định chỉ Admin,
-  // xem backend/src/roles/permissions.constant.ts). Backend vẫn tự kiểm tra lại quyền này ở
-  // PermissionsGuard nên việc ẩn/hiện ở đây chỉ là UX, không phải lớp bảo vệ duy nhất.
-  async function handleClearCache() {
-    setCacheStatus("clearing");
-    try {
-      await apiFetch("/admin/cache/clear", { method: "POST" });
-      setCacheStatus("done");
-    } catch {
-      setCacheStatus("error");
-    } finally {
-      setTimeout(() => setCacheStatus("idle"), 2500);
     }
   }
 
@@ -72,40 +40,13 @@ export function Navbar({ menus = [] }: { menus?: MenuItem[] }) {
           {loading ? null : user ? (
             <>
               <NotificationBell enabled={!!user} />
-              {wallet && (
-                <Link
-                  href="/tai-khoan/vi"
-                  className="rounded-full bg-gradient-to-r from-[#ff5da2] to-[#ffcf3f] px-3 py-1 font-mono text-xs font-semibold text-white hover:opacity-90"
-                >
-                  {wallet.balance} $P
-                </Link>
-              )}
               <Link
-                href="/quan-tri/bai-viet"
-                className="rounded-md px-3 py-1.5 text-sm text-zinc-200 hover:bg-white/10"
+                href="/tai-khoan/vi"
+                className="flex items-center gap-1.5 rounded-md bg-gradient-to-r from-[#ff5da2] to-[#ffcf3f] px-3 py-1.5 text-sm font-medium text-white hover:opacity-90"
               >
-                Quản trị
+                <WalletIcon size={16} strokeWidth={1.75} aria-hidden />
+                Nạp tiền
               </Link>
-              {user.permissionKeys?.includes(PERMISSIONS.CACHE_MANAGE) && (
-                <button
-                  onClick={handleClearCache}
-                  disabled={cacheStatus === "clearing"}
-                  title="Xoá cache trang (Redis + Next.js) trên toàn bộ website"
-                  className={`rounded-md border px-3 py-1.5 text-sm transition-colors disabled:opacity-50 ${
-                    cacheStatus === "error"
-                      ? "border-red-400/40 text-red-300 hover:bg-red-500/10"
-                      : "border-white/15 text-zinc-300 hover:bg-white/10"
-                  }`}
-                >
-                  {cacheStatus === "clearing"
-                    ? "Đang xoá cache..."
-                    : cacheStatus === "done"
-                      ? "Đã xoá cache ✓"
-                      : cacheStatus === "error"
-                        ? "Lỗi xoá cache"
-                        : "Xoá cache"}
-                </button>
-              )}
               <Link
                 href="/tai-khoan"
                 className="flex items-center gap-2 rounded-full px-3 py-1.5 text-sm text-zinc-200 hover:bg-white/10"
@@ -118,9 +59,11 @@ export function Navbar({ menus = [] }: { menus?: MenuItem[] }) {
               <button
                 onClick={handleLogout}
                 disabled={loggingOut}
-                className="rounded-md border border-white/15 px-3 py-1.5 text-sm text-zinc-300 hover:bg-white/10 disabled:opacity-50"
+                title="Đăng xuất"
+                aria-label="Đăng xuất"
+                className="flex items-center rounded-md px-2.5 py-1.5 text-zinc-300 hover:bg-white/10 disabled:opacity-50"
               >
-                {loggingOut ? "Đang thoát..." : "Đăng xuất"}
+                <LogOut size={18} strokeWidth={1.75} aria-hidden />
               </button>
             </>
           ) : (

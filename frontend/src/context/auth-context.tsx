@@ -48,14 +48,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     })();
   }, [refreshUser]);
 
-  const login = useCallback(async (email: string, password: string) => {
-    const res = await apiFetch<AuthResponse>("/auth/login", {
-      method: "POST",
-      body: JSON.stringify({ email, password }),
-    });
-    setAccessToken(res.accessToken);
-    setUser(res.user);
-  }, []);
+  const login = useCallback(
+    async (email: string, password: string) => {
+      const res = await apiFetch<AuthResponse>("/auth/login", {
+        method: "POST",
+        body: JSON.stringify({ email, password }),
+      });
+      setAccessToken(res.accessToken);
+      // /auth/login trả về PublicUser rút gọn (không có permissionKeys) — gọi thêm /users/me
+      // để UI ngay sau khi đăng nhập đã biết quyền (vd nút Quản trị/Xoá cache ở trang Tài khoản).
+      await refreshUser();
+    },
+    [refreshUser],
+  );
 
   const register = useCallback(
     async (email: string, password: string, displayName: string) => {
@@ -64,9 +69,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         body: JSON.stringify({ email, password, displayName }),
       });
       setAccessToken(res.accessToken);
-      setUser(res.user);
+      await refreshUser();
     },
-    [],
+    [refreshUser],
   );
 
   const logout = useCallback(async () => {

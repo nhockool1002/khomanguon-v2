@@ -3,9 +3,12 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { ShieldCheck, Trash2, Wallet as WalletIcon } from "lucide-react";
 import { useAuth } from "@/context/auth-context";
 import { apiFetch, ApiError } from "@/lib/api";
-import type { Profile } from "@/lib/types";
+import { PERMISSIONS } from "@/lib/permissions";
+import { useWalletSocket } from "@/lib/socket";
+import type { Profile, Wallet } from "@/lib/types";
 import { ErrorBanner, FormField, SubmitButton, SuccessBanner } from "@/components/ui";
 import { StyledUserName } from "@/components/styled-user-name";
 
@@ -15,18 +18,96 @@ export default function AccountPage() {
   const { user, loading, logout, refreshUser } = useAuth();
   const router = useRouter();
   const [tab, setTab] = useState<Tab>("thong-tin");
+  const [wallet, setWallet] = useState<Wallet | null>(null);
+  const [cacheStatus, setCacheStatus] = useState<
+    "idle" | "clearing" | "done" | "error"
+  >("idle");
 
   useEffect(() => {
     if (!loading && !user) router.replace("/dang-nhap");
   }, [loading, user, router]);
 
+  useEffect(() => {
+    if (!user) return;
+    apiFetch<Wallet>("/wallet/me").then(setWallet).catch(() => setWallet(null));
+  }, [user]);
+
+  // Đẩy realtime khi SePay xác nhận nạp tiền — cập nhật chip số dư ngay trên trang này
+  // (xem backend/src/realtime/wallet.gateway.ts).
+  useWalletSocket(!!user, (payload) => {
+    setWallet((prev) => (prev ? { ...prev, balance: payload.balance } : prev));
+  });
+
+  // Nút "Xoá cache" — chỉ hiện với user có quyền cache.manage (mặc định chỉ Admin, xem
+  // backend/src/roles/permissions.constant.ts). Backend vẫn tự kiểm tra lại quyền này ở
+  // PermissionsGuard nên việc ẩn/hiện ở đây chỉ là UX, không phải lớp bảo vệ duy nhất.
+  async function handleClearCache() {
+    setCacheStatus("clearing");
+    try {
+      await apiFetch("/admin/cache/clear", { method: "POST" });
+      setCacheStatus("done");
+    } catch {
+      setCacheStatus("error");
+    } finally {
+      setTimeout(() => setCacheStatus("idle"), 2500);
+    }
+  }
+
   if (loading || !user) {
     return <div className="flex-1 px-6 py-16 text-center text-sm text-zinc-400">Đang tải...</div>;
   }
 
+  // "Có quyền truy cập quản trị" = có ít nhất 1 permission (member/unverified không có
+  // permission nào — xem prisma/seed.ts) — menu quản trị hiện chưa lọc theo quyền chi tiết,
+  // dựa vào 403 từ backend khi vào từng trang con (xem components/admin-sidebar.tsx).
+  const hasAdminAccess = !!user.permissionKeys?.length;
+
   return (
     <div className="mx-auto flex w-full max-w-3xl flex-1 flex-col gap-6 px-4 py-10">
-      <h1 className="text-xl font-semibold text-zinc-900">Tài khoản của tôi</h1>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <h1 className="text-xl font-semibold text-zinc-900">Tài khoản của tôi</h1>
+        <div className="flex flex-wrap items-center gap-2">
+          {wallet && (
+            <Link
+              href="/tai-khoan/vi"
+              className="flex items-center gap-1.5 rounded-full bg-gradient-to-r from-[#ff5da2] to-[#ffcf3f] px-3 py-1 font-mono text-xs font-semibold text-white hover:opacity-90"
+            >
+              <WalletIcon size={14} strokeWidth={1.75} aria-hidden />
+              {wallet.balance} $P
+            </Link>
+          )}
+          {hasAdminAccess && (
+            <Link
+              href="/quan-tri/bai-viet"
+              className="flex items-center gap-1.5 rounded-md border border-zinc-300 px-3 py-1.5 text-sm text-zinc-700 hover:bg-zinc-50"
+            >
+              <ShieldCheck size={16} strokeWidth={1.75} aria-hidden />
+              Quản trị
+            </Link>
+          )}
+          {user.permissionKeys?.includes(PERMISSIONS.CACHE_MANAGE) && (
+            <button
+              onClick={handleClearCache}
+              disabled={cacheStatus === "clearing"}
+              title="Xoá cache trang (Redis + Next.js) trên toàn bộ website"
+              className={`flex items-center gap-1.5 rounded-md border px-3 py-1.5 text-sm transition-colors disabled:opacity-50 ${
+                cacheStatus === "error"
+                  ? "border-red-300 text-red-600 hover:bg-red-50"
+                  : "border-zinc-300 text-zinc-700 hover:bg-zinc-50"
+              }`}
+            >
+              <Trash2 size={16} strokeWidth={1.75} aria-hidden />
+              {cacheStatus === "clearing"
+                ? "Đang xoá..."
+                : cacheStatus === "done"
+                  ? "Đã xoá ✓"
+                  : cacheStatus === "error"
+                    ? "Lỗi xoá cache"
+                    : "Xoá cache"}
+            </button>
+          )}
+        </div>
+      </div>
 
       <div className="flex gap-1 border-b border-zinc-200 font-mono text-sm">
         <TabButton active={tab === "thong-tin"} onClick={() => setTab("thong-tin")}>

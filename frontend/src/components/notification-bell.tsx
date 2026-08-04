@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
+import { Bell } from "lucide-react";
 import { apiFetch } from "@/lib/api";
 import { useNotificationSocket } from "@/lib/socket";
 import { renderMentionText } from "@/lib/mentions";
@@ -80,10 +81,10 @@ export function NotificationBell({ enabled }: { enabled: boolean }) {
       <button
         type="button"
         onClick={toggleOpen}
-        className="relative rounded-md px-2.5 py-1.5 text-sm text-zinc-200 hover:bg-white/10"
+        className="relative flex items-center rounded-md px-2.5 py-1.5 text-zinc-200 hover:bg-white/10"
         aria-label="Thông báo"
       >
-        🔔
+        <Bell size={18} strokeWidth={1.75} aria-hidden />
         {unreadCount > 0 && (
           <span className="absolute -right-0.5 -top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-[#ff5da2] px-1 text-[10px] font-semibold text-white">
             {unreadCount > 9 ? "9+" : unreadCount}
