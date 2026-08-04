@@ -107,6 +107,55 @@ export class CloudFilesService {
     });
   }
 
+  // Sinh presigned PUT URL cho trang "Upload File Cloud" — trình duyệt tự PUT thẳng lên bucket,
+  // backend chỉ ký URL (không đụng vào nội dung file, xem r2-client.service.ts getPresignedUploadUrl).
+  // Key trả về theo đúng định dạng "unprefixed" như DownloadLink.objectKey/listFiles() nên copy
+  // thẳng vào ô "Object Key" ở form gắn link tải trong bài viết là dùng được ngay.
+  async presignUpload(
+    providerId: string,
+    filename: string,
+    folder?: string,
+  ): Promise<{ url: string; key: string }> {
+    const key = this.buildUploadKey(filename, folder);
+    const url = await this.r2Client.getPresignedUploadUrl(providerId, key);
+    return { url, key };
+  }
+
+  // Không tái dùng slugify() (bỏ hết dấu chấm — mất luôn phần đuôi file ".zip"/".apk"). Giữ nguyên
+  // ký tự an toàn, thay phần còn lại bằng "-", chèn thêm timestamp+random để 2 lần tải cùng tên file
+  // không đè lên nhau (khác quy ước danh mục/slug bài viết vốn cố tình trùng thì báo lỗi ngay).
+  private sanitizeSegment(input: string): string {
+    return input
+      .normalize('NFD')
+      .replace(/[̀-ͯ]/g, '')
+      .replace(/đ/g, 'd')
+      .replace(/Đ/g, 'D')
+      .trim()
+      .replace(/[^a-zA-Z0-9._-]+/g, '-')
+      .replace(/-+/g, '-')
+      .replace(/^[.-]+|[.-]+$/g, '');
+  }
+
+  private buildUploadKey(filename: string, folder?: string): string {
+    const safeName = this.sanitizeSegment(filename) || 'file';
+    const unique = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}-${safeName}`;
+
+    if (folder?.trim()) {
+      const safeFolder = folder
+        .split('/')
+        .map((seg) => this.sanitizeSegment(seg))
+        .filter(Boolean)
+        .join('/');
+      if (safeFolder) return `${safeFolder}/${unique}`;
+    }
+
+    const now = new Date();
+    const yyyy = String(now.getFullYear());
+    const mm = String(now.getMonth() + 1).padStart(2, '0');
+    const dd = String(now.getDate()).padStart(2, '0');
+    return `cloud-uploads/${yyyy}/${mm}/${dd}/${unique}`;
+  }
+
   // Chặn xoá nếu file đang gắn với 1 DownloadLink nào đó — tránh xoá nhầm file đang bán, buộc
   // Admin gỡ cấu hình download link trước (quyết định tường minh, không tự động).
   async deleteFile(providerId: string, key: string): Promise<void> {
