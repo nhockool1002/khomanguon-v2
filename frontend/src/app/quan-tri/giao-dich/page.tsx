@@ -1,11 +1,52 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/auth-context";
 import { apiFetch, ApiError } from "@/lib/api";
+import { PERMISSIONS } from "@/lib/permissions";
 import type { AdminWalletTransaction, WalletTxStatus, WalletTxType } from "@/lib/types";
 import { ErrorBanner, FormField, SubmitButton, SuccessBanner } from "@/components/ui";
+import { ForbiddenPage } from "@/components/forbidden-page";
+
+function formatVnd(n: number): string {
+  return n.toLocaleString("vi-VN") + "đ";
+}
+
+// Dòng chi tiết theo loại giao dịch — đối soát cần biết ngay nạp bao nhiêu VNĐ, mua link tải bài
+// nào, Admin nào điều chỉnh + lý do (cùng logic với components/wallet-dashboard.tsx, bản admin có
+// thêm tên/email user đã ghép sẵn ở cột "Người dùng" nên không lặp lại ở đây).
+function TransactionDetail({ tx }: { tx: AdminWalletTransaction }) {
+  if (tx.type === "TOPUP") {
+    return <span>{tx.amountVnd ? `Nạp ${formatVnd(tx.amountVnd)} qua SePay` : "Nạp tiền qua SePay"}</span>;
+  }
+  if (tx.type === "PURCHASE") {
+    if (tx.postSlug) {
+      return (
+        <Link href={`/bai-viet/${tx.postSlug}`} className="text-[#1d3557] hover:underline" target="_blank">
+          {tx.note ?? "Mua link tải"}
+        </Link>
+      );
+    }
+    return <span>{tx.note ?? "Mua link tải"}</span>;
+  }
+  if (tx.type === "ADMIN_ADJUST") {
+    return (
+      <span>
+        {tx.adminDisplayName ? (
+          <>
+            Admin <span className="font-medium">{tx.adminDisplayName}</span> điều chỉnh
+          </>
+        ) : (
+          "Admin điều chỉnh"
+        )}
+        {tx.note && <>: {tx.note}</>}
+      </span>
+    );
+  }
+  return <span>{tx.note ?? "Hoàn tiền"}</span>;
+}
 
 const PAGE_SIZE = 20;
 
@@ -221,6 +262,9 @@ export default function AdminWalletTransactionsPage() {
   if (loading || !user) {
     return <div className="px-8 py-16 text-center text-sm text-zinc-400">Đang tải...</div>;
   }
+  if (!user.permissionKeys?.includes(PERMISSIONS.WALLET_VIEW_ANY)) {
+    return <ForbiddenPage />;
+  }
 
   const totalPages = Math.max(Math.ceil(total / PAGE_SIZE), 1);
 
@@ -385,10 +429,10 @@ export default function AdminWalletTransactionsPage() {
                       {STATUS_LABEL[tx.status]}
                     </span>
                   </td>
-                  <td className="px-3 py-2 text-xs text-zinc-500">
-                    {tx.note && <div className="text-zinc-700">{tx.note}</div>}
+                  <td className="px-3 py-2 text-xs text-zinc-700">
+                    <TransactionDetail tx={tx} />
                     {tx.referenceType && (
-                      <div className="font-mono text-[11px] text-zinc-400">
+                      <div className="mt-0.5 font-mono text-[10px] text-zinc-400">
                         {tx.referenceType}
                         {tx.referenceId ? `:${tx.referenceId}` : ""}
                       </div>

@@ -4,8 +4,10 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/auth-context";
 import { apiFetch, ApiError } from "@/lib/api";
+import { PERMISSIONS } from "@/lib/permissions";
 import type { UserSearchResult, Widget, WidgetType } from "@/lib/types";
 import { ErrorBanner } from "@/components/ui";
+import { ForbiddenPage } from "@/components/forbidden-page";
 import { WidgetListEditor, WIDGET_TYPE_LABEL } from "@/components/widget-list-editor";
 import { DEFAULT_ROLE_OPTIONS } from "@/components/menu-tree-editor";
 
@@ -109,6 +111,9 @@ export default function AdminWidgetPage() {
 
   if (loading || !user) {
     return <div className="px-8 py-16 text-center text-sm text-zinc-400">Đang tải...</div>;
+  }
+  if (!user.permissionKeys?.includes(PERMISSIONS.WIDGET_MANAGE)) {
+    return <ForbiddenPage />;
   }
 
   return (

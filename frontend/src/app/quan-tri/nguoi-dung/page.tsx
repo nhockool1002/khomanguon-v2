@@ -4,9 +4,11 @@ import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/auth-context";
 import { apiFetch, ApiError } from "@/lib/api";
+import { PERMISSIONS } from "@/lib/permissions";
 import type { AdminUser, UserStatus } from "@/lib/types";
 import { ErrorBanner, SuccessBanner } from "@/components/ui";
 import { DEFAULT_ROLE_OPTIONS } from "@/components/menu-tree-editor";
+import { ForbiddenPage } from "@/components/forbidden-page";
 
 const PAGE_SIZE = 20;
 
@@ -169,6 +171,9 @@ export default function AdminUsersPage() {
 
   if (loading || !user) {
     return <div className="px-8 py-16 text-center text-sm text-zinc-400">Đang tải...</div>;
+  }
+  if (!user.permissionKeys?.includes(PERMISSIONS.USER_MANAGE)) {
+    return <ForbiddenPage />;
   }
 
   const totalPages = Math.max(Math.ceil(total / PAGE_SIZE), 1);

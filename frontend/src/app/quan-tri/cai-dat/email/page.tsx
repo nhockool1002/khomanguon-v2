@@ -4,8 +4,10 @@ import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/auth-context";
 import { apiFetch, ApiError } from "@/lib/api";
+import { PERMISSIONS } from "@/lib/permissions";
 import type { MailTemplateConfig, MailTemplates } from "@/lib/types";
 import { ErrorBanner, SuccessBanner } from "@/components/ui";
+import { ForbiddenPage } from "@/components/forbidden-page";
 
 const inputClass =
   "rounded-md border border-zinc-300 px-3 py-2 text-sm outline-none focus:border-[#1d3557] focus:ring-1 focus:ring-[#1d3557]";
@@ -128,6 +130,9 @@ export default function MailTemplatesPage() {
 
   if (loading || !user) {
     return <div className="px-8 py-16 text-center text-sm text-zinc-400">Đang tải...</div>;
+  }
+  if (!user.permissionKeys?.includes(PERMISSIONS.SETTINGS_MAIL)) {
+    return <ForbiddenPage />;
   }
 
   return (
