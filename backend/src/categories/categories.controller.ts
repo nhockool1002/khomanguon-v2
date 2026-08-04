@@ -16,6 +16,7 @@ import { Permissions } from '../roles/decorators/permissions.decorator';
 import { PERMISSIONS } from '../roles/permissions.constant';
 import { CreateCategoryDto } from './dto/create-category.dto';
 import { UpdateCategoryDto } from './dto/update-category.dto';
+import { ReorderCategoryDto } from './dto/reorder-category.dto';
 import { Cacheable } from '../cache/cacheable.decorator';
 import { HttpCacheInterceptor } from '../cache/http-cache.interceptor';
 
@@ -37,6 +38,14 @@ export class CategoriesController {
   @Post()
   create(@Body() dto: CreateCategoryDto) {
     return this.categoriesService.create(dto);
+  }
+
+  // Khai báo trước ":id" để không bị match nhầm thành id="reorder".
+  @UseGuards(JwtAuthGuard, PermissionsGuard)
+  @Permissions(PERMISSIONS.POST_PUBLISH)
+  @Patch('reorder')
+  reorder(@Body() dto: ReorderCategoryDto) {
+    return this.categoriesService.reorder(dto);
   }
 
   @UseGuards(JwtAuthGuard, PermissionsGuard)

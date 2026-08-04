@@ -4,8 +4,8 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/auth-context";
 import { apiFetch, ApiError } from "@/lib/api";
-import type { StorageProvider, StorageProviderType } from "@/lib/types";
-import { ErrorBanner } from "@/components/ui";
+import type { GeneralSettings, StorageProvider, StorageProviderType } from "@/lib/types";
+import { ErrorBanner, SuccessBanner } from "@/components/ui";
 
 interface FormValues {
   type: StorageProviderType;
@@ -18,6 +18,9 @@ interface FormValues {
   secretAccessKey: string;
   isDefault: boolean;
 }
+
+const inputClass =
+  "rounded-md border border-zinc-300 px-3 py-2 text-sm outline-none focus:border-[#1d3557] focus:ring-1 focus:ring-[#1d3557]";
 
 const EMPTY_FORM: FormValues = {
   type: "R2",
@@ -38,6 +41,11 @@ export default function AdminStorageProvidersPage() {
   const [error, setError] = useState<string | null>(null);
   const [editing, setEditing] = useState<StorageProvider | null | "new">(null);
 
+  const [gaTrackingId, setGaTrackingId] = useState("");
+  const [googleSiteVerification, setGoogleSiteVerification] = useState("");
+  const [seoMessage, setSeoMessage] = useState<string | null>(null);
+  const [savingSeo, setSavingSeo] = useState(false);
+
   useEffect(() => {
     if (!loading && !user) router.replace("/dang-nhap");
   }, [loading, user, router]);
@@ -45,7 +53,30 @@ export default function AdminStorageProvidersPage() {
   useEffect(() => {
     if (!user) return;
     reload();
+    apiFetch<GeneralSettings>("/settings/general")
+      .then((res) => {
+        setGaTrackingId(res.gaTrackingId);
+        setGoogleSiteVerification(res.googleSiteVerification);
+      })
+      .catch((err) => setError(err instanceof ApiError ? err.message : "Có lỗi xảy ra"));
   }, [user]);
+
+  async function handleSaveSeo() {
+    setError(null);
+    setSeoMessage(null);
+    setSavingSeo(true);
+    try {
+      await apiFetch<GeneralSettings>("/settings/general", {
+        method: "PUT",
+        body: JSON.stringify({ gaTrackingId, googleSiteVerification }),
+      });
+      setSeoMessage("Đã lưu cấu hình SEO toàn site.");
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : "Có lỗi xảy ra");
+    } finally {
+      setSavingSeo(false);
+    }
+  }
 
   async function reload() {
     try {
@@ -102,7 +133,7 @@ export default function AdminStorageProvidersPage() {
   return (
     <div className="flex w-full max-w-3xl flex-col gap-4 px-8 py-8">
       <div className="flex items-center justify-between">
-        <h1 className="text-xl font-semibold text-zinc-900">Cài đặt Storage</h1>
+        <h1 className="text-xl font-semibold text-zinc-900">Cài đặt Provider</h1>
         <button
           type="button"
           onClick={() => setEditing("new")}
@@ -171,6 +202,46 @@ export default function AdminStorageProvidersPage() {
           onSave={handleSave}
         />
       )}
+
+      <div className="flex flex-col gap-3 rounded-md border border-zinc-200 p-4">
+        <p className="text-xs font-semibold uppercase tracking-wide text-zinc-500">
+          SEO toàn site — Google Analytics &amp; Search Console
+        </p>
+        <SuccessBanner message={seoMessage} />
+        <label className="flex flex-col gap-1 text-sm text-zinc-700">
+          Google Analytics Tracking ID
+          <input
+            value={gaTrackingId}
+            onChange={(e) => setGaTrackingId(e.target.value)}
+            placeholder="G-XXXXXXXXXX"
+            className={inputClass}
+          />
+          <span className="text-xs text-zinc-400">
+            Để trống thì không gắn Google Analytics vào site.
+          </span>
+        </label>
+        <label className="flex flex-col gap-1 text-sm text-zinc-700">
+          Google Search Console — mã xác minh
+          <input
+            value={googleSiteVerification}
+            onChange={(e) => setGoogleSiteVerification(e.target.value)}
+            placeholder="Nội dung thẻ meta google-site-verification"
+            className={inputClass}
+          />
+          <span className="text-xs text-zinc-400">
+            Lấy ở Search Console → Cài đặt → Xác minh quyền sở hữu → HTML tag — chỉ dán phần nội
+            dung (content=&quot;...&quot;), không dán cả thẻ.
+          </span>
+        </label>
+        <button
+          type="button"
+          onClick={handleSaveSeo}
+          disabled={savingSeo}
+          className="w-fit rounded-md bg-[#1d3557] px-4 py-2 text-sm font-medium text-white hover:bg-[#16294a] disabled:opacity-50"
+        >
+          {savingSeo ? "Đang lưu..." : "Lưu cấu hình SEO"}
+        </button>
+      </div>
     </div>
   );
 }
@@ -214,9 +285,6 @@ function StorageProviderEditPanel({
       setSaving(false);
     }
   }
-
-  const inputClass =
-    "rounded-md border border-zinc-300 px-3 py-2 text-sm outline-none focus:border-[#1d3557] focus:ring-1 focus:ring-[#1d3557]";
 
   return (
     <form onSubmit={handleSubmit} className="flex flex-col gap-3 rounded-md border border-zinc-200 p-4">

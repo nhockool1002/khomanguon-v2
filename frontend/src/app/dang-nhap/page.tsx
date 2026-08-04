@@ -1,67 +1,19 @@
-"use client";
+import { fetchGeneralSettings } from "@/lib/public-api";
+import { AuthBanner } from "@/components/auth-banner";
+import { LoginForm } from "@/components/login-form";
 
-import { useState } from "react";
-import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { useAuth } from "@/context/auth-context";
-import { ApiError } from "@/lib/api";
-import { AuthCard, ErrorBanner, FormField, SubmitButton } from "@/components/ui";
-
-export default function LoginPage() {
-  const { login } = useAuth();
-  const router = useRouter();
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [error, setError] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
-
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    setError(null);
-    setLoading(true);
-    try {
-      await login(email, password);
-      router.push("/tai-khoan");
-    } catch (err) {
-      setError(err instanceof ApiError ? err.message : "Có lỗi xảy ra, thử lại sau");
-    } finally {
-      setLoading(false);
-    }
-  }
+export default async function LoginPage() {
+  const settings = await fetchGeneralSettings();
 
   return (
-    <AuthCard title="Đăng nhập">
-      <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-        <ErrorBanner message={error} />
-        <FormField
-          label="Email"
-          type="email"
-          required
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-        />
-        <FormField
-          label="Mật khẩu"
-          type="password"
-          required
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-        />
-        <div className="flex items-center justify-between text-sm">
-          <Link href="/quen-mat-khau" className="text-[#1d3557] hover:underline">
-            Quên mật khẩu?
-          </Link>
+    <div className="flex flex-1 items-center justify-center px-4 py-16">
+      <div className="w-full max-w-sm overflow-hidden rounded-lg border border-zinc-200 bg-white shadow-sm">
+        <AuthBanner settings={settings} />
+        <div className="p-8">
+          <h1 className="mb-6 text-lg font-semibold text-zinc-900">Đăng nhập</h1>
+          <LoginForm />
         </div>
-        <SubmitButton type="submit" loading={loading}>
-          Đăng nhập
-        </SubmitButton>
-        <p className="text-center text-sm text-zinc-500">
-          Chưa có tài khoản?{" "}
-          <Link href="/dang-ky" className="text-[#1d3557] hover:underline">
-            Đăng ký
-          </Link>
-        </p>
-      </form>
-    </AuthCard>
+      </div>
+    </div>
   );
 }

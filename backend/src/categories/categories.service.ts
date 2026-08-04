@@ -7,7 +7,16 @@ import { PrismaService } from '../prisma/prisma.service';
 import { buildUniqueSlug } from '../common/slugify';
 import { CreateCategoryDto } from './dto/create-category.dto';
 import { UpdateCategoryDto } from './dto/update-category.dto';
+import { ReorderCategoryDto } from './dto/reorder-category.dto';
 import { CacheService } from '../cache/cache.service';
+
+const categorySelect = {
+  id: true,
+  name: true,
+  slug: true,
+  order: true,
+  parentId: true,
+} as const;
 
 @Injectable()
 export class CategoriesService {
@@ -18,8 +27,8 @@ export class CategoriesService {
 
   list() {
     return this.prisma.category.findMany({
-      orderBy: { name: 'asc' },
-      select: { id: true, name: true, slug: true, parentId: true },
+      orderBy: [{ parentId: 'asc' }, { order: 'asc' }],
+      select: categorySelect,
     });
   }
 
@@ -32,9 +41,19 @@ export class CategoriesService {
           this.slugTaken(candidate),
         );
 
+    const maxOrder = await this.prisma.category.aggregate({
+      where: { parentId: dto.parentId ?? null },
+      _max: { order: true },
+    });
+
     const created = await this.prisma.category.create({
-      data: { name: dto.name, slug, parentId: dto.parentId ?? null },
-      select: { id: true, name: true, slug: true, parentId: true },
+      data: {
+        name: dto.name,
+        slug,
+        parentId: dto.parentId ?? null,
+        order: (maxOrder._max.order ?? -1) + 1,
+      },
+      select: categorySelect,
     });
     await this.cache.invalidatePrefix('categories');
     return created;
@@ -56,7 +75,7 @@ export class CategoriesService {
         ...(dto.slug !== undefined && { slug: dto.slug }),
         ...(dto.parentId !== undefined && { parentId: dto.parentId }),
       },
-      select: { id: true, name: true, slug: true, parentId: true },
+      select: categorySelect,
     });
     await this.cache.invalidatePrefix('categories');
     return updated;
@@ -65,6 +84,20 @@ export class CategoriesService {
   async remove(id: string): Promise<void> {
     await this.getOrThrow(id);
     await this.prisma.category.delete({ where: { id } });
+    await this.cache.invalidatePrefix('categories');
+  }
+
+  // Gọi sau mỗi lần kéo-thả trên UI — cập nhật order/parentId hàng loạt trong 1 transaction
+  // (giống hệt MenusService.reorder).
+  async reorder(dto: ReorderCategoryDto): Promise<void> {
+    await this.prisma.$transaction(
+      dto.items.map((item) =>
+        this.prisma.category.update({
+          where: { id: item.id },
+          data: { order: item.order, parentId: item.parentId ?? null },
+        }),
+      ),
+    );
     await this.cache.invalidatePrefix('categories');
   }
 
