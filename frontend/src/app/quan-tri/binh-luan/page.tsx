@@ -7,7 +7,7 @@ import { useAuth } from "@/context/auth-context";
 import { apiFetch, ApiError } from "@/lib/api";
 import { PERMISSIONS } from "@/lib/permissions";
 import type { AdminComment, CommentStatus } from "@/lib/types";
-import { ErrorBanner, SuccessBanner } from "@/components/ui";
+import { ErrorBanner, FormField, SubmitButton, SuccessBanner } from "@/components/ui";
 import { ForbiddenPage } from "@/components/forbidden-page";
 
 const PAGE_SIZE = 20;
@@ -31,6 +31,8 @@ export default function AdminCommentsPage() {
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
   const [statusFilter, setStatusFilter] = useState<CommentStatus | "">("");
+  const [qInput, setQInput] = useState("");
+  const [q, setQ] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
@@ -42,13 +44,20 @@ export default function AdminCommentsPage() {
   const reload = useCallback(() => {
     const query = new URLSearchParams({ page: String(page), limit: String(PAGE_SIZE) });
     if (statusFilter) query.set("status", statusFilter);
+    if (q) query.set("q", q);
     apiFetch<{ items: AdminComment[]; total: number }>(`/comments/moderation/all?${query.toString()}`)
       .then((res) => {
         setItems(res.items);
         setTotal(res.total);
       })
       .catch((err) => setError(err instanceof ApiError ? err.message : "Có lỗi xảy ra"));
-  }, [page, statusFilter]);
+  }, [page, statusFilter, q]);
+
+  function applyFilters(e: React.FormEvent) {
+    e.preventDefault();
+    setPage(1);
+    setQ(qInput.trim());
+  }
 
   useEffect(() => {
     if (!user) return;
@@ -114,25 +123,36 @@ export default function AdminCommentsPage() {
 
   return (
     <div className="flex w-full flex-col gap-4 px-8 py-8">
-      <div className="flex items-center justify-between">
-        <h1 className="text-xl font-semibold text-zinc-900">Quản lý bình luận</h1>
-        <select
-          value={statusFilter}
-          onChange={(e) => {
-            setPage(1);
-            setStatusFilter(e.target.value as CommentStatus | "");
-          }}
-          className="rounded-md border border-zinc-300 px-3 py-2 text-sm outline-none focus:border-[#1d3557] focus:ring-1 focus:ring-[#1d3557]"
-        >
-          <option value="">Tất cả trạng thái</option>
-          <option value="PUBLISHED">Đã duyệt</option>
-          <option value="PENDING">Chờ duyệt</option>
-          <option value="HIDDEN">Đã ẩn</option>
-        </select>
-      </div>
+      <h1 className="text-xl font-semibold text-zinc-900">Quản lý bình luận</h1>
       <p className="text-sm text-zinc-500">
         Kiểm duyệt bình luận trên toàn bộ bài viết — duyệt/ẩn, ghim, hoặc xoá.
       </p>
+
+      <form onSubmit={applyFilters} className="flex flex-wrap items-end gap-3">
+        <label className="flex flex-col gap-1.5 text-sm text-zinc-700">
+          Trạng thái
+          <select
+            value={statusFilter}
+            onChange={(e) => {
+              setPage(1);
+              setStatusFilter(e.target.value as CommentStatus | "");
+            }}
+            className="rounded-md border border-zinc-300 px-3 py-2 text-sm outline-none focus:border-[#1d3557] focus:ring-1 focus:ring-[#1d3557]"
+          >
+            <option value="">Tất cả trạng thái</option>
+            <option value="PUBLISHED">Đã duyệt</option>
+            <option value="PENDING">Chờ duyệt</option>
+            <option value="HIDDEN">Đã ẩn</option>
+          </select>
+        </label>
+        <FormField
+          label="Tìm theo nội dung / người bình luận / bài viết"
+          value={qInput}
+          onChange={(e) => setQInput(e.target.value)}
+          placeholder="Nhập từ khoá..."
+        />
+        <SubmitButton type="submit">Áp dụng</SubmitButton>
+      </form>
 
       <ErrorBanner message={error} />
       <SuccessBanner message={message} />

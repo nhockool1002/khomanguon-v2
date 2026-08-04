@@ -396,7 +396,7 @@ export default function AdminWalletTransactionsPage() {
                 <SortableTh sortKey="amount" active={sortBy} indicator={sortIndicator} onSort={toggleSort} />
                 <SortableTh sortKey="balanceAfter" active={sortBy} indicator={sortIndicator} onSort={toggleSort} />
                 <SortableTh sortKey="status" active={sortBy} indicator={sortIndicator} onSort={toggleSort} />
-                <th className="px-3 py-2">Ghi chú / Tham chiếu</th>
+                <th className="w-64 px-3 py-2">Ghi chú / Tham chiếu</th>
               </tr>
             </thead>
             <tbody>
@@ -429,10 +429,10 @@ export default function AdminWalletTransactionsPage() {
                       {STATUS_LABEL[tx.status]}
                     </span>
                   </td>
-                  <td className="px-3 py-2 text-xs text-zinc-700">
+                  <td className="max-w-64 break-words px-3 py-2 text-xs text-zinc-700">
                     <TransactionDetail tx={tx} />
                     {tx.referenceType && (
-                      <div className="mt-0.5 font-mono text-[10px] text-zinc-400">
+                      <div className="mt-0.5 break-all font-mono text-[10px] text-zinc-400">
                         {tx.referenceType}
                         {tx.referenceId ? `:${tx.referenceId}` : ""}
                       </div>

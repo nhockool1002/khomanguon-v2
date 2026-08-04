@@ -42,10 +42,10 @@ export function Navbar({ menus = [] }: { menus?: MenuItem[] }) {
               <NotificationBell enabled={!!user} />
               <Link
                 href="/tai-khoan/vi"
-                className="flex items-center gap-1.5 rounded-md bg-gradient-to-r from-[#ff5da2] to-[#ffcf3f] px-3 py-1.5 text-sm font-medium text-white hover:opacity-90"
+                className="flex items-center gap-1.5 rounded-md bg-gradient-to-r from-[#ff5da2] to-[#ffcf3f] px-3 py-1.5 text-sm font-semibold text-[#1d3557] hover:opacity-90"
               >
                 <WalletIcon size={16} strokeWidth={1.75} aria-hidden />
-                Nạp tiền
+                Nạp $P
               </Link>
               <Link
                 href="/tai-khoan"

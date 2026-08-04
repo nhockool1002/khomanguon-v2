@@ -50,6 +50,8 @@ const TX_TYPE_TONE: Record<WalletTransaction["type"], string> = {
   REFUND: "bg-sky-100 text-sky-700",
 };
 
+const MIN_TOPUP_VND = 100000;
+
 function formatVnd(n: number): string {
   return n.toLocaleString("vi-VN") + "đ";
 }
@@ -169,8 +171,8 @@ export function WalletDashboard() {
   }, [pending]);
 
   async function handleCreateOrder() {
-    if (!amountVnd || amountVnd < 10000) {
-      setError("Số tiền nạp tối thiểu 10.000đ");
+    if (!amountVnd || amountVnd < MIN_TOPUP_VND) {
+      setError(`Số tiền nạp tối thiểu ${formatVnd(MIN_TOPUP_VND)}`);
       return;
     }
     setError(null);
@@ -207,30 +209,48 @@ export function WalletDashboard() {
           ) : (
             <div className="flex flex-col gap-4 rounded-lg border border-zinc-200 bg-white p-5">
               <p className="text-sm font-semibold text-zinc-800">Nạp nhanh</p>
-              <div className="flex flex-wrap gap-2">
-                {presets.map((preset) => (
-                  <button
-                    key={preset.vnd}
-                    type="button"
-                    onClick={() => {
-                      setAmountVnd(preset.vnd);
-                      setCustomAmount("");
-                    }}
-                    className={`rounded-md border px-3 py-2 text-sm ${
-                      amountVnd === preset.vnd
-                        ? "border-[#1d3557] bg-[#1d3557]/5 font-semibold text-[#1d3557]"
-                        : "border-zinc-300 text-zinc-700 hover:bg-zinc-50"
-                    }`}
-                  >
-                    {formatVnd(preset.vnd)} → {preset.p} $P
-                  </button>
-                ))}
-              </div>
+              {presets.length > 0 && (
+                <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+                  {presets.map((preset) => {
+                    const isBestValue =
+                      presets.length > 1 &&
+                      preset.p / preset.vnd === Math.max(...presets.map((p) => p.p / p.vnd));
+                    const selected = amountVnd === preset.vnd;
+                    return (
+                      <button
+                        key={preset.vnd}
+                        type="button"
+                        onClick={() => {
+                          setAmountVnd(preset.vnd);
+                          setCustomAmount("");
+                        }}
+                        className={`relative flex flex-col items-center gap-1 rounded-lg border-2 px-3 py-4 text-center transition-all ${
+                          selected
+                            ? "border-[#1d3557] bg-[#1d3557]/5 shadow-md"
+                            : "border-zinc-200 hover:border-[#1d3557]/40 hover:shadow-sm"
+                        }`}
+                      >
+                        {isBestValue && (
+                          <span className="absolute -top-2.5 left-1/2 -translate-x-1/2 rounded-full bg-gradient-to-r from-[#ff5da2] to-[#ffcf3f] px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-[#1d3557] shadow">
+                            Tốt nhất
+                          </span>
+                        )}
+                        <span className="font-mono text-base font-bold text-[#1d3557]">
+                          {formatVnd(preset.vnd)}
+                        </span>
+                        <span className="font-mono text-sm font-semibold text-emerald-600">
+                          +{preset.p} $P
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
               <label className="flex flex-col gap-1.5 text-sm text-zinc-700">
-                Số tiền tuỳ chọn (VNĐ)
+                Số tiền tuỳ chọn (VNĐ) — tối thiểu {formatVnd(MIN_TOPUP_VND)}
                 <input
                   type="number"
-                  min={10000}
+                  min={MIN_TOPUP_VND}
                   step={1000}
                   value={customAmount}
                   onChange={(e) => {
