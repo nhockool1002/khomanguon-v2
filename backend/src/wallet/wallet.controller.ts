@@ -58,7 +58,7 @@ export class WalletController {
     @Query('page') page = '1',
     @Query('limit') limit = '20',
   ) {
-    return this.sepayService.listTransactions(
+    return this.walletService.listOwn(
       user.id,
       Number(page) || 1,
       Number(limit) || 20,

@@ -80,16 +80,108 @@ export class WalletService {
               user: { select: { id: true, email: true, displayName: true } },
             },
           },
+          topupOrder: { select: { amountVnd: true } },
         },
       }),
       this.prisma.walletTransaction.count({ where }),
     ]);
 
-    const items = rows.map(({ wallet, ...tx }) => ({
+    const enriched = await this.enrich(rows);
+    const items = rows.map(({ wallet, ...tx }, index) => ({
       ...tx,
+      ...enriched[index],
       user: wallet.user,
     }));
     return { items, total };
+  }
+
+  // Lịch sử giao dịch của chính user (trang /tai-khoan/vi) — cùng phần enrich với listAll() để
+  // đối soát chi tiết được cả 2 phía (user tự xem lẫn Admin xem toàn hệ thống).
+  async listOwn(userId: string, page: number, limit: number) {
+    const take = Math.min(Math.max(limit, 1), 50);
+    const skip = (Math.max(page, 1) - 1) * take;
+    const wallet = await this.prisma.wallet.upsert({
+      where: { userId },
+      update: {},
+      create: { userId, balance: 0 },
+    });
+    const [rows, total] = await this.prisma.$transaction([
+      this.prisma.walletTransaction.findMany({
+        where: { walletId: wallet.id },
+        orderBy: { createdAt: 'desc' },
+        skip,
+        take,
+        include: { topupOrder: { select: { amountVnd: true } } },
+      }),
+      this.prisma.walletTransaction.count({ where: { walletId: wallet.id } }),
+    ]);
+
+    const enriched = await this.enrich(rows);
+    const items = rows.map((tx, index) => ({ ...tx, ...enriched[index] }));
+    return { items, total };
+  }
+
+  // Ghép thêm thông tin dễ đọc theo từng loại giao dịch — không có FK thật trên referenceId (chỉ
+  // string rời) nên phải tự batch-fetch theo loại thay vì include quan hệ Prisma:
+  // - TOPUP: đã có qua include topupOrder (quan hệ thật) — chỉ cần đọc lại amountVnd.
+  // - PURCHASE: referenceId = DownloadLink.id — tra ra slug bài viết để FE gắn link.
+  // - ADMIN_ADJUST: referenceId = id Admin thực hiện — tra ra tên hiển thị để đối soát "ai điều chỉnh".
+  private async enrich(
+    rows: (Prisma.WalletTransactionGetPayload<{
+      include: { topupOrder: { select: { amountVnd: true } } };
+    }> & { topupOrder?: { amountVnd: number } | null })[],
+  ): Promise<
+    {
+      amountVnd: number | null;
+      postSlug: string | null;
+      adminDisplayName: string | null;
+    }[]
+  > {
+    const purchaseLinkIds = [
+      ...new Set(
+        rows
+          .filter((r) => r.type === WalletTxType.PURCHASE && r.referenceId)
+          .map((r) => r.referenceId as string),
+      ),
+    ];
+    const adjustAdminIds = [
+      ...new Set(
+        rows
+          .filter((r) => r.type === WalletTxType.ADMIN_ADJUST && r.referenceId)
+          .map((r) => r.referenceId as string),
+      ),
+    ];
+
+    // Truyền mảng id rỗng vẫn chạy được (trả về []) — không cần nhánh điều kiện riêng, tránh Promise.all
+    // suy luận sai kiểu khi trộn PrismaPromise với Promise.resolve([]) ở 2 nhánh khác kiểu.
+    const [downloadLinks, admins] = await Promise.all([
+      this.prisma.downloadLink.findMany({
+        where: { id: { in: purchaseLinkIds } },
+        select: { id: true, post: { select: { slug: true } } },
+      }),
+      this.prisma.user.findMany({
+        where: { id: { in: adjustAdminIds } },
+        select: { id: true, displayName: true },
+      }),
+    ]);
+    const slugByLinkId = new Map(
+      downloadLinks.map((l) => [l.id, l.post.slug] as const),
+    );
+    const nameByAdminId = new Map(
+      admins.map((a) => [a.id, a.displayName] as const),
+    );
+
+    return rows.map((tx) => ({
+      amountVnd: tx.topupOrder?.amountVnd ?? null,
+      postSlug:
+        tx.type === WalletTxType.PURCHASE && tx.referenceId
+          ? (slugByLinkId.get(tx.referenceId) ?? null)
+          : null,
+      adminDisplayName:
+        tx.type === WalletTxType.ADMIN_ADJUST && tx.referenceId
+          ? (nameByAdminId.get(tx.referenceId) ?? null)
+          : null,
+    }));
   }
 
   // Xoá hàng loạt theo đúng bộ lọc đang áp dụng trên trang Quản lý giao dịch — chỉ xoá bản ghi

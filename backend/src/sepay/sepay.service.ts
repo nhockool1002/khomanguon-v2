@@ -244,26 +244,6 @@ export class SepayService {
     return order;
   }
 
-  async listTransactions(userId: string, page: number, limit: number) {
-    const take = Math.min(Math.max(limit, 1), 50);
-    const skip = (Math.max(page, 1) - 1) * take;
-    const wallet = await this.prisma.wallet.upsert({
-      where: { userId },
-      update: {},
-      create: { userId, balance: 0 },
-    });
-    const [items, total] = await this.prisma.$transaction([
-      this.prisma.walletTransaction.findMany({
-        where: { walletId: wallet.id },
-        orderBy: { createdAt: 'desc' },
-        skip,
-        take,
-      }),
-      this.prisma.walletTransaction.count({ where: { walletId: wallet.id } }),
-    ]);
-    return { items, total };
-  }
-
   // ───────────────────────── Webhook ─────────────────────────
 
   // Idempotent theo sepayTransactionCode (SePay retry tối đa 7 lần trong 5h nếu server không trả

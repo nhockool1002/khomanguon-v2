@@ -40,6 +40,7 @@ export class UsersService {
         createdAt: true,
         displayNameChangedAt: true,
         primaryRoleId: true,
+        showPostPopup: true,
         roles: {
           select: {
             roleId: true,
@@ -108,9 +109,13 @@ export class UsersService {
       bio?: string;
       avatarUrl?: string;
       displayNameChangedAt?: Date;
+      showPostPopup?: boolean;
     } = {
       ...(dto.bio !== undefined && { bio: dto.bio }),
       ...(dto.avatarUrl !== undefined && { avatarUrl: dto.avatarUrl }),
+      ...(dto.showPostPopup !== undefined && {
+        showPostPopup: dto.showPostPopup,
+      }),
     };
 
     if (dto.displayName !== undefined) {
@@ -131,18 +136,10 @@ export class UsersService {
       }
     }
 
-    const user = await this.prisma.user.update({
-      where: { id: userId },
-      data,
-      select: {
-        id: true,
-        email: true,
-        displayName: true,
-        avatarUrl: true,
-        bio: true,
-      },
-    });
-    return user;
+    await this.prisma.user.update({ where: { id: userId }, data });
+    // Trả về đầy đủ hình dạng Profile (giống updateStyleRole) — FE cần showPostPopup/canChangeDisplayName
+    // mới nhất ngay sau khi lưu, không chỉ vài field vừa đổi.
+    return this.getProfile(userId);
   }
 
   async changePassword(userId: string, dto: ChangePasswordDto): Promise<void> {

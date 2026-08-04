@@ -8,6 +8,8 @@ export interface AuthUser {
   // này (login/register chưa có, xem backend/src/auth/auth.service.ts PublicUser), nên optional.
   // Backend luôn kiểm tra lại bằng PermissionsGuard nên sai/thiếu ở đây chỉ ảnh hưởng UI.
   permissionKeys?: string[];
+  // Bật/tắt popup gợi ý bài viết ngẫu nhiên (post-popup.tsx) — optional cùng lý do permissionKeys.
+  showPostPopup?: boolean;
 }
 
 export interface Profile extends AuthUser {
@@ -191,7 +193,6 @@ export interface Permission {
 }
 
 export interface AdminWalletTransaction extends WalletTransaction {
-  note: string | null;
   user: { id: string; email: string; displayName: string };
 }
 
@@ -277,7 +278,13 @@ export interface WalletTransaction {
   status: WalletTxStatus;
   referenceType: string | null;
   referenceId: string | null;
+  note: string | null;
   createdAt: string;
+  // Ghép thêm ở backend/src/wallet/wallet.service.ts enrich() theo từng loại giao dịch — luôn có
+  // mặt trên mọi item (null nếu không áp dụng loại đó) để đối soát chi tiết trên UI.
+  amountVnd: number | null; // TOPUP — số VNĐ đã chuyển khoản qua SePay
+  postSlug: string | null; // PURCHASE — bài viết chứa link tải vừa mua, dùng để gắn link
+  adminDisplayName: string | null; // ADMIN_ADJUST — tên Admin đã điều chỉnh tay
 }
 
 export interface WalletTransactionListResponse {
@@ -318,6 +325,7 @@ export interface GeneralSettings {
   headerSloganItalic: boolean;
   gaTrackingId: string;
   googleSiteVerification: string;
+  footerText: string;
 }
 
 export interface MailTemplateConfig {

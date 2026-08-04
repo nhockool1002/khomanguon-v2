@@ -99,4 +99,9 @@ export class UpdateGeneralSettingsDto {
   @IsOptional()
   @IsString()
   googleSiteVerification?: string;
+
+  @IsOptional()
+  @IsString()
+  @MinLength(1)
+  footerText?: string;
 }
