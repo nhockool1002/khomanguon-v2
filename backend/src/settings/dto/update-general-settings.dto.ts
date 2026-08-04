@@ -23,6 +23,11 @@ export class UpdateGeneralSettingsDto {
   @IsOptional()
   @IsString()
   @MinLength(1)
+  siteTitle?: string;
+
+  @IsOptional()
+  @IsString()
+  @MinLength(1)
   headerTitle?: string;
 
   @IsOptional()

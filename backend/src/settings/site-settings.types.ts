@@ -5,6 +5,9 @@ export type HeaderBackgroundAttachment = 'scroll' | 'fixed';
 // pattern key/value chung đã dùng cho sepay_config (xem sepay/sepay-config.types.ts).
 export interface GeneralSettings {
   postsPerPage: number;
+  // Title thẻ <title> trình duyệt/SEO toàn site (layout.tsx generateMetadata) — khác headerTitle
+  // bên dưới (chỉ là dòng chữ nhỏ trong banner trang chủ, xem SiteHero).
+  siteTitle: string;
   headerTitle: string;
   headerSlogan: string;
   headerBackgroundColor: string;
@@ -37,6 +40,7 @@ export const GENERAL_SETTINGS_KEY = 'general_settings';
 
 export const DEFAULT_GENERAL_SETTINGS: GeneralSettings = {
   postsPerPage: 9,
+  siteTitle: 'khomanguon — Mở kho, dựng lại thanh xuân',
   headerTitle: 'khomanguon.vn',
   headerSlogan:
     'Mở kho, dựng lại thanh xuân — kho mã nguồn Game/Web/App cho cộng đồng Việt',

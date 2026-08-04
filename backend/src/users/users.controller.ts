@@ -21,6 +21,7 @@ import { ChangePasswordDto } from './dto/change-password.dto';
 import { AssignRoleDto } from './dto/assign-role.dto';
 import { UpdateStatusDto } from './dto/update-status.dto';
 import { UpdateStyleRoleDto } from './dto/update-style-role.dto';
+import { UpdateUserTitleDto } from './dto/update-user-title.dto';
 import { CreateProfileMessageDto } from './dto/create-profile-message.dto';
 
 interface AuthUser {
@@ -61,6 +62,13 @@ export class UsersController {
     @Body() dto: UpdateStyleRoleDto,
   ) {
     return this.usersService.updateStyleRole(user.id, dto.roleSlug);
+  }
+
+  // Đổi Title cá nhân — giới hạn độ dài/HTML/tần suất theo role, xem users.service.ts updateTitle().
+  @UseGuards(JwtAuthGuard)
+  @Patch('me/title')
+  updateTitle(@CurrentUser() user: AuthUser, @Body() dto: UpdateUserTitleDto) {
+    return this.usersService.updateTitle(user.id, dto.title);
   }
 
   @UseGuards(JwtAuthGuard, PermissionsGuard)

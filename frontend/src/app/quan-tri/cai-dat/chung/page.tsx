@@ -24,6 +24,7 @@ export default function GeneralSettingsPage() {
   const router = useRouter();
 
   const [postsPerPage, setPostsPerPage] = useState(9);
+  const [siteTitle, setSiteTitle] = useState("");
   const [headerTitle, setHeaderTitle] = useState("");
   const [headerSlogan, setHeaderSlogan] = useState("");
   const [headerBackgroundColor, setHeaderBackgroundColor] = useState("#1d3557");
@@ -59,6 +60,7 @@ export default function GeneralSettingsPage() {
     apiFetch<GeneralSettings>("/settings/general")
       .then((res) => {
         setPostsPerPage(res.postsPerPage);
+        setSiteTitle(res.siteTitle);
         setHeaderTitle(res.headerTitle);
         setHeaderSlogan(res.headerSlogan);
         setHeaderBackgroundColor(res.headerBackgroundColor);
@@ -89,6 +91,7 @@ export default function GeneralSettingsPage() {
         method: "PUT",
         body: JSON.stringify({
           postsPerPage,
+          siteTitle,
           headerTitle,
           headerSlogan,
           headerBackgroundColor,
@@ -186,6 +189,18 @@ export default function GeneralSettingsPage() {
 
       <ErrorBanner message={error} />
       <SuccessBanner message={message} />
+
+      <div className="flex flex-col gap-3 rounded-md border border-zinc-200 p-4">
+        <p className="text-xs font-semibold uppercase tracking-wide text-zinc-500">Chung</p>
+        <label className="flex flex-col gap-1 text-sm text-zinc-700">
+          Tiêu đề website (thẻ &lt;title&gt; trình duyệt/SEO)
+          <input
+            value={siteTitle}
+            onChange={(e) => setSiteTitle(e.target.value)}
+            className={inputClass}
+          />
+        </label>
+      </div>
 
       <div className="flex flex-col gap-3 rounded-md border border-zinc-200 p-4">
         <p className="text-xs font-semibold uppercase tracking-wide text-zinc-500">Trang chủ</p>

@@ -77,3 +77,38 @@ export const DEFAULT_ROLE_PERMISSIONS: Record<string, PermissionKey[]> = {
   // "chưa kích hoạt". Admin có thể nới lỏng qua trang Phân quyền nếu muốn cho bình luận trước.
   [DEFAULT_ROLES.UNVERIFIED.slug]: [],
 };
+
+export interface RoleUserTitleConfig {
+  cooldownDays: number | null; // null = đổi tự do, không giới hạn ngày
+  allowHtml: boolean;
+  maxLength: number;
+}
+
+// Mặc định User Title cho 4 role hệ thống lúc khởi tạo (seed.ts — chỉ áp khi TẠO MỚI role, không
+// ghi đè role đã tồn tại để không xoá tuỳ chỉnh Admin đã lưu qua /quan-tri/vai-tro). Role không có
+// trong map này (custom role Admin tự tạo, hoặc UNVERIFIED) dùng default cột trong schema.prisma
+// (60 ngày / không HTML / 150 ký tự) làm baseline an toàn.
+export const DEFAULT_ROLE_USER_TITLE_CONFIG: Partial<
+  Record<string, RoleUserTitleConfig>
+> = {
+  [DEFAULT_ROLES.MEMBER.slug]: {
+    cooldownDays: 60,
+    allowHtml: false,
+    maxLength: 150,
+  },
+  [DEFAULT_ROLES.MODERATOR.slug]: {
+    cooldownDays: 30,
+    allowHtml: false,
+    maxLength: 150,
+  },
+  [DEFAULT_ROLES.SUPER_MODERATOR.slug]: {
+    cooldownDays: null,
+    allowHtml: true,
+    maxLength: 500,
+  },
+  [DEFAULT_ROLES.ADMIN.slug]: {
+    cooldownDays: null,
+    allowHtml: true,
+    maxLength: 500,
+  },
+};

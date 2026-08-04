@@ -224,23 +224,23 @@ export function WalletDashboard() {
                           setAmountVnd(preset.vnd);
                           setCustomAmount("");
                         }}
-                        className={`relative flex flex-col items-center gap-1 rounded-lg border-2 px-3 py-4 text-center transition-all ${
+                        className={`flex flex-col items-center gap-1 rounded-lg border px-3 py-3 text-center transition-colors ${
                           selected
-                            ? "border-[#1d3557] bg-[#1d3557]/5 shadow-md"
-                            : "border-zinc-200 hover:border-[#1d3557]/40 hover:shadow-sm"
+                            ? "border-[#1d3557] bg-[#1d3557]/5"
+                            : "border-zinc-200 hover:border-[#1d3557]/40"
                         }`}
                       >
-                        {isBestValue && (
-                          <span className="absolute -top-2.5 left-1/2 -translate-x-1/2 rounded-full bg-gradient-to-r from-[#ff5da2] to-[#ffcf3f] px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-[#1d3557] shadow">
-                            Tốt nhất
-                          </span>
-                        )}
                         <span className="font-mono text-base font-bold text-[#1d3557]">
                           {formatVnd(preset.vnd)}
                         </span>
                         <span className="font-mono text-sm font-semibold text-emerald-600">
                           +{preset.p} $P
                         </span>
+                        {isBestValue && (
+                          <span className="mt-0.5 whitespace-nowrap rounded-full bg-[#1d3557]/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-[#1d3557]">
+                            Tốt nhất
+                          </span>
+                        )}
                       </button>
                     );
                   })}

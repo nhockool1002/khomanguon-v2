@@ -40,6 +40,7 @@ export class SiteSettingsService {
     const next: GeneralSettings = {
       ...current,
       ...(dto.postsPerPage !== undefined && { postsPerPage: dto.postsPerPage }),
+      ...(dto.siteTitle !== undefined && { siteTitle: dto.siteTitle }),
       ...(dto.headerTitle !== undefined && { headerTitle: dto.headerTitle }),
       ...(dto.headerSlogan !== undefined && { headerSlogan: dto.headerSlogan }),
       ...(dto.headerBackgroundColor !== undefined && {

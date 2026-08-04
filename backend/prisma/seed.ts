@@ -4,6 +4,7 @@ import {
   ALL_PERMISSION_KEYS,
   DEFAULT_ROLES,
   DEFAULT_ROLE_PERMISSIONS,
+  DEFAULT_ROLE_USER_TITLE_CONFIG,
 } from '../src/roles/permissions.constant';
 
 const prisma = new PrismaClient();
@@ -20,10 +21,24 @@ async function main() {
 
   console.log('Seeding roles...');
   for (const role of Object.values(DEFAULT_ROLES)) {
+    // update: {} — không đụng vào role đã tồn tại (giữ tuỳ chỉnh style/User Title Admin đã lưu qua
+    // /quan-tri/vai-tro). Giá trị User Title riêng cho 4 role hệ thống chỉ áp lúc TẠO MỚI (fresh
+    // DB) — trên DB đã có sẵn 4 role này (production), giá trị đúng do migration
+    // 20260804220000_add_user_title UPDATE theo slug đảm nhiệm.
+    const titleConfig = DEFAULT_ROLE_USER_TITLE_CONFIG[role.slug];
     await prisma.role.upsert({
       where: { slug: role.slug },
       update: {},
-      create: { slug: role.slug, name: role.name, isSystem: true },
+      create: {
+        slug: role.slug,
+        name: role.name,
+        isSystem: true,
+        ...(titleConfig && {
+          userTitleCooldownDays: titleConfig.cooldownDays,
+          userTitleAllowHtml: titleConfig.allowHtml,
+          userTitleMaxLength: titleConfig.maxLength,
+        }),
+      },
     });
   }
 

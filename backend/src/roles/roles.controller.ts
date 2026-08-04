@@ -54,10 +54,25 @@ export class RolesController {
   @Permissions(PERMISSIONS.ROLE_MANAGE)
   @Post('roles')
   create(@Body() dto: CreateRoleDto) {
-    const { title, color, bold, italic, fontFamily, ...rest } = dto;
+    const {
+      title,
+      color,
+      bold,
+      italic,
+      fontFamily,
+      userTitleCooldownDays,
+      userTitleAllowHtml,
+      userTitleMaxLength,
+      ...rest
+    } = dto;
     return this.rolesService.createRole({
       ...rest,
       style: { title, color, bold, italic, fontFamily },
+      userTitle: {
+        cooldownDays: userTitleCooldownDays,
+        allowHtml: userTitleAllowHtml,
+        maxLength: userTitleMaxLength,
+      },
     });
   }
 
@@ -65,10 +80,25 @@ export class RolesController {
   @Permissions(PERMISSIONS.ROLE_MANAGE)
   @Patch('roles/:id')
   update(@Param('id') id: string, @Body() dto: UpdateRoleDto) {
-    const { title, color, bold, italic, fontFamily, ...rest } = dto;
+    const {
+      title,
+      color,
+      bold,
+      italic,
+      fontFamily,
+      userTitleCooldownDays,
+      userTitleAllowHtml,
+      userTitleMaxLength,
+      ...rest
+    } = dto;
     return this.rolesService.updateRole(id, {
       ...rest,
       style: { title, color, bold, italic, fontFamily },
+      userTitle: {
+        cooldownDays: userTitleCooldownDays,
+        allowHtml: userTitleAllowHtml,
+        maxLength: userTitleMaxLength,
+      },
     });
   }
 

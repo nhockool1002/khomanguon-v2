@@ -12,6 +12,10 @@ import { PrismaService } from '../prisma/prisma.service';
 import { decryptSecret } from '../common/secret-crypto.util';
 
 const DEFAULT_EXPIRES_SECONDS = 60 * 10; // 10 phút — đủ để bắt đầu tải, ngắn để hạn chế chia sẻ link (UC24/UC25)
+// Upload dài hơn download vì admin có thể xếp hàng nhiều file lớn rồi mới bắt đầu PUT lần lượt —
+// chỉ cần trình duyệt BẮT ĐẦU gửi request trước khi hết hạn (S3/R2 chỉ kiểm chữ ký lúc nhận header
+// đầu, không phải lúc nhận xong toàn bộ body), 30 phút là dư sức kể cả hàng chờ dài.
+const UPLOAD_EXPIRES_SECONDS = 60 * 30;
 const LIST_MAX_KEYS = 1000; // giới hạn 1 trang S3 ListObjectsV2 — chưa làm phân trang continuation-token
 
 export interface CloudObjectSummary {
@@ -125,6 +129,27 @@ export class R2ClientService {
     const command = new GetObjectCommand({
       Bucket: this.requireBucket(provider),
       Key: this.toPrefixedKey(provider, objectKey),
+    });
+    return getSignedUrl(client, command, { expiresIn: expiresInSeconds });
+  }
+
+  // Trang "Upload File Cloud" (/quan-tri/tep-cloud/upload) — trình duyệt PUT thẳng lên R2/S3 bằng
+  // URL này, KHÔNG qua backend, để không giữ 1 request NestJS mở suốt lúc tải file nặng lên (tránh
+  // timeout/nghẽn thread). Cố tình KHÔNG đưa ContentType vào command để ký — nếu ký kèm, request PUT
+  // thật từ trình duyệt bắt buộc phải gửi đúng y hệt header Content-Type đã ký (SigV4), sai lệch dù
+  // 1 ký tự (vd charset trình duyệt tự thêm) sẽ bị R2/S3 từ chối bằng SignatureDoesNotMatch. Không
+  // ký thì Content-Type client gửi trong PUT thật vẫn được lưu lại bình thường (chỉ là không nằm
+  // trong phần được xác thực chữ ký) — đơn giản và đủ dùng cho mục đích chỉ tải file lên.
+  async getPresignedUploadUrl(
+    providerId: string,
+    key: string,
+    expiresInSeconds: number = UPLOAD_EXPIRES_SECONDS,
+  ): Promise<string> {
+    const provider = await this.getProvider(providerId);
+    const client = this.buildClient(provider);
+    const command = new PutObjectCommand({
+      Bucket: this.requireBucket(provider),
+      Key: this.toPrefixedKey(provider, key),
     });
     return getSignedUrl(client, command, { expiresIn: expiresInSeconds });
   }

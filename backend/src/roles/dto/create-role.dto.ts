@@ -2,10 +2,13 @@ import {
   IsArray,
   IsBoolean,
   IsIn,
+  IsInt,
   IsOptional,
   IsString,
   Matches,
+  Max,
   MaxLength,
+  Min,
   MinLength,
 } from 'class-validator';
 import { FONT_KEYS } from '../font-options.constant';
@@ -42,4 +45,22 @@ export class CreateRoleDto {
   @IsOptional()
   @IsIn([...FONT_KEYS, ''])
   fontFamily?: string;
+
+  // Cấu hình quyền hạn User Title (khác title ở trên — đây là quyền cho USER thuộc role này tự đặt
+  // dòng chữ riêng, xem roles/user-title.util.ts). null = đổi tự do, không giới hạn ngày.
+  @IsOptional()
+  @IsInt()
+  @Min(0)
+  @Max(3650)
+  userTitleCooldownDays?: number | null;
+
+  @IsOptional()
+  @IsBoolean()
+  userTitleAllowHtml?: boolean;
+
+  @IsOptional()
+  @IsInt()
+  @Min(10)
+  @Max(2000)
+  userTitleMaxLength?: number;
 }

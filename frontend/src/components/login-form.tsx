@@ -21,7 +21,7 @@ export function LoginForm() {
     setLoading(true);
     try {
       await login(email, password);
-      router.push("/tai-khoan");
+      router.push("/");
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "Có lỗi xảy ra, thử lại sau");
     } finally {

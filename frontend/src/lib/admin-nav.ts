@@ -14,6 +14,7 @@ import {
   Settings,
   ShieldCheck,
   SlidersHorizontal,
+  Upload,
   User,
   Users,
   Wallet,
@@ -139,12 +140,23 @@ export const ADMIN_NAV: NavEntry[] = [
     ],
   },
   {
-    kind: "leaf",
-    href: "/quan-tri/tep-cloud",
+    kind: "group",
     label: "Quản lý File Cloud",
     icon: Cloud,
-    match: "prefix",
+    href: "/quan-tri/tep-cloud",
+    match: "exact-prefix",
     permission: PERMISSIONS.DOWNLOAD_MANAGE_LINKS,
+    children: [
+      {
+        href: "/quan-tri/tep-cloud/upload",
+        label: "Upload File Cloud",
+        icon: Upload,
+        match: "prefix",
+        // Cùng quyền list (chỉ ký URL, chưa ghi bucket) — khớp @Permissions() ở
+        // cloud-files.controller.ts POST .../presign-upload.
+        permission: PERMISSIONS.DOWNLOAD_MANAGE_LINKS,
+      },
+    ],
   },
   {
     kind: "group",

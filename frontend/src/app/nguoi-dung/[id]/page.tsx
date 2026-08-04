@@ -1,12 +1,11 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { fetchPublicProfile } from "@/lib/public-api";
-import { StyledUserName } from "@/components/styled-user-name";
-import { ProfileMessages } from "@/components/profile-messages";
-import { formatDate } from "@/lib/format";
+import { ProfilePage } from "@/components/profile-page";
 
 type Props = {
   params: Promise<{ id: string }>;
+  searchParams: Promise<{ tab?: string }>;
 };
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
@@ -16,49 +15,16 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   return { title: `${profile.displayName} — khomanguon` };
 }
 
-// Trang profile công khai — mọi nơi hiển thị tên user (byline, bình luận, member đã tải...) đều
-// trỏ về đây khi bấm vào (xem components/styled-user-name.tsx).
-export default async function UserProfilePage({ params }: Props) {
+// Server Component chỉ lo fetch ban đầu (SEO/metadata) + not-found — toàn bộ logic tab (Hồ sơ công
+// khai / Thông tin / Bảo mật / Ví, ẩn hiện theo có phải profile của chính mình hay không) nằm ở
+// components/profile-page.tsx (Client Component, cần useAuth()). Trang này giờ dùng chung cho cả
+// xem profile người khác lẫn quản lý tài khoản của chính mình — /tai-khoan, /tai-khoan/vi cũ chỉ
+// còn là redirect sang đây (xem app/tai-khoan/page.tsx).
+export default async function UserProfilePage({ params, searchParams }: Props) {
   const { id } = await params;
+  const { tab } = await searchParams;
   const profile = await fetchPublicProfile(id);
   if (!profile) notFound();
 
-  return (
-    <main className="mx-auto flex w-full max-w-3xl flex-1 flex-col gap-6 px-4 py-8">
-      <div className="flex items-center gap-4 rounded-lg border border-zinc-200 bg-white p-5">
-        <span className="flex h-16 w-16 flex-none items-center justify-center overflow-hidden rounded-full bg-[#2b3f5c] text-2xl uppercase text-white">
-          {profile.avatarUrl ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
-              src={profile.avatarUrl}
-              alt={profile.displayName}
-              className="h-full w-full object-cover"
-            />
-          ) : (
-            profile.displayName.charAt(0)
-          )}
-        </span>
-        <div className="flex flex-col gap-1">
-          <StyledUserName
-            styleRoleSlug={profile.styleRoleSlug}
-            className="text-xl font-semibold text-zinc-900"
-          >
-            {profile.displayName}
-          </StyledUserName>
-          <div className="flex flex-wrap items-center gap-2 text-xs text-zinc-500">
-            <span>Thành viên từ {formatDate(profile.createdAt)}</span>
-            {profile.roleNames.length > 0 && (
-              <>
-                <span>·</span>
-                <span>{profile.roleNames.join(", ")}</span>
-              </>
-            )}
-          </div>
-          {profile.bio && <p className="mt-1 text-sm text-zinc-700">{profile.bio}</p>}
-        </div>
-      </div>
-
-      <ProfileMessages profileUserId={profile.id} />
-    </main>
-  );
+  return <ProfilePage profileId={id} initialProfile={profile} initialTab={tab} />;
 }

@@ -45,6 +45,13 @@ model User {
   // — mặc định bật, user tự tắt ở trang Tài khoản nếu thấy phiền.
   showPostPopup Boolean @default(true)
 
+  // User Title — dòng chữ tự chọn hiện cạnh tên ở trang hồ sơ (khác Role.title, vốn là nhãn CHUNG
+  // của cả role). Giới hạn độ dài/HTML/tần suất đổi do role của user quy định (xem
+  // Role.userTitle* bên dưới + users.service.ts resolveUserTitleConfig) — null nghĩa là chưa từng
+  // đổi (được đổi ngay lần đầu bất kể cooldown, giống cơ chế displayNameChangedAt).
+  title          String?
+  titleUpdatedAt DateTime?
+
   roles                  UserRole[]
   wallet                 Wallet?
   posts                  Post[]
@@ -135,6 +142,13 @@ model Role {
   bold       Boolean  @default(false)
   italic     Boolean  @default(false)
   fontFamily String?
+
+  // Cấu hình User Title cho MỌI user thuộc role này (users/user-title.util.ts gộp theo hướng "ưu
+  // tiên nhất" khi user có nhiều role — max độ dài, OR cho phép HTML, cooldown null thắng số cụ
+  // thể). null ở userTitleCooldownDays nghĩa là đổi tự do, không giới hạn ngày.
+  userTitleCooldownDays Int?    @default(60)
+  userTitleAllowHtml    Boolean @default(false)
+  userTitleMaxLength    Int     @default(150)
 
   users            UserRole[]
   permissions      RolePermission[]

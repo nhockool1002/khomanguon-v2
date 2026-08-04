@@ -83,6 +83,7 @@ export async function fetchRoleBadges(): Promise<RoleBadgeInfo[]> {
 // giữ trang chủ vẫn render hợp lý nếu API lỗi/backend chưa deploy migration mới.
 export const DEFAULT_GENERAL_SETTINGS: GeneralSettings = {
   postsPerPage: 9,
+  siteTitle: "khomanguon — Mở kho, dựng lại thanh xuân",
   headerTitle: "khomanguon.vn",
   headerSlogan:
     "Mở kho, dựng lại thanh xuân — kho mã nguồn Game/Web/App cho cộng đồng Việt",

@@ -25,7 +25,7 @@ const geistMono = Geist_Mono({
 export async function generateMetadata(): Promise<Metadata> {
   const settings = await fetchGeneralSettings();
   return {
-    title: "khomanguon — Mở kho, dựng lại thanh xuân",
+    title: settings.siteTitle,
     description:
       "Kho mã nguồn Game/Web/App lớn nhất cho cộng đồng Việt — tải server offline, VM 1-click, tool GM, kèm ví $P nạp tự động qua SePay.",
     verification: settings.googleSiteVerification
