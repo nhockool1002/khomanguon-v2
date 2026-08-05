@@ -10,6 +10,11 @@ async function bootstrap() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule);
   app.use(cookieParser());
 
+  // Backend luôn chạy sau reverse proxy (aaPanel/nginx production, hoặc Docker Compose local) —
+  // không set trust proxy thì req.ip/@Ip() trả về IP nội bộ của proxy thay vì IP client thật, làm
+  // sai mọi cơ chế dựa theo IP (DownloadRateLimitGuard, DownloadEvent.ipAddress, PostViewTracker...).
+  app.set('trust proxy', 1);
+
   const uploadsDir = join(process.cwd(), 'uploads');
   mkdirSync(uploadsDir, { recursive: true });
   app.useStaticAssets(uploadsDir, { prefix: '/uploads/' });
