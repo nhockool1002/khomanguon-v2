@@ -27,6 +27,7 @@ import { SiteSettingsModule } from './settings/site-settings.module';
 import { MediaModule } from './media/media.module';
 import { CacheModule } from './cache/cache.module';
 import { UserActivityModule } from './user-activity/user-activity.module';
+import { RateLimitModule } from './common/rate-limit/rate-limit.module';
 
 @Module({
   imports: [
@@ -37,6 +38,7 @@ import { UserActivityModule } from './user-activity/user-activity.module';
     RolesModule,
     AuthModule,
     CacheModule,
+    RateLimitModule,
     UserActivityModule,
     UsersModule,
     CategoriesModule,

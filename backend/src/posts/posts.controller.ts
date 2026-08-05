@@ -21,6 +21,8 @@ import { Permissions } from '../roles/decorators/permissions.decorator';
 import { PERMISSIONS } from '../roles/permissions.constant';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { UserActivityService } from '../user-activity/user-activity.service';
+import { PublicRateLimitGuard } from '../common/rate-limit/public-rate-limit.guard';
+import { RateLimitKey } from '../common/rate-limit/rate-limit-key.decorator';
 import { CreatePostDto } from './dto/create-post.dto';
 import { UpdatePostDto } from './dto/update-post.dto';
 import { Cacheable } from '../cache/cacheable.decorator';
@@ -44,6 +46,10 @@ export class PostsController {
   ) {}
 
   // Danh sách công khai — chỉ bài PUBLISHED (wireframe #01/#02), hỗ trợ tìm kiếm + sắp xếp (UC05).
+  // Rate limit áp cho cả route (browse lẫn tìm kiếm dùng chung 1 handler) — ngưỡng mặc định đủ
+  // rộng cho duyệt trang bình thường, chặn spam tìm kiếm/scrape hàng loạt.
+  @UseGuards(PublicRateLimitGuard)
+  @RateLimitKey('search')
   @UseInterceptors(HttpCacheInterceptor)
   @Cacheable('posts', 60)
   @Get()

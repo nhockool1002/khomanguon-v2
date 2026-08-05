@@ -1,3 +1,4 @@
+import { Type } from 'class-transformer';
 import {
   IsBoolean,
   IsIn,
@@ -7,11 +8,47 @@ import {
   Max,
   Min,
   MinLength,
+  ValidateNested,
 } from 'class-validator';
 import type {
   HeaderBackgroundAttachment,
   HeaderBackgroundSize,
 } from '../site-settings.types';
+
+export class RateLimitRuleDto {
+  @IsInt()
+  @Min(1)
+  windowSec: number;
+
+  @IsInt()
+  @Min(1)
+  max: number;
+}
+
+export class RateLimitSettingsDto {
+  @IsBoolean()
+  enabled: boolean;
+
+  @ValidateNested()
+  @Type(() => RateLimitRuleDto)
+  login: RateLimitRuleDto;
+
+  @ValidateNested()
+  @Type(() => RateLimitRuleDto)
+  register: RateLimitRuleDto;
+
+  @ValidateNested()
+  @Type(() => RateLimitRuleDto)
+  forgotPassword: RateLimitRuleDto;
+
+  @ValidateNested()
+  @Type(() => RateLimitRuleDto)
+  search: RateLimitRuleDto;
+
+  @ValidateNested()
+  @Type(() => RateLimitRuleDto)
+  commentCreate: RateLimitRuleDto;
+}
 
 export class UpdateGeneralSettingsDto {
   @IsOptional()
@@ -109,4 +146,9 @@ export class UpdateGeneralSettingsDto {
   @IsString()
   @MinLength(1)
   footerText?: string;
+
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => RateLimitSettingsDto)
+  rateLimits?: RateLimitSettingsDto;
 }

@@ -18,6 +18,8 @@ import { ResetPasswordDto } from './dto/reset-password.dto';
 import { VerifyEmailDto } from './dto/verify-email.dto';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
 import { CurrentUser } from './decorators/current-user.decorator';
+import { PublicRateLimitGuard } from '../common/rate-limit/public-rate-limit.guard';
+import { RateLimitKey } from '../common/rate-limit/rate-limit-key.decorator';
 
 interface AuthUser {
   id: string;
@@ -52,6 +54,8 @@ export class AuthController {
     });
   }
 
+  @UseGuards(PublicRateLimitGuard)
+  @RateLimitKey('register')
   @Post('register')
   async register(
     @Body() dto: RegisterDto,
@@ -62,6 +66,8 @@ export class AuthController {
     return { user, accessToken: tokens.accessToken };
   }
 
+  @UseGuards(PublicRateLimitGuard)
+  @RateLimitKey('login')
   @Post('login')
   @HttpCode(HttpStatus.OK)
   async login(
@@ -109,6 +115,8 @@ export class AuthController {
     res.clearCookie(REFRESH_COOKIE_NAME, { path: '/auth' });
   }
 
+  @UseGuards(PublicRateLimitGuard)
+  @RateLimitKey('forgotPassword')
   @Post('forgot-password')
   @HttpCode(HttpStatus.OK)
   async forgotPassword(@Body() dto: ForgotPasswordDto) {

@@ -112,6 +112,14 @@ export const DEFAULT_GENERAL_SETTINGS: GeneralSettings = {
   gaTrackingId: "",
   googleSiteVerification: "",
   footerText: "KHOMANGUON Version 2 (C) 2026. All Rights Reserved.",
+  rateLimits: {
+    enabled: true,
+    login: { windowSec: 600, max: 5 },
+    register: { windowSec: 3600, max: 5 },
+    forgotPassword: { windowSec: 900, max: 3 },
+    search: { windowSec: 60, max: 30 },
+    commentCreate: { windowSec: 60, max: 10 },
+  },
 };
 
 export async function fetchGeneralSettings(): Promise<GeneralSettings> {

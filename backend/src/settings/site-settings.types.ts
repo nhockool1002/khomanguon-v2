@@ -1,6 +1,22 @@
 export type HeaderBackgroundSize = 'cover' | 'contain' | 'auto';
 export type HeaderBackgroundAttachment = 'scroll' | 'fixed';
 
+// Rate limit API công khai — không nhạy cảm (ai cũng đoán được "login tối đa X lần") nên đặt chung
+// GeneralSettings dù endpoint public, khác reCAPTCHA secret key phải tách riêng (xem recaptcha/).
+export interface RateLimitRule {
+  windowSec: number;
+  max: number;
+}
+
+export interface RateLimitSettings {
+  enabled: boolean;
+  login: RateLimitRule;
+  register: RateLimitRule;
+  forgotPassword: RateLimitRule;
+  search: RateLimitRule;
+  commentCreate: RateLimitRule;
+}
+
 // Lưu trong SiteSetting.value (key = GENERAL_SETTINGS_KEY) — không có model riêng, theo đúng
 // pattern key/value chung đã dùng cho sepay_config (xem sepay/sepay-config.types.ts).
 export interface GeneralSettings {
@@ -34,6 +50,7 @@ export interface GeneralSettings {
   googleSiteVerification: string; // nội dung thẻ <meta name="google-site-verification">
   // Text chân trang toàn site (footer.tsx) — Admin tự đổi ở Cài đặt chung.
   footerText: string;
+  rateLimits: RateLimitSettings;
 }
 
 export const GENERAL_SETTINGS_KEY = 'general_settings';
@@ -61,4 +78,12 @@ export const DEFAULT_GENERAL_SETTINGS: GeneralSettings = {
   gaTrackingId: '',
   googleSiteVerification: '',
   footerText: 'KHOMANGUON Version 2 (C) 2026. All Rights Reserved.',
+  rateLimits: {
+    enabled: true,
+    login: { windowSec: 600, max: 5 },
+    register: { windowSec: 3600, max: 5 },
+    forgotPassword: { windowSec: 900, max: 3 },
+    search: { windowSec: 60, max: 30 },
+    commentCreate: { windowSec: 60, max: 10 },
+  },
 };

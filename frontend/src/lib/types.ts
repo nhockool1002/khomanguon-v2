@@ -361,6 +361,20 @@ export interface CloudFile {
 export type HeaderBackgroundSize = "cover" | "contain" | "auto";
 export type HeaderBackgroundAttachment = "scroll" | "fixed";
 
+export interface RateLimitRule {
+  windowSec: number;
+  max: number;
+}
+
+export interface RateLimitSettings {
+  enabled: boolean;
+  login: RateLimitRule;
+  register: RateLimitRule;
+  forgotPassword: RateLimitRule;
+  search: RateLimitRule;
+  commentCreate: RateLimitRule;
+}
+
 export interface GeneralSettings {
   postsPerPage: number;
   siteTitle: string;
@@ -383,6 +397,7 @@ export interface GeneralSettings {
   gaTrackingId: string;
   googleSiteVerification: string;
   footerText: string;
+  rateLimits: RateLimitSettings;
 }
 
 export interface MailTemplateConfig {
