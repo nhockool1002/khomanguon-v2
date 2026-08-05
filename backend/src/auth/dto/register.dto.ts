@@ -1,4 +1,10 @@
-import { IsEmail, IsString, MaxLength, MinLength } from 'class-validator';
+import {
+  IsEmail,
+  IsOptional,
+  IsString,
+  MaxLength,
+  MinLength,
+} from 'class-validator';
 
 export class RegisterDto {
   @IsEmail()
@@ -13,4 +19,10 @@ export class RegisterDto {
   @MinLength(2, { message: 'Tên hiển thị phải có ít nhất 2 ký tự' })
   @MaxLength(50)
   displayName: string;
+
+  // Optional ở tầng DTO — RecaptchaService.verify() tự quyết có bắt buộc hay không dựa vào
+  // enabled/secretKey đã cấu hình (chưa bật reCAPTCHA thì bỏ qua, không chặn đăng ký).
+  @IsOptional()
+  @IsString()
+  recaptchaToken?: string;
 }

@@ -400,6 +400,12 @@ export interface GeneralSettings {
   rateLimits: RateLimitSettings;
 }
 
+export interface RecaptchaAdminConfig {
+  enabled: boolean;
+  siteKey: string;
+  hasSecretKey: boolean;
+}
+
 export interface MailTemplateConfig {
   subject: string;
   html: string;

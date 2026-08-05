@@ -12,6 +12,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { MailService } from '../mail/mail.service';
 import { RolesService } from '../roles/roles.service';
 import { UserActivityService } from '../user-activity/user-activity.service';
+import { RecaptchaService } from '../recaptcha/recaptcha.service';
 import { generateOpaqueToken, hashToken } from '../common/token.util';
 import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
@@ -44,6 +45,7 @@ export class AuthService {
     private readonly mail: MailService,
     private readonly roles: RolesService,
     private readonly userActivity: UserActivityService,
+    private readonly recaptcha: RecaptchaService,
   ) {}
 
   private toPublicUser(user: {
@@ -65,6 +67,12 @@ export class AuthService {
   async register(
     dto: RegisterDto,
   ): Promise<{ user: PublicUser; tokens: AuthTokens }> {
+    if (!(await this.recaptcha.verify(dto.recaptchaToken))) {
+      throw new BadRequestException(
+        'Xác minh reCAPTCHA thất bại — vui lòng thử lại.',
+      );
+    }
+
     const existing = await this.prisma.user.findUnique({
       where: { email: dto.email },
     });
@@ -93,6 +101,12 @@ export class AuthService {
     userAgent?: string,
     ip?: string,
   ): Promise<{ user: PublicUser; tokens: AuthTokens }> {
+    if (!(await this.recaptcha.verify(dto.recaptchaToken))) {
+      throw new BadRequestException(
+        'Xác minh reCAPTCHA thất bại — vui lòng thử lại.',
+      );
+    }
+
     const user = await this.prisma.user.findUnique({
       where: { email: dto.email },
     });

@@ -6,12 +6,14 @@ import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/auth-context";
 import { ApiError } from "@/lib/api";
 import { ErrorBanner, FormField, SubmitButton } from "@/components/ui";
+import { RecaptchaWidget } from "@/components/recaptcha-widget";
 
 export function LoginForm() {
   const { login } = useAuth();
   const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [recaptchaToken, setRecaptchaToken] = useState<string | undefined>(undefined);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
@@ -20,7 +22,7 @@ export function LoginForm() {
     setError(null);
     setLoading(true);
     try {
-      await login(email, password);
+      await login(email, password, recaptchaToken);
       router.push("/");
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "Có lỗi xảy ra, thử lại sau");
@@ -51,6 +53,7 @@ export function LoginForm() {
           Quên mật khẩu?
         </Link>
       </div>
+      <RecaptchaWidget onVerify={setRecaptchaToken} />
       <SubmitButton type="submit" loading={loading}>
         Đăng nhập
       </SubmitButton>

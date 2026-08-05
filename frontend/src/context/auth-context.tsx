@@ -13,11 +13,12 @@ import type { AuthResponse, AuthUser } from "@/lib/types";
 interface AuthContextValue {
   user: AuthUser | null;
   loading: boolean;
-  login: (email: string, password: string) => Promise<void>;
+  login: (email: string, password: string, recaptchaToken?: string) => Promise<void>;
   register: (
     email: string,
     password: string,
     displayName: string,
+    recaptchaToken?: string,
   ) => Promise<void>;
   logout: () => Promise<void>;
   refreshUser: () => Promise<void>;
@@ -49,10 +50,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [refreshUser]);
 
   const login = useCallback(
-    async (email: string, password: string) => {
+    async (email: string, password: string, recaptchaToken?: string) => {
       const res = await apiFetch<AuthResponse>("/auth/login", {
         method: "POST",
-        body: JSON.stringify({ email, password }),
+        body: JSON.stringify({ email, password, recaptchaToken }),
       });
       setAccessToken(res.accessToken);
       // /auth/login trả về PublicUser rút gọn (không có permissionKeys) — gọi thêm /users/me
@@ -63,10 +64,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   );
 
   const register = useCallback(
-    async (email: string, password: string, displayName: string) => {
+    async (
+      email: string,
+      password: string,
+      displayName: string,
+      recaptchaToken?: string,
+    ) => {
       const res = await apiFetch<AuthResponse>("/auth/register", {
         method: "POST",
-        body: JSON.stringify({ email, password, displayName }),
+        body: JSON.stringify({ email, password, displayName, recaptchaToken }),
       });
       setAccessToken(res.accessToken);
       await refreshUser();

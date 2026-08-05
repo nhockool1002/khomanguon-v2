@@ -28,6 +28,7 @@ import { MediaModule } from './media/media.module';
 import { CacheModule } from './cache/cache.module';
 import { UserActivityModule } from './user-activity/user-activity.module';
 import { RateLimitModule } from './common/rate-limit/rate-limit.module';
+import { RecaptchaModule } from './recaptcha/recaptcha.module';
 
 @Module({
   imports: [
@@ -39,6 +40,7 @@ import { RateLimitModule } from './common/rate-limit/rate-limit.module';
     AuthModule,
     CacheModule,
     RateLimitModule,
+    RecaptchaModule,
     UserActivityModule,
     UsersModule,
     CategoriesModule,

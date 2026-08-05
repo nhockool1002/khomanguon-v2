@@ -13,6 +13,7 @@ import type {
   HeaderBackgroundAttachment,
   HeaderBackgroundSize,
   RateLimitSettings,
+  RecaptchaAdminConfig,
 } from "@/lib/types";
 import { ErrorBanner, SuccessBanner } from "@/components/ui";
 import { ForbiddenPage } from "@/components/forbidden-page";
@@ -63,6 +64,13 @@ export default function GeneralSettingsPage() {
   const [footerText, setFooterText] = useState("");
   const [rateLimits, setRateLimits] = useState<RateLimitSettings>(DEFAULT_RATE_LIMITS);
 
+  const [recaptchaEnabled, setRecaptchaEnabled] = useState(false);
+  const [recaptchaSiteKey, setRecaptchaSiteKey] = useState("");
+  const [recaptchaSecretKey, setRecaptchaSecretKey] = useState("");
+  const [recaptchaHasSecretKey, setRecaptchaHasSecretKey] = useState(false);
+  const [savingRecaptcha, setSavingRecaptcha] = useState(false);
+  const [recaptchaMessage, setRecaptchaMessage] = useState<string | null>(null);
+
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
@@ -101,6 +109,40 @@ export default function GeneralSettingsPage() {
       })
       .catch((err) => setError(err instanceof ApiError ? err.message : "Có lỗi xảy ra"));
   }, [user]);
+
+  useEffect(() => {
+    if (!user) return;
+    apiFetch<RecaptchaAdminConfig>("/recaptcha/admin-config")
+      .then((res) => {
+        setRecaptchaEnabled(res.enabled);
+        setRecaptchaSiteKey(res.siteKey);
+        setRecaptchaHasSecretKey(res.hasSecretKey);
+      })
+      .catch(() => {});
+  }, [user]);
+
+  async function handleSaveRecaptcha() {
+    setError(null);
+    setRecaptchaMessage(null);
+    setSavingRecaptcha(true);
+    try {
+      const res = await apiFetch<RecaptchaAdminConfig>("/recaptcha/admin-config", {
+        method: "PUT",
+        body: JSON.stringify({
+          enabled: recaptchaEnabled,
+          siteKey: recaptchaSiteKey,
+          secretKey: recaptchaSecretKey || undefined,
+        }),
+      });
+      setRecaptchaHasSecretKey(res.hasSecretKey);
+      setRecaptchaSecretKey("");
+      setRecaptchaMessage("Đã lưu cấu hình reCAPTCHA.");
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : "Có lỗi xảy ra");
+    } finally {
+      setSavingRecaptcha(false);
+    }
+  }
 
   async function handleSave() {
     setError(null);
@@ -539,6 +581,61 @@ export default function GeneralSettingsPage() {
             </label>
           </div>
         ))}
+      </div>
+
+      <div className="flex flex-col gap-3 rounded-md border border-zinc-200 p-4">
+        <div className="flex items-center justify-between">
+          <p className="text-xs font-semibold uppercase tracking-wide text-zinc-500">
+            reCAPTCHA v2 (đăng ký / đăng nhập)
+          </p>
+          <label className="flex items-center gap-2 text-xs text-zinc-600">
+            <input
+              type="checkbox"
+              checked={recaptchaEnabled}
+              onChange={(e) => setRecaptchaEnabled(e.target.checked)}
+            />
+            Bật reCAPTCHA
+          </label>
+        </div>
+        <p className="text-xs text-zinc-400">
+          Lấy cặp key tại{" "}
+          <a
+            href="https://www.google.com/recaptcha/admin"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="font-medium text-[#1d3557] hover:underline"
+          >
+            google.com/recaptcha/admin
+          </a>{" "}
+          (chọn loại &quot;reCAPTCHA v2 - Hộp kiểm&quot;).
+        </p>
+        <label className="flex flex-col gap-1 text-sm text-zinc-700">
+          Site key
+          <input
+            value={recaptchaSiteKey}
+            onChange={(e) => setRecaptchaSiteKey(e.target.value)}
+            className={inputClass}
+          />
+        </label>
+        <label className="flex flex-col gap-1 text-sm text-zinc-700">
+          Secret key
+          <input
+            type="password"
+            value={recaptchaSecretKey}
+            onChange={(e) => setRecaptchaSecretKey(e.target.value)}
+            placeholder={recaptchaHasSecretKey ? "•••••••• (để trống để giữ nguyên)" : "Chưa cấu hình"}
+            className={inputClass}
+          />
+        </label>
+        {recaptchaMessage && <p className="text-xs text-emerald-600">{recaptchaMessage}</p>}
+        <button
+          type="button"
+          onClick={handleSaveRecaptcha}
+          disabled={savingRecaptcha}
+          className="w-fit rounded-md border border-[#1d3557] px-3 py-1.5 text-sm font-medium text-[#1d3557] hover:bg-[#1d3557]/5 disabled:opacity-50"
+        >
+          {savingRecaptcha ? "Đang lưu..." : "Lưu reCAPTCHA"}
+        </button>
       </div>
 
       <p className="text-xs text-zinc-400">
