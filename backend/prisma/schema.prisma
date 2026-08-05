@@ -71,6 +71,7 @@ model User {
   uploadedMediaFiles     MediaFile[]
   profileMessagesReceived ProfileMessage[] @relation("ProfileMessagesReceived")
   profileMessagesSent     ProfileMessage[] @relation("ProfileMessagesSent")
+  uploadedCloudFiles      CloudUploadRecord[]
 
   @@map("users")
 }
@@ -661,4 +662,32 @@ model DbBackupRecord {
   createdAt         DateTime       @default(now())
 
   @@map("db_backup_records")
+}
+
+enum CloudUploadStatus {
+  SUCCESS
+  FAILED
+  CANCELLED
+}
+
+// Lịch sử upload file lên bucket qua trang "Upload File Cloud" (hàng đợi nền, xem
+// frontend/src/context/upload-queue-context.tsx) — ghi lại cả FAILED/CANCELLED (không chỉ SUCCESS)
+// để admin tra cứu được vì sao 1 lần upload không ra file, không chỉ thấy "biến mất". Không ràng
+// buộc FK cứng tới StorageProvider (provider có thể bị xoá sau) — cùng lý do đã áp dụng cho
+// DbBackupRecord, snapshot providerLabel riêng để lịch sử cũ vẫn đọc được tên dù provider đã đổi/xoá.
+model CloudUploadRecord {
+  id                String            @id @default(cuid())
+  fileName          String
+  objectKey         String?
+  folder            String?
+  sizeBytes         BigInt?
+  status            CloudUploadStatus
+  errorMessage      String?
+  storageProviderId String?
+  providerLabel     String?
+  uploadedById      String?
+  uploadedBy        User?             @relation(fields: [uploadedById], references: [id], onDelete: SetNull)
+  createdAt         DateTime          @default(now())
+
+  @@map("cloud_upload_records")
 }

@@ -269,6 +269,22 @@ export interface DbBackupRecord {
   createdAt: string;
 }
 
+export type CloudUploadStatus = "SUCCESS" | "FAILED" | "CANCELLED";
+
+export interface CloudUploadRecord {
+  id: string;
+  fileName: string;
+  objectKey: string | null;
+  folder: string | null;
+  sizeBytes: number | null;
+  status: CloudUploadStatus;
+  errorMessage: string | null;
+  storageProviderId: string | null;
+  providerLabel: string | null;
+  uploadedBy: { id: string; displayName: string } | null;
+  createdAt: string;
+}
+
 export interface DownloadLinkAdmin {
   id: string;
   label: string;
