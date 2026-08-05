@@ -41,6 +41,15 @@ export interface AuthResponse {
   accessToken: string;
 }
 
+export type UserActivityType = "LOGIN" | "VIEW_POST" | "DEPOSIT" | "VISIT_PROFILE";
+
+export interface UserActivity {
+  id: string;
+  type: UserActivityType;
+  metadata: Record<string, unknown> | null;
+  createdAt: string;
+}
+
 export type PostStatus = "DRAFT" | "PENDING_REVIEW" | "PUBLISHED";
 
 export interface Category {

@@ -61,6 +61,7 @@ model User {
   downloadEvents         DownloadEvent[]
   linkReportsSubmitted   LinkReport[]    @relation("LinkReportReporter")
   linkReportsResolved    LinkReport[]    @relation("LinkReportResolvedBy")
+  activities             UserActivity[]
   refreshTokens          RefreshToken[]
   emailVerificationTokens EmailVerificationToken[]
   passwordResetTokens    PasswordResetToken[]
@@ -502,6 +503,29 @@ model LinkReport {
   createdAt      DateTime         @default(now())
 
   @@map("link_reports")
+}
+
+enum UserActivityType {
+  LOGIN
+  VIEW_POST
+  DEPOSIT
+  VISIT_PROFILE
+}
+
+// User Activity — tab "Hoạt động" trong trang Hồ sơ, chỉ chính chủ mới xem được (GET /users/me/activity).
+// metadata tuỳ type: VIEW_POST {postTitle, postSlug}; DEPOSIT {amountVnd, transactionCode};
+// VISIT_PROFILE {profileUserId, profileDisplayName}; LOGIN không cần metadata.
+model UserActivity {
+  id        String            @id @default(cuid())
+  userId    String
+  user      User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type      UserActivityType
+  metadata  Json?
+  ipAddress String?
+  createdAt DateTime          @default(now())
+
+  @@index([userId, createdAt])
+  @@map("user_activities")
 }
 
 // ───────────────────────── Ví $P & SePay (Phase 3) ─────────────────────────

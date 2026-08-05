@@ -11,7 +11,7 @@ import {
   UseGuards,
   UseInterceptors,
 } from '@nestjs/common';
-import { PostStatus } from '@prisma/client';
+import { PostStatus, UserActivityType } from '@prisma/client';
 import { PostsService } from './posts.service';
 import { PostViewTrackerService } from './post-view-tracker.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
@@ -20,6 +20,7 @@ import { PermissionsGuard } from '../roles/guards/permissions.guard';
 import { Permissions } from '../roles/decorators/permissions.decorator';
 import { PERMISSIONS } from '../roles/permissions.constant';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
+import { UserActivityService } from '../user-activity/user-activity.service';
 import { CreatePostDto } from './dto/create-post.dto';
 import { UpdatePostDto } from './dto/update-post.dto';
 import { Cacheable } from '../cache/cacheable.decorator';
@@ -39,6 +40,7 @@ export class PostsController {
   constructor(
     private readonly postsService: PostsService,
     private readonly postViewTracker: PostViewTrackerService,
+    private readonly userActivity: UserActivityService,
   ) {}
 
   // Danh sách công khai — chỉ bài PUBLISHED (wireframe #01/#02), hỗ trợ tìm kiếm + sắp xếp (UC05).
@@ -107,7 +109,17 @@ export class PostsController {
   ) {
     const identity = user?.id ?? ip;
     if (this.postViewTracker.shouldCount(id, identity)) {
-      await this.postsService.registerView(id);
+      const post = await this.postsService.registerView(id);
+      // Chỉ log activity khi đăng nhập (chưa biết "user vô danh nào" nếu ẩn danh) và khi thật sự
+      // tính là 1 view mới (shouldCount đã lọc F5 spam) — không log trùng mỗi lần F5.
+      if (user && post) {
+        void this.userActivity.log(
+          user.id,
+          UserActivityType.VIEW_POST,
+          { postTitle: post.title, postSlug: post.slug },
+          ip,
+        );
+      }
     }
     return { ok: true };
   }

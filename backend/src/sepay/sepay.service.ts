@@ -8,12 +8,14 @@ import {
 import {
   Prisma,
   TopupOrderStatus,
+  UserActivityType,
   WalletTxStatus,
   WalletTxType,
 } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { WalletGateway } from '../realtime/wallet.gateway';
 import { MailService } from '../mail/mail.service';
+import { UserActivityService } from '../user-activity/user-activity.service';
 import { encryptSecret, decryptSecret } from '../common/secret-crypto.util';
 import { UpdateSepayConfigDto } from './dto/update-sepay-config.dto';
 import {
@@ -40,6 +42,7 @@ export class SepayService {
     private readonly prisma: PrismaService,
     private readonly walletGateway: WalletGateway,
     private readonly mailService: MailService,
+    private readonly userActivity: UserActivityService,
   ) {}
 
   // ───────────────────────── Cấu hình (Admin) ─────────────────────────
@@ -357,6 +360,10 @@ export class SepayService {
         },
         user.email,
       );
+      void this.userActivity.log(order.userId, UserActivityType.DEPOSIT, {
+        amountVnd: payload.transferAmount,
+        transactionCode: sepayTransactionCode,
+      });
     }
 
     return { credited: true };

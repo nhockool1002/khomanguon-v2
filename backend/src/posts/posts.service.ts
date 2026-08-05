@@ -140,11 +140,19 @@ export class PostsService {
   // Gọi từ POST /posts/:id/view — updateMany + lọc status để tự no-op an toàn nếu id sai/bài chưa
   // publish (không cần try/catch NotFound, endpoint này không cần báo lỗi cho client). Không
   // invalidatePrefix('posts') — giữ đúng tradeoff cache cũ, viewCount hiển thị trễ tối đa bằng TTL
-  // cache của route GET :slug/GET list.
-  async registerView(postId: string): Promise<void> {
-    await this.prisma.post.updateMany({
+  // cache của route GET :slug/GET list. Trả về title/slug (null nếu no-op) để controller ghi
+  // UserActivity VIEW_POST mà không cần query riêng.
+  async registerView(
+    postId: string,
+  ): Promise<{ title: string; slug: string } | null> {
+    const result = await this.prisma.post.updateMany({
       where: { id: postId, status: PostStatus.PUBLISHED },
       data: { viewCount: { increment: 1 } },
+    });
+    if (result.count === 0) return null;
+    return this.prisma.post.findUnique({
+      where: { id: postId },
+      select: { title: true, slug: true },
     });
   }
 

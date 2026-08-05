@@ -25,6 +25,7 @@ import { NotificationsModule } from './notifications/notifications.module';
 import { SiteSettingsModule } from './settings/site-settings.module';
 import { MediaModule } from './media/media.module';
 import { CacheModule } from './cache/cache.module';
+import { UserActivityModule } from './user-activity/user-activity.module';
 
 @Module({
   imports: [
@@ -35,6 +36,7 @@ import { CacheModule } from './cache/cache.module';
     RolesModule,
     AuthModule,
     CacheModule,
+    UserActivityModule,
     UsersModule,
     CategoriesModule,
     PostsModule,
