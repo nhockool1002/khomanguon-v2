@@ -116,6 +116,7 @@ async function RecentPostsWidget({ title, limit }: { title: string; limit: numbe
               <div>
                 <Link
                   href={`/bai-viet/${post.slug}`}
+                  title={post.title}
                   className="text-sm font-semibold text-rose-600 hover:text-rose-700 hover:underline"
                 >
                   {post.title}

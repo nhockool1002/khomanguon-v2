@@ -22,7 +22,7 @@ export function PostRow({ post }: { post: PostSummary }) {
         )}
       </div>
       <div className="flex flex-col gap-1">
-        <h3 className="text-sm font-semibold text-[#1d3557]">{post.title}</h3>
+        <h3 className="text-sm font-semibold text-[#1d3557]" title={post.title}>{post.title}</h3>
         <p className="font-mono text-xs text-[#5c6370]">
           {post.author.displayName} · {formatDate(post.publishedAt ?? post.createdAt)}
         </p>

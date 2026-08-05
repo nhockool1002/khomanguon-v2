@@ -104,7 +104,7 @@ export function PostPopup() {
           <p className="text-[10px] font-semibold uppercase tracking-wide text-[#ff5da2]">
             Có thể bạn quan tâm
           </p>
-          <h4 className="line-clamp-2 text-sm font-semibold text-zinc-900">{current.title}</h4>
+          <h4 className="line-clamp-2 text-sm font-semibold text-zinc-900" title={current.title}>{current.title}</h4>
         </div>
       </Link>
     </div>
