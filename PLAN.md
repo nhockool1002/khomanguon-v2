@@ -224,14 +224,22 @@ Quy ước: mỗi phase có **Definition of Done (DoD)** rõ ràng — không sa
 ### 3.5 Chống lạm dụng
 - [x] Log IP mỗi lần tải — `DownloadEvent.ipAddress` ghi mỗi lần `unlock()`
 - [x] Rate limit lượt tải/IP — `DownloadRateLimitGuard` (`backend/src/download-links/download-rate-limit.guard.ts`), sliding window trong bộ nhớ (10 request/phút/IP) áp cho `POST /posts/:postId/download-link/unlock`, trả `429`. **Có chủ đích không dùng `@nestjs/throttler`/Redis** — hiện chỉ chạy 1 instance backend (docker-compose không replica, giống lý do `realtime/wallet.gateway.ts` không cần Redis adapter); nếu scale ngang nhiều instance sau này phải chuyển bộ đếm này sang Redis để đúng across instances.
-- [ ] Chức năng báo lỗi link die → hàng chờ xử lý của Moderator — UC25 — **chưa làm** (cần model mới `LinkReport` + UI hàng chờ cho Moderator, để dành 1 task riêng vì đủ lớn để tách biệt).
+- [x] Chức năng báo lỗi link die → hàng chờ xử lý — UC25 — model `LinkReport` mới (migration additive), nút "🔗 Báo lỗi link" ở `DownloadBox`, hàng chờ Admin ở `/quan-tri/bao-loi-link`, email Admin khi có báo cáo mới + email người báo cáo khi xử lý xong (2 template `linkReportAdmin`/`linkReportResolved` tự chỉnh ở `/quan-tri/cai-dat/email`). **Lệch với kế hoạch ban đầu:** dùng lại quyền `download.manage_links` có sẵn (Admin + Super Moderator) thay vì tạo permission riêng cho "Moderator" — tránh đổi RBAC trên DB production đang chạy thật. PR #43.
 
 ### 3.6 Kiểm thử bắt buộc
 - [ ] Test E2E (Playwright) luồng nạp tiền: tạo yêu cầu → webhook giả lập → số dư cập nhật đúng — **chưa làm, chưa cài Playwright ở đâu trong repo**
 - [ ] Test E2E luồng tải file: đủ/không đủ số dư, trừ đúng 1 lần dù bấm nhiều lần (idempotency) — **chưa làm**
 - [ ] Test webhook bị gọi lại (replay) không cộng tiền 2 lần — **chưa có test tự động**, cơ chế chống trùng đã có trong code (`SepayTransaction.sepayTransactionCode` unique) nhưng chưa được test bằng 1 e2e-spec cụ thể
 
-**DoD:** Nạp tiền qua SePay thành công và cộng đúng $P ✅ (đã chạy thật trên production, xem lịch sử giao dịch thật đã có dữ liệu); mua link tải trừ đúng tiền, tải được file qua presigned URL còn hạn ✅; webhook gọi trùng không gây cộng/trừ tiền sai ✅ (theo code, chưa có test tự động xác nhận). Còn nợ: rate limit, báo lỗi link die, nút test kết nối R2/S3, toàn bộ bộ test E2E Playwright của phase này.
+### 3.7 UX & vận hành bổ sung (ngoài kế hoạch ban đầu — bổ sung 2026-08-05, PR #43)
+- [x] Fix bug upload file lớn (>5GB) qua multipart bị lỗi "Lỗi mạng lúc tải phần 1" — nguyên nhân: `@aws-sdk/client-s3` bản mới tự thêm checksum vào request đã ký (presigned URL), trình duyệt PUT thô không gửi đúng checksum đó nên bị R2 từ chối. Tắt bằng `requestChecksumCalculation`/`responseChecksumValidation: 'WHEN_REQUIRED'` ở `r2-client.service.ts`. Kèm hướng dẫn cấu hình CORS bucket R2 ngay trên trang Upload (trước đây chưa tài liệu hoá ở đâu). **Chưa verify được bằng bucket R2 thật** (sandbox không có credential) — cần chủ dự án tự upload thử lại 1 file lớn để xác nhận.
+- [x] Tooltip `title="..."` cho tiêu đề bài viết ở mọi nơi có thể bị cắt ngắn (PostCard, PostRow, PostPopup, widget "Bài mới", bảng admin).
+- [x] Đếm lượt xem bài viết chống spam F5 — tách hẳn khỏi route `GET /posts/:slug` (vốn được Next.js Server Component gọi từ server, không thấy IP người xem thật) sang endpoint riêng `POST /posts/:id/view` gọi từ trình duyệt, dedup 30 phút/người xem (ưu tiên userId, fallback IP). Thêm `app.set('trust proxy', 1)` ở `main.ts` — cải thiện luôn độ chính xác IP cho `DownloadRateLimitGuard`/`DownloadEvent` có sẵn.
+- [x] Widget mới "Bài viết xem nhiều" (`TOP_VIEWED`) — số lượng tuỳ chọn, dùng lại `sort=popular` đã có.
+- [x] Trang Admin `/quan-tri/nguoi-dung`: bấm email user → mở trang profile công khai (tab mới).
+- [x] User Activity log — model `UserActivity` mới, ghi lại đăng nhập/xem bài viết/nạp tiền/ghé thăm profile người khác, tab "Hoạt động" mới ở trang Hồ sơ (`GET /users/me/activity`, chỉ chính chủ xem được).
+
+**DoD:** Nạp tiền qua SePay thành công và cộng đúng $P ✅ (đã chạy thật trên production, xem lịch sử giao dịch thật đã có dữ liệu); mua link tải trừ đúng tiền, tải được file qua presigned URL còn hạn ✅; webhook gọi trùng không gây cộng/trừ tiền sai ✅ (theo code, chưa có test tự động xác nhận); báo lỗi link die + hàng chờ xử lý ✅ (mục 3.5). Còn nợ: rate limit toàn site (Phase 4.3), nút test kết nối R2/S3 (mục 3.4), toàn bộ bộ test E2E Playwright của phase này (mục 3.6), verify thật bug upload file lớn trên bucket production (mục 3.7).
 
 ---
 
