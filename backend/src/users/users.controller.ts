@@ -9,13 +9,16 @@ import {
   Query,
   UseGuards,
 } from '@nestjs/common';
+import { UserActivityType } from '@prisma/client';
 import { UsersService } from './users.service';
 import type { UserSortBy, SortDir } from './users.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { OptionalJwtAuthGuard } from '../auth/guards/optional-jwt-auth.guard';
 import { PermissionsGuard } from '../roles/guards/permissions.guard';
 import { Permissions } from '../roles/decorators/permissions.decorator';
 import { PERMISSIONS } from '../roles/permissions.constant';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
+import { UserActivityService } from '../user-activity/user-activity.service';
 import { UpdateProfileDto } from './dto/update-profile.dto';
 import { ChangePasswordDto } from './dto/change-password.dto';
 import { AssignRoleDto } from './dto/assign-role.dto';
@@ -31,12 +34,31 @@ interface AuthUser {
 
 @Controller('users')
 export class UsersController {
-  constructor(private readonly usersService: UsersService) {}
+  constructor(
+    private readonly usersService: UsersService,
+    private readonly userActivity: UserActivityService,
+  ) {}
 
   @UseGuards(JwtAuthGuard)
   @Get('me')
   getMe(@CurrentUser() user: AuthUser) {
     return this.usersService.getProfile(user.id);
+  }
+
+  // Chỉ chính chủ xem được hoạt động của mình — dùng /me thay vì :id nên không cần check "not self"
+  // riêng (đơn giản/an toàn hơn), khớp đúng pattern các tab riêng tư khác ở profile-page.tsx.
+  @UseGuards(JwtAuthGuard)
+  @Get('me/activity')
+  listMyActivity(
+    @CurrentUser() user: AuthUser,
+    @Query('page') page?: string,
+    @Query('limit') limit?: string,
+  ) {
+    return this.usersService.listMyActivity(
+      user.id,
+      Number(page) || 1,
+      Number(limit) || 20,
+    );
   }
 
   @UseGuards(JwtAuthGuard)
@@ -126,9 +148,22 @@ export class UsersController {
   }
 
   // Trang profile công khai — bất kỳ ai cũng xem được, kể cả khách vãng lai chưa đăng nhập.
+  // OptionalJwtAuthGuard: biết ai đang xem nếu đăng nhập, để ghi UserActivity VISIT_PROFILE cho
+  // NGƯỜI XEM (không log khi tự xem chính mình).
+  @UseGuards(OptionalJwtAuthGuard)
   @Get(':id/public-profile')
-  getPublicProfile(@Param('id') id: string) {
-    return this.usersService.getPublicProfile(id);
+  async getPublicProfile(
+    @Param('id') id: string,
+    @CurrentUser() viewer: AuthUser | undefined,
+  ) {
+    const profile = await this.usersService.getPublicProfile(id);
+    if (viewer && viewer.id !== id) {
+      void this.userActivity.log(viewer.id, UserActivityType.VISIT_PROFILE, {
+        profileUserId: id,
+        profileDisplayName: profile.displayName,
+      });
+    }
+    return profile;
   }
 
   @Get(':id/messages')

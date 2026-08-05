@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/auth-context";
 import { apiFetch, ApiError } from "@/lib/api";
@@ -226,7 +227,16 @@ export default function AdminUsersPage() {
             <tbody>
               {items.map((u) => (
                 <tr key={u.id} className="border-t border-zinc-100">
-                  <td className="px-3 py-2 font-mono text-xs text-zinc-700">{u.email}</td>
+                  <td className="px-3 py-2 font-mono text-xs text-zinc-700">
+                    <Link
+                      href={`/nguoi-dung/${u.id}`}
+                      target="_blank"
+                      title="Xem trang hồ sơ công khai"
+                      className="hover:text-[#1d3557] hover:underline"
+                    >
+                      {u.email}
+                    </Link>
+                  </td>
                   <td className="px-3 py-2 text-zinc-800">{u.displayName}</td>
                   <td className="px-3 py-2">
                     <span

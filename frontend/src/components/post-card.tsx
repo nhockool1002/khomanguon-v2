@@ -22,7 +22,7 @@ export function PostCard({ post }: { post: PostSummary }) {
           <span className="font-mono text-xs text-zinc-400">Chưa có ảnh</span>
         )}
       </div>
-      <h3 className="line-clamp-2 text-sm font-semibold text-[#1d3557]">
+      <h3 className="line-clamp-2 text-sm font-semibold text-[#1d3557]" title={post.title}>
         {post.title}
       </h3>
       <p className="flex flex-wrap items-center gap-1 font-mono text-xs text-[#5c6370]">

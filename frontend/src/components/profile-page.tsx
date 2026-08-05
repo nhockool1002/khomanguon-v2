@@ -15,9 +15,10 @@ import { ErrorBanner, FormField, SubmitButton, SuccessBanner } from "@/component
 import { StyledUserName } from "@/components/styled-user-name";
 import { ProfileMessages } from "@/components/profile-messages";
 import { WalletDashboard } from "@/components/wallet-dashboard";
+import { ActivityTab } from "@/components/activity-tab";
 
-type Tab = "ho-so" | "thong-tin" | "bao-mat" | "vi";
-const TABS: Tab[] = ["ho-so", "thong-tin", "bao-mat", "vi"];
+type Tab = "ho-so" | "thong-tin" | "bao-mat" | "vi" | "hoat-dong";
+const TABS: Tab[] = ["ho-so", "thong-tin", "bao-mat", "vi", "hoat-dong"];
 
 // Trang gộp "Hồ sơ công khai" (/nguoi-dung/[id] cũ) + "Tài khoản của tôi" (/tai-khoan cũ) —
 // người khác chỉ thấy tab Hồ sơ; các tab Thông tin/Bảo mật/Ví chỉ hiện khi profileId trùng chính
@@ -65,6 +66,9 @@ export function ProfilePage({
           <TabButton active={tab === "vi"} onClick={() => setTab("vi")}>
             Ví &amp; Nạp tiền
           </TabButton>
+          <TabButton active={tab === "hoat-dong"} onClick={() => setTab("hoat-dong")}>
+            Hoạt động
+          </TabButton>
         </div>
       )}
 
@@ -72,6 +76,7 @@ export function ProfilePage({
       {effectiveTab === "thong-tin" && <AccountInfoTab onSaved={reloadPublicProfile} />}
       {effectiveTab === "bao-mat" && <SecurityTab />}
       {effectiveTab === "vi" && <WalletDashboard />}
+      {effectiveTab === "hoat-dong" && <ActivityTab />}
     </main>
   );
 }

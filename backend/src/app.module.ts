@@ -16,6 +16,7 @@ import { CommentsModule } from './comments/comments.module';
 import { StorageProvidersModule } from './storage-providers/storage-providers.module';
 import { WalletModule } from './wallet/wallet.module';
 import { DownloadLinksModule } from './download-links/download-links.module';
+import { LinkReportsModule } from './link-reports/link-reports.module';
 import { SepayModule } from './sepay/sepay.module';
 import { RealtimeModule } from './realtime/realtime.module';
 import { CloudFilesModule } from './cloud-files/cloud-files.module';
@@ -24,6 +25,7 @@ import { NotificationsModule } from './notifications/notifications.module';
 import { SiteSettingsModule } from './settings/site-settings.module';
 import { MediaModule } from './media/media.module';
 import { CacheModule } from './cache/cache.module';
+import { UserActivityModule } from './user-activity/user-activity.module';
 
 @Module({
   imports: [
@@ -34,6 +36,7 @@ import { CacheModule } from './cache/cache.module';
     RolesModule,
     AuthModule,
     CacheModule,
+    UserActivityModule,
     UsersModule,
     CategoriesModule,
     PostsModule,
@@ -43,6 +46,7 @@ import { CacheModule } from './cache/cache.module';
     StorageProvidersModule,
     WalletModule,
     DownloadLinksModule,
+    LinkReportsModule,
     SepayModule,
     RealtimeModule,
     CloudFilesModule,

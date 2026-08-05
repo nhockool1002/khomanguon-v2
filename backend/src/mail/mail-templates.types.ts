@@ -15,6 +15,10 @@ export interface MailTemplates {
   // Gửi CHO USER (không phải thông báo Admin) — dùng chung cho cả luồng tự phục vụ
   // (/auth/forgot-password) lẫn admin bấm "Đặt lại mật khẩu" ở trang quản lý user.
   passwordReset: MailTemplateConfig;
+  // Báo lỗi link die (UC25) — 2 email khác hướng nhau: linkReportAdmin gửi CHO Admin (notifyEmail)
+  // khi có báo cáo mới; linkReportResolved gửi CHO USER đã báo cáo khi Admin xử lý xong.
+  linkReportAdmin: MailTemplateConfig;
+  linkReportResolved: MailTemplateConfig;
 }
 
 export const MAIL_TEMPLATES_KEY = 'mail_templates';
@@ -60,6 +64,28 @@ const PASSWORD_RESET_HTML = `<p>Chào {{displayName}},</p>
 <p><a href="{{resetUrl}}">{{resetUrl}}</a></p>
 <p>Nếu không phải bạn yêu cầu, hãy bỏ qua email này.</p>`;
 
+const LINK_REPORT_ADMIN_HTML = `<p>Xin chào Admin,</p>
+<p>Người dùng <strong>[{{displayName}}]</strong> vừa báo lỗi 1 link tải trên KHOMANGUON.ORG:</p>
+<table border="1" cellpadding="8" cellspacing="0" style="border-collapse:collapse;">
+  <tr style="background:#1d3557;color:#fff;">
+    <th>User</th>
+    <th>Bài viết</th>
+    <th>File</th>
+    <th>Ghi chú</th>
+  </tr>
+  <tr>
+    <td>{{displayName}}</td>
+    <td>{{postTitle}}</td>
+    <td>{{fileName}}</td>
+    <td>{{note}}</td>
+  </tr>
+</table>
+<p>Vui lòng truy cập trang quản trị để xử lý.</p>`;
+
+const LINK_REPORT_RESOLVED_HTML = `<p>Chào {{displayName}},</p>
+<p>Báo cáo lỗi link tải của bạn cho bài viết <strong>{{postTitle}}</strong> (file {{fileName}}) đã được xử lý xong.</p>
+<p>Cảm ơn bạn đã giúp KHOMANGUON.ORG cải thiện chất lượng link tải!</p>`;
+
 export const DEFAULT_MAIL_TEMPLATES: MailTemplates = {
   // Mặc định email chủ dự án — Admin đổi lại qua /quan-tri/cai-dat/email nếu cần. Email này LUÔN
   // được cộng thêm vào danh sách nhận (cùng với chính email của user vừa nạp/tải) — xem
@@ -78,6 +104,15 @@ export const DEFAULT_MAIL_TEMPLATES: MailTemplates = {
   passwordReset: {
     subject: 'Đặt lại mật khẩu khomanguon',
     html: PASSWORD_RESET_HTML,
+  },
+  linkReportAdmin: {
+    subject:
+      'User [{{displayName}}] báo lỗi link tải tại KHOMANGUON.ORG [{{timestamp}}]',
+    html: LINK_REPORT_ADMIN_HTML,
+  },
+  linkReportResolved: {
+    subject: 'Báo cáo lỗi link tải của bạn đã được xử lý — KHOMANGUON.ORG',
+    html: LINK_REPORT_RESOLVED_HTML,
   },
 };
 

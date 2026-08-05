@@ -7,9 +7,11 @@ import {
 import { ConfigService } from '@nestjs/config';
 import { JwtService, JwtSignOptions } from '@nestjs/jwt';
 import * as argon2 from 'argon2';
+import { UserActivityType } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { MailService } from '../mail/mail.service';
 import { RolesService } from '../roles/roles.service';
+import { UserActivityService } from '../user-activity/user-activity.service';
 import { generateOpaqueToken, hashToken } from '../common/token.util';
 import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
@@ -41,6 +43,7 @@ export class AuthService {
     private readonly config: ConfigService,
     private readonly mail: MailService,
     private readonly roles: RolesService,
+    private readonly userActivity: UserActivityService,
   ) {}
 
   private toPublicUser(user: {
@@ -88,6 +91,7 @@ export class AuthService {
   async login(
     dto: LoginDto,
     userAgent?: string,
+    ip?: string,
   ): Promise<{ user: PublicUser; tokens: AuthTokens }> {
     const user = await this.prisma.user.findUnique({
       where: { email: dto.email },
@@ -134,6 +138,7 @@ export class AuthService {
     }
 
     const tokens = await this.issueTokens(user.id, userAgent);
+    void this.userActivity.log(user.id, UserActivityType.LOGIN, undefined, ip);
     return { user: this.toPublicUser(user), tokens };
   }
 

@@ -73,6 +73,15 @@ export class R2ClientService {
         accessKeyId: provider.accessKeyId,
         secretAccessKey: decryptSecret(provider.secretAccessKeyEncrypted),
       },
+      // Lỗi thật đã gặp: @aws-sdk/client-s3 bản mới mặc định WHEN_SUPPORTED — tự thêm checksum
+      // (x-amz-checksum-*) vào request TRƯỚC KHI ký SigV4 cho PutObject/UploadPart. Presigned URL
+      // dùng cho upload thẳng từ trình duyệt (XMLHttpRequest thô, không qua SDK) không thể gửi kèm
+      // đúng checksum đó → lệch với chữ ký đã ký → R2 từ chối, trình duyệt thấy như lỗi mạng/CORS
+      // (xem uploadPart() ở frontend/.../tep-cloud/upload/page.tsx). WHEN_REQUIRED khôi phục hành
+      // vi cũ (chỉ tính checksum khi lệnh gọi yêu cầu tường minh) — đúng khuyến nghị chính thức của
+      // AWS SDK cho use case presigned URL.
+      requestChecksumCalculation: 'WHEN_REQUIRED',
+      responseChecksumValidation: 'WHEN_REQUIRED',
     });
   }
 

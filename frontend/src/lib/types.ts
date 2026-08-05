@@ -41,6 +41,15 @@ export interface AuthResponse {
   accessToken: string;
 }
 
+export type UserActivityType = "LOGIN" | "VIEW_POST" | "DEPOSIT" | "VISIT_PROFILE";
+
+export interface UserActivity {
+  id: string;
+  type: UserActivityType;
+  metadata: Record<string, unknown> | null;
+  createdAt: string;
+}
+
 export type PostStatus = "DRAFT" | "PENDING_REVIEW" | "PUBLISHED";
 
 export interface Category {
@@ -105,7 +114,13 @@ export interface MenuItem {
   roleSlugs: string[];
 }
 
-export type WidgetType = "SEARCH" | "CATEGORIES" | "RECENT_POSTS" | "HTML" | "COMMENTS";
+export type WidgetType =
+  | "SEARCH"
+  | "CATEGORIES"
+  | "RECENT_POSTS"
+  | "HTML"
+  | "COMMENTS"
+  | "TOP_VIEWED";
 
 export interface Widget {
   id: string;
@@ -245,6 +260,24 @@ export interface DownloadLinkPublic extends DownloadLinkAdmin {
   downloaders: DownloaderInfo[];
 }
 
+export type LinkReportStatus = "PENDING" | "RESOLVED";
+
+export interface LinkReport {
+  id: string;
+  note: string | null;
+  status: LinkReportStatus;
+  createdAt: string;
+  resolvedAt: string | null;
+  downloadLink: {
+    id: string;
+    label: string;
+    objectKey: string;
+    post: { id: string; title: string; slug: string };
+  };
+  reporter: { id: string; displayName: string; email: string };
+  resolvedBy: { id: string; displayName: string } | null;
+}
+
 export interface Wallet {
   balance: number;
   updatedAt: string;
@@ -355,6 +388,8 @@ export interface MailTemplates {
   topupSuccess: MailTemplateConfig;
   downloadUnlock: MailTemplateConfig;
   passwordReset: MailTemplateConfig;
+  linkReportAdmin: MailTemplateConfig;
+  linkReportResolved: MailTemplateConfig;
 }
 
 export interface MediaFile {

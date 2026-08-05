@@ -59,6 +59,9 @@ model User {
   commentLikes           CommentLike[]
   downloadGrants         DownloadGrant[]
   downloadEvents         DownloadEvent[]
+  linkReportsSubmitted   LinkReport[]    @relation("LinkReportReporter")
+  linkReportsResolved    LinkReport[]    @relation("LinkReportResolvedBy")
+  activities             UserActivity[]
   refreshTokens          RefreshToken[]
   emailVerificationTokens EmailVerificationToken[]
   passwordResetTokens    PasswordResetToken[]
@@ -300,6 +303,8 @@ enum WidgetType {
   // nên chỉ hiển thị thật khi WidgetArea được gọi kèm postId (trang bài viết); các trang khác
   // (trang chủ) coi như không có postId thì bỏ qua loại widget này dù đã cấu hình hiện.
   COMMENTS
+  // Top bài viết xem nhiều nhất — dùng chung config {limit} với RECENT_POSTS, sort theo viewCount.
+  TOP_VIEWED
 }
 
 // Widget sidebar kiểu WordPress — danh sách phẳng (không cây như Menu), thứ tự cập nhật qua kéo-thả.
@@ -446,6 +451,7 @@ model DownloadLink {
 
   grants DownloadGrant[]
   events DownloadEvent[]
+  reports LinkReport[]
 
   @@map("download_links")
 }
@@ -474,6 +480,52 @@ model DownloadEvent {
   createdAt      DateTime     @default(now())
 
   @@map("download_events")
+}
+
+enum LinkReportStatus {
+  PENDING
+  RESOLVED
+}
+
+// Báo lỗi link die (UC25) — hàng chờ xử lý cho Moderator+ (dùng chung quyền download.manage_links,
+// không thêm permission key mới để tránh đổi RBAC trên DB production đang chạy thật).
+model LinkReport {
+  id             String           @id @default(cuid())
+  downloadLinkId String
+  downloadLink   DownloadLink     @relation(fields: [downloadLinkId], references: [id], onDelete: Cascade)
+  reporterId     String
+  reporter       User             @relation("LinkReportReporter", fields: [reporterId], references: [id])
+  note           String?
+  status         LinkReportStatus @default(PENDING)
+  resolvedById   String?
+  resolvedBy     User?            @relation("LinkReportResolvedBy", fields: [resolvedById], references: [id], onDelete: SetNull)
+  resolvedAt     DateTime?
+  createdAt      DateTime         @default(now())
+
+  @@map("link_reports")
+}
+
+enum UserActivityType {
+  LOGIN
+  VIEW_POST
+  DEPOSIT
+  VISIT_PROFILE
+}
+
+// User Activity — tab "Hoạt động" trong trang Hồ sơ, chỉ chính chủ mới xem được (GET /users/me/activity).
+// metadata tuỳ type: VIEW_POST {postTitle, postSlug}; DEPOSIT {amountVnd, transactionCode};
+// VISIT_PROFILE {profileUserId, profileDisplayName}; LOGIN không cần metadata.
+model UserActivity {
+  id        String            @id @default(cuid())
+  userId    String
+  user      User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type      UserActivityType
+  metadata  Json?
+  ipAddress String?
+  createdAt DateTime          @default(now())
+
+  @@index([userId, createdAt])
+  @@map("user_activities")
 }
 
 // ───────────────────────── Ví $P & SePay (Phase 3) ─────────────────────────

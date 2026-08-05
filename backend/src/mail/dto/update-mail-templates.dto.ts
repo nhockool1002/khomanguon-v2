@@ -36,4 +36,14 @@ export class UpdateMailTemplatesDto {
   @ValidateNested()
   @Type(() => MailTemplateConfigDto)
   passwordReset?: MailTemplateConfigDto;
+
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => MailTemplateConfigDto)
+  linkReportAdmin?: MailTemplateConfigDto;
+
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => MailTemplateConfigDto)
+  linkReportResolved?: MailTemplateConfigDto;
 }

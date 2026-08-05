@@ -25,6 +25,8 @@ const VALID_KINDS = [
   'topupSuccess',
   'downloadUnlock',
   'passwordReset',
+  'linkReportAdmin',
+  'linkReportResolved',
 ] as const;
 type NotificationKind = (typeof VALID_KINDS)[number];
 

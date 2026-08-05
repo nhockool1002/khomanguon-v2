@@ -122,21 +122,38 @@ export class PostsService {
     return { items: items.map(mapAuthor), total };
   }
 
-  // Route GET :slug được @Cacheable ở controller — cố tình KHÔNG invalidatePrefix('posts') ở đây
-  // dù có update viewCount, nếu không object cache sẽ bị xoá lại ngay ở mỗi lượt xem, mất hết tác
-  // dụng. Chấp nhận viewCount hiển thị có độ trễ tối đa bằng TTL cache của route này.
+  // Route GET :slug được @Cacheable ở controller — request này xuất phát từ SERVER Next.js (Server
+  // Component fetch qua publicFetch, ISR revalidate), không phải trình duyệt người xem thật, nên
+  // KHÔNG tăng viewCount ở đây nữa (IP/identity ở đây luôn là IP của server Next.js, không thể chống
+  // spam theo người xem thật). Việc tăng viewCount đã tách sang registerView() — gọi từ 1 request
+  // riêng do trình duyệt bắn thẳng lên sau khi trang tải xong (xem PostViewTrackerService + endpoint
+  // POST /posts/:id/view), lúc đó backend mới thấy đúng IP/user thật để chống F5 spam.
   async getBySlugPublic(slug: string) {
     const post = await this.prisma.post.findFirst({
       where: { slug, status: PostStatus.PUBLISHED },
       select: detailSelect,
     });
     if (!post) throw new NotFoundException('Không tìm thấy bài viết');
+    return mapAuthor(post);
+  }
 
-    await this.prisma.post.update({
-      where: { id: post.id },
+  // Gọi từ POST /posts/:id/view — updateMany + lọc status để tự no-op an toàn nếu id sai/bài chưa
+  // publish (không cần try/catch NotFound, endpoint này không cần báo lỗi cho client). Không
+  // invalidatePrefix('posts') — giữ đúng tradeoff cache cũ, viewCount hiển thị trễ tối đa bằng TTL
+  // cache của route GET :slug/GET list. Trả về title/slug (null nếu no-op) để controller ghi
+  // UserActivity VIEW_POST mà không cần query riêng.
+  async registerView(
+    postId: string,
+  ): Promise<{ title: string; slug: string } | null> {
+    const result = await this.prisma.post.updateMany({
+      where: { id: postId, status: PostStatus.PUBLISHED },
       data: { viewCount: { increment: 1 } },
     });
-    return mapAuthor({ ...post, viewCount: post.viewCount + 1 });
+    if (result.count === 0) return null;
+    return this.prisma.post.findUnique({
+      where: { id: postId },
+      select: { title: true, slug: true },
+    });
   }
 
   async listAdmin(

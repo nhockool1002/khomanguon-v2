@@ -99,7 +99,9 @@ export default function AdminPostsPage() {
             <tbody>
               {data.items.map((post) => (
                 <tr key={post.id} className="border-t border-zinc-100">
-                  <td className="px-3 py-2 font-medium text-[#1d3557]">{post.title}</td>
+                  <td className="max-w-xs truncate px-3 py-2 font-medium text-[#1d3557]" title={post.title}>
+                    {post.title}
+                  </td>
                   <td className="px-3 py-2 text-zinc-600">{post.author.displayName}</td>
                   <td className="px-3 py-2">
                     <span className="rounded-full bg-zinc-100 px-2 py-0.5 font-mono text-xs text-zinc-600">

@@ -5,6 +5,7 @@ import { fetchPostBySlug } from "@/lib/public-api";
 import { GradientUnderline } from "@/components/gradient-underline";
 import { DownloadBox } from "@/components/download-box";
 import { WidgetArea } from "@/components/widget-area";
+import { PostViewTracker } from "@/components/post-view-tracker";
 import { StyledUserName } from "@/components/styled-user-name";
 import { ProseContent } from "@/components/prose-content";
 import { formatDate, formatViewCount } from "@/lib/format";
@@ -40,6 +41,7 @@ export default async function PostDetailPage({ params }: Props) {
 
   return (
     <main className="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-6 px-4 py-8">
+      <PostViewTracker postId={post.id} />
       <div className="flex flex-col gap-6 lg:flex-row">
         <div className="flex flex-col gap-4 lg:flex-[3]">
           <nav className="flex items-center gap-1.5 font-mono text-xs text-zinc-500">

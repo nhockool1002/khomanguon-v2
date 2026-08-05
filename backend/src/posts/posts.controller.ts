@@ -3,6 +3,7 @@ import {
   Controller,
   Delete,
   Get,
+  Ip,
   Param,
   Patch,
   Post,
@@ -10,13 +11,16 @@ import {
   UseGuards,
   UseInterceptors,
 } from '@nestjs/common';
-import { PostStatus } from '@prisma/client';
+import { PostStatus, UserActivityType } from '@prisma/client';
 import { PostsService } from './posts.service';
+import { PostViewTrackerService } from './post-view-tracker.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { OptionalJwtAuthGuard } from '../auth/guards/optional-jwt-auth.guard';
 import { PermissionsGuard } from '../roles/guards/permissions.guard';
 import { Permissions } from '../roles/decorators/permissions.decorator';
 import { PERMISSIONS } from '../roles/permissions.constant';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
+import { UserActivityService } from '../user-activity/user-activity.service';
 import { CreatePostDto } from './dto/create-post.dto';
 import { UpdatePostDto } from './dto/update-post.dto';
 import { Cacheable } from '../cache/cacheable.decorator';
@@ -33,7 +37,11 @@ function parsePageQuery(page?: string, limit?: string) {
 
 @Controller('posts')
 export class PostsController {
-  constructor(private readonly postsService: PostsService) {}
+  constructor(
+    private readonly postsService: PostsService,
+    private readonly postViewTracker: PostViewTrackerService,
+    private readonly userActivity: UserActivityService,
+  ) {}
 
   // Danh sách công khai — chỉ bài PUBLISHED (wireframe #01/#02), hỗ trợ tìm kiếm + sắp xếp (UC05).
   @UseInterceptors(HttpCacheInterceptor)
@@ -78,13 +86,42 @@ export class PostsController {
     return this.postsService.getByIdAdmin(id);
   }
 
-  // Chi tiết công khai theo slug (wireframe #03) — cache 120s dù có tăng viewCount mỗi lượt xem,
-  // xem PostsService.getBySlugPublic để hiểu đánh đổi độ trễ viewCount vs hiệu quả cache.
+  // Chi tiết công khai theo slug (wireframe #03) — cache 120s, pure read (không tăng viewCount ở
+  // đây nữa, xem PostsService.getBySlugPublic + endpoint POST :id/view bên dưới).
   @UseInterceptors(HttpCacheInterceptor)
   @Cacheable('posts', 120)
   @Get(':slug')
   getBySlug(@Param('slug') slug: string) {
     return this.postsService.getBySlugPublic(slug);
+  }
+
+  // Đếm lượt xem — endpoint riêng do TRÌNH DUYỆT gọi sau khi trang bài viết tải xong (xem
+  // components/post-view-tracker.tsx), tách khỏi GET :slug ở trên vì route đó được Server Component
+  // Next.js gọi (luôn từ server, không phải trình duyệt người xem) nên không có IP/identity thật để
+  // chống F5 spam. OptionalJwtAuthGuard: biết userId nếu đăng nhập (identity chính xác hơn IP, tránh
+  // đếm hụt khi nhiều người chung IP/NAT) nhưng không chặn khách ẩn danh.
+  @UseGuards(OptionalJwtAuthGuard)
+  @Post(':id/view')
+  async registerView(
+    @Param('id') id: string,
+    @CurrentUser() user: AuthUser | undefined,
+    @Ip() ip: string,
+  ) {
+    const identity = user?.id ?? ip;
+    if (this.postViewTracker.shouldCount(id, identity)) {
+      const post = await this.postsService.registerView(id);
+      // Chỉ log activity khi đăng nhập (chưa biết "user vô danh nào" nếu ẩn danh) và khi thật sự
+      // tính là 1 view mới (shouldCount đã lọc F5 spam) — không log trùng mỗi lần F5.
+      if (user && post) {
+        void this.userActivity.log(
+          user.id,
+          UserActivityType.VIEW_POST,
+          { postTitle: post.title, postSlug: post.slug },
+          ip,
+        );
+      }
+    }
+    return { ok: true };
   }
 
   @UseGuards(JwtAuthGuard, PermissionsGuard)
