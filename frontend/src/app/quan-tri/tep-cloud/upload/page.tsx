@@ -194,7 +194,11 @@ export default function UploadCloudFilePage() {
             }
           };
           xhr.onerror = () => {
-            updateItem(item.id, { status: "error", error: "Lỗi mạng lúc tải lên, thử lại." });
+            updateItem(item.id, {
+              status: "error",
+              error:
+                "Lỗi mạng lúc tải lên. Nếu lặp lại, kiểm tra cấu hình CORS của bucket (xem hướng dẫn phía trên) hoặc mở DevTools > Console để xem lý do chặn thật.",
+            });
           };
           xhr.onabort = () => {
             updateItem(item.id, { status: "cancelled" });
@@ -267,7 +271,12 @@ export default function UploadCloudFilePage() {
                 reject(new Error(`Phần ${part.partNumber} bị từ chối (HTTP ${xhr.status}).`));
               }
             };
-            xhr.onerror = () => reject(new Error(`Lỗi mạng lúc tải phần ${part.partNumber}.`));
+            xhr.onerror = () =>
+              reject(
+                new Error(
+                  `Lỗi mạng lúc tải phần ${part.partNumber}. Nếu lặp lại ở mọi phần, kiểm tra CORS bucket (xem hướng dẫn phía trên) hoặc mở DevTools > Console.`,
+                ),
+              );
             xhr.onabort = () => reject(new Error("cancelled"));
             updatePart(item.id, part.partNumber, { status: "uploading", xhr });
             xhr.send(blob);
@@ -493,6 +502,35 @@ export default function UploadCloudFilePage() {
         trung gian nên không sợ timeout với file nặng. File trên {formatFileSize(MULTIPART_THRESHOLD_BYTES)}{" "}
         tự động chia phần (multipart) để tải song song, không giới hạn dung lượng.
       </p>
+
+      <details className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+        <summary className="cursor-pointer font-medium">
+          ⚠️ Upload lỗi mạng / lỗi CORS? Kiểm tra cấu hình CORS của bucket trước
+        </summary>
+        <div className="mt-2 flex flex-col gap-2 text-xs text-amber-800">
+          <p>
+            Trình duyệt PUT thẳng lên bucket (không qua server) nên bucket <strong>bắt buộc</strong> phải bật
+            CORS cho đúng domain đang dùng, kèm <code>ExposeHeaders: [&quot;ETag&quot;]</code> (multipart cần đọc
+            ETag từ response mỗi phần). Vào Cloudflare R2 → bucket → Settings → CORS Policy, dán cấu hình dạng:
+          </p>
+          <pre className="overflow-x-auto rounded-md bg-white p-3 font-mono text-[11px] text-zinc-700">
+{`[
+  {
+    "AllowedOrigins": ["https://khomanguon-v2.vercel.app", "http://localhost:3000"],
+    "AllowedMethods": ["PUT", "GET", "HEAD"],
+    "AllowedHeaders": ["*"],
+    "ExposeHeaders": ["ETag"],
+    "MaxAgeSeconds": 3600
+  }
+]`}
+          </pre>
+          <p>
+            Thay đúng domain frontend production đang dùng vào <code>AllowedOrigins</code>. Nếu vẫn lỗi sau khi
+            cấu hình CORS, mở DevTools (F12) → tab Console/Network lúc upload để xem lý do chặn thật (chữ ký
+            SigV4 sai, DNS/endpoint sai...).
+          </p>
+        </div>
+      </details>
 
       <ErrorBanner message={loadError} />
 
