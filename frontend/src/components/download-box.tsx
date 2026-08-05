@@ -11,74 +11,22 @@ import { StyledUserName } from "@/components/styled-user-name";
 
 // Khối "TẢI VỀ SIÊU TỐC" dưới nội dung bài viết — giữ đúng nội dung/bố cục bản v1 (Cloud Storage +
 // @Cash + danh sách member đã tải), style lại theo design system v2 (gradient hồng-vàng kế thừa từ
-// GradientUnderline thay vì gradient tím-lục của theme WP cũ).
+// GradientUnderline thay vì gradient tím-lục của theme WP cũ). Hỗ trợ NHIỀU link/bài (đổi thiết kế —
+// trước đây chỉ 1 link "chính"/bài) — mỗi link là 1 DownloadLinkRow độc lập (unlock/báo lỗi riêng).
 export function DownloadBox({ postId }: { postId: string }) {
-  const { user } = useAuth();
-  const router = useRouter();
-  const [link, setLink] = useState<DownloadLinkPublic | null | undefined>(undefined);
-  const [unlocking, setUnlocking] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [reportOpen, setReportOpen] = useState(false);
-  const [reportNote, setReportNote] = useState("");
-  const [reporting, setReporting] = useState(false);
-  const [reportSent, setReportSent] = useState(false);
-  const [reportError, setReportError] = useState<string | null>(null);
+  const [links, setLinks] = useState<DownloadLinkPublic[] | undefined>(undefined);
 
   useEffect(() => {
-    apiFetch<DownloadLinkPublic | null>(`/posts/${postId}/download-link`)
-      .then(setLink)
-      .catch(() => setLink(null));
+    apiFetch<DownloadLinkPublic[]>(`/posts/${postId}/download-links`)
+      .then(setLinks)
+      .catch(() => setLinks([]));
   }, [postId]);
 
-  // Không giữ lại link tải sau khi mở khoá — nút luôn trở về trạng thái khoá ngay sau khi mở tab
-  // tải, bấm lại lần nữa tính như 1 lượt mở khoá mới (trừ $P mới), khớp đúng "mỗi lần tải trừ $P"
-  // (không phải trả 1 lần dùng mãi mãi trong cùng phiên xem trang).
-  async function handleUnlock() {
-    if (!user) {
-      router.push("/dang-nhap");
-      return;
-    }
-    setError(null);
-    setUnlocking(true);
-    try {
-      const res = await apiFetch<{ url: string }>(`/posts/${postId}/download-link/unlock`, {
-        method: "POST",
-      });
-      window.open(res.url, "_blank", "noopener,noreferrer");
-    } catch (err) {
-      setError(err instanceof ApiError ? err.message : "Có lỗi xảy ra");
-    } finally {
-      setUnlocking(false);
-    }
-  }
+  if (links === undefined) return null; // đang tải — chưa biết có cấu hình hay không, tránh nháy khung
 
-  // Báo lỗi link die (UC25) — chỉ user đã đăng nhập mới báo được (cần reporterId để Admin xử lý
-  // xong còn gửi email xác nhận lại đúng người). Không giữ lại state link tải trong request này,
-  // disable nút sau khi gửi thành công trong phiên xem trang để tránh spam nhiều báo cáo trùng.
-  async function handleReport(e: React.FormEvent) {
-    e.preventDefault();
-    if (!link) return;
-    setReportError(null);
-    setReporting(true);
-    try {
-      await apiFetch("/link-reports", {
-        method: "POST",
-        body: JSON.stringify({ downloadLinkId: link.id, note: reportNote || undefined }),
-      });
-      setReportSent(true);
-      setReportOpen(false);
-    } catch (err) {
-      setReportError(err instanceof ApiError ? err.message : "Có lỗi xảy ra");
-    } finally {
-      setReporting(false);
-    }
-  }
-
-  if (link === undefined) return null; // đang tải — chưa biết có cấu hình hay không, tránh nháy khung
-
-  // link === null: bài viết chưa cấu hình link tải — vẫn hiện khung (viền động y hệt), chỉ đổi nội
-  // dung sang trạng thái "đang chuẩn bị" thay vì ẩn hẳn cả khối.
-  if (link === null) {
+  // Bài viết chưa cấu hình link tải nào — vẫn hiện khung (viền động y hệt), chỉ đổi nội dung sang
+  // trạng thái "đang chuẩn bị" thay vì ẩn hẳn cả khối.
+  if (links.length === 0) {
     return (
       <DownloadBoxShell>
         <div className="flex flex-wrap items-start justify-between gap-4">
@@ -115,38 +63,93 @@ export function DownloadBox({ postId }: { postId: string }) {
     );
   }
 
+  return (
+    <DownloadBoxShell>
+      <DownloadBoxIntro />
+      {links.map((link) => (
+        <DownloadLinkRow key={link.id} link={link} />
+      ))}
+    </DownloadBoxShell>
+  );
+}
+
+function DownloadLinkRow({ link }: { link: DownloadLinkPublic }) {
+  const { user } = useAuth();
+  const router = useRouter();
+  const [unlocking, setUnlocking] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [reportOpen, setReportOpen] = useState(false);
+  const [reportNote, setReportNote] = useState("");
+  const [reporting, setReporting] = useState(false);
+  const [reportSent, setReportSent] = useState(false);
+  const [reportError, setReportError] = useState<string | null>(null);
+
+  // Không giữ lại link tải sau khi mở khoá — nút luôn trở về trạng thái khoá ngay sau khi mở tab
+  // tải, bấm lại lần nữa tính như 1 lượt mở khoá mới (trừ $P mới), khớp đúng "mỗi lần tải trừ $P"
+  // (không phải trả 1 lần dùng mãi mãi trong cùng phiên xem trang).
+  async function handleUnlock() {
+    if (!user) {
+      router.push("/dang-nhap");
+      return;
+    }
+    setError(null);
+    setUnlocking(true);
+    try {
+      const res = await apiFetch<{ url: string }>(`/download-links/${link.id}/unlock`, {
+        method: "POST",
+      });
+      window.open(res.url, "_blank", "noopener,noreferrer");
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : "Có lỗi xảy ra");
+    } finally {
+      setUnlocking(false);
+    }
+  }
+
+  // Báo lỗi link die (UC25) — chỉ user đã đăng nhập mới báo được (cần reporterId để Admin xử lý
+  // xong còn gửi email xác nhận lại đúng người). Disable nút sau khi gửi thành công trong phiên
+  // xem trang để tránh spam nhiều báo cáo trùng.
+  async function handleReport(e: React.FormEvent) {
+    e.preventDefault();
+    setReportError(null);
+    setReporting(true);
+    try {
+      await apiFetch("/link-reports", {
+        method: "POST",
+        body: JSON.stringify({ downloadLinkId: link.id, note: reportNote || undefined }),
+      });
+      setReportSent(true);
+      setReportOpen(false);
+    } catch (err) {
+      setReportError(err instanceof ApiError ? err.message : "Có lỗi xảy ra");
+    } finally {
+      setReporting(false);
+    }
+  }
+
   const fileName = link.objectKey.split("/").pop() || link.label;
 
   return (
-    <DownloadBoxShell>
-      <div className="flex flex-wrap items-start justify-between gap-4">
-        <DownloadBoxIntro />
-        <div className="flex flex-col items-end gap-1 rounded-lg bg-[#1d3557] px-4 py-2 text-white">
-          <span className="text-[10px] uppercase tracking-wide text-zinc-300">Chi phí mở khoá</span>
-          <span className="font-mono text-lg font-bold">
-            {link.priceP > 0 ? `${link.priceP} $P` : "Miễn phí"}
+    <div className="flex flex-col gap-3 rounded-lg border border-zinc-200 bg-white p-4">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="flex min-w-0 items-center gap-3">
+          <span className="flex h-9 w-9 flex-none items-center justify-center rounded-md bg-zinc-100 text-lg" aria-hidden>
+            📦
           </span>
+          <div className="flex min-w-0 flex-col">
+            <span className="truncate text-sm font-medium text-zinc-800">{fileName}</span>
+            <span className="text-xs text-zinc-400">{formatFileSize(link.sizeBytes)}</span>
+          </div>
         </div>
-      </div>
-
-      <div className="flex items-center gap-3 rounded-lg border border-zinc-200 bg-white px-4 py-3">
-        <span className="flex h-9 w-9 flex-none items-center justify-center rounded-md bg-zinc-100 text-lg" aria-hidden>
-          📦
+        <span className="flex-none rounded-full bg-[#1d3557] px-3 py-1 font-mono text-xs font-bold text-white">
+          {link.priceP > 0 ? `${link.priceP} $P` : "Miễn phí"}
         </span>
-        <div className="flex min-w-0 flex-1 flex-col">
-          <span className="text-[10px] uppercase tracking-wide text-zinc-400">Tên file</span>
-          <span className="truncate text-sm font-medium text-zinc-800">{fileName}</span>
-        </div>
-        <div className="flex flex-none flex-col items-end">
-          <span className="text-[10px] uppercase tracking-wide text-zinc-400">Dung lượng</span>
-          <span className="text-sm font-medium text-zinc-800">{formatFileSize(link.sizeBytes)}</span>
-        </div>
       </div>
 
-      <div className="rounded-lg border border-zinc-200 bg-white px-4 py-3">
+      <div className="rounded-lg border border-zinc-100 bg-zinc-50 px-3 py-2">
         <p className="text-[10px] uppercase tracking-wide text-zinc-400">Member đã tải</p>
         {link.downloaders.length === 0 ? (
-          <p className="mt-1 text-sm text-zinc-400">Chưa có member nào tải file này.</p>
+          <p className="mt-1 text-xs text-zinc-400">Chưa có member nào tải file này.</p>
         ) : (
           <p className="mt-1 text-sm text-zinc-700">
             {link.downloaders.map((d, i) => (
@@ -231,7 +234,7 @@ export function DownloadBox({ postId }: { postId: string }) {
           )}
         </div>
       )}
-    </DownloadBoxShell>
+    </div>
   );
 }
 
