@@ -56,6 +56,13 @@ export async function fetchPublicProfile(id: string): Promise<PublicProfile | nu
   return publicFetch<PublicProfile>(`/users/${id}/public-profile`);
 }
 
+// Dùng riêng cho card xem nhanh khi hover tên user — KHÔNG dùng fetchPublicProfile() ở đây vì
+// endpoint đó ghi UserActivity VISIT_PROFILE cho người xem, hover ở khắp nơi (bình luận, byline...)
+// sẽ ghi log "ghé thăm" giả hàng loạt (xem users.controller.ts getProfilePreview()).
+export async function fetchUserPreview(id: string): Promise<PublicProfile | null> {
+  return publicFetch<PublicProfile>(`/users/${id}/profile-preview`);
+}
+
 export async function fetchCategories(): Promise<Category[]> {
   const result = await publicFetch<Category[]>("/categories");
   return result ?? [];

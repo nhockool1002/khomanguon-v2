@@ -165,6 +165,16 @@ export class UsersController {
     return profile;
   }
 
+  // Dữ liệu cho card xem nhanh khi hover tên user (StyledUserName) — CÙNG dữ liệu với
+  // public-profile nhưng KHÔNG ghi UserActivity VISIT_PROFILE. Hover xảy ra ở khắp nơi (danh sách
+  // bình luận, byline bài viết...) nên nếu dùng chung endpoint public-profile sẽ ghi log "ghé thăm"
+  // giả hàng loạt mỗi lần rê chuột qua tên, làm sai lệch ý nghĩa thật của VISIT_PROFILE (chỉ nên
+  // tính khi thật sự điều hướng sang trang hồ sơ).
+  @Get(':id/profile-preview')
+  getProfilePreview(@Param('id') id: string) {
+    return this.usersService.getPublicProfile(id);
+  }
+
   @Get(':id/messages')
   listMessages(
     @Param('id') id: string,
