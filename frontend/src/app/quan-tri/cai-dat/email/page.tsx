@@ -25,6 +25,14 @@ const TEMPLATE_INFO = {
     title: "Khi user yêu cầu đặt lại mật khẩu",
     placeholders: ["displayName", "resetUrl", "timestamp"],
   },
+  linkReportAdmin: {
+    title: "Khi user báo lỗi link die (gửi Admin)",
+    placeholders: ["displayName", "postTitle", "fileName", "note", "timestamp"],
+  },
+  linkReportResolved: {
+    title: "Khi báo lỗi link đã xử lý xong (gửi user đã báo cáo)",
+    placeholders: ["displayName", "postTitle", "fileName", "timestamp"],
+  },
 } as const;
 
 type Kind = keyof typeof TEMPLATE_INFO;
@@ -59,6 +67,8 @@ export default function MailTemplatesPage() {
     topupSuccess: { subject: "", html: "" },
     downloadUnlock: { subject: "", html: "" },
     passwordReset: { subject: "", html: "" },
+    linkReportAdmin: { subject: "", html: "" },
+    linkReportResolved: { subject: "", html: "" },
   });
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
@@ -78,6 +88,8 @@ export default function MailTemplatesPage() {
           topupSuccess: res.topupSuccess,
           downloadUnlock: res.downloadUnlock,
           passwordReset: res.passwordReset,
+          linkReportAdmin: res.linkReportAdmin,
+          linkReportResolved: res.linkReportResolved,
         });
       })
       .catch((err) => setError(err instanceof ApiError ? err.message : "Có lỗi xảy ra"));

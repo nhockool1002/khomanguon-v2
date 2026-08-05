@@ -1,4 +1,5 @@
 import {
+  AlertTriangle,
   ArrowLeft,
   Cloud,
   CreditCard,
@@ -157,6 +158,15 @@ export const ADMIN_NAV: NavEntry[] = [
         permission: PERMISSIONS.DOWNLOAD_MANAGE_LINKS,
       },
     ],
+  },
+  {
+    kind: "leaf",
+    href: "/quan-tri/bao-loi-link",
+    label: "Báo lỗi link tải",
+    icon: AlertTriangle,
+    match: "prefix",
+    // Khớp @Permissions() ở link-reports.controller.ts GET /link-reports.
+    permission: PERMISSIONS.DOWNLOAD_MANAGE_LINKS,
   },
   {
     kind: "group",

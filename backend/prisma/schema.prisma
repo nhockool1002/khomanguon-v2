@@ -59,6 +59,8 @@ model User {
   commentLikes           CommentLike[]
   downloadGrants         DownloadGrant[]
   downloadEvents         DownloadEvent[]
+  linkReportsSubmitted   LinkReport[]    @relation("LinkReportReporter")
+  linkReportsResolved    LinkReport[]    @relation("LinkReportResolvedBy")
   refreshTokens          RefreshToken[]
   emailVerificationTokens EmailVerificationToken[]
   passwordResetTokens    PasswordResetToken[]
@@ -448,6 +450,7 @@ model DownloadLink {
 
   grants DownloadGrant[]
   events DownloadEvent[]
+  reports LinkReport[]
 
   @@map("download_links")
 }
@@ -476,6 +479,29 @@ model DownloadEvent {
   createdAt      DateTime     @default(now())
 
   @@map("download_events")
+}
+
+enum LinkReportStatus {
+  PENDING
+  RESOLVED
+}
+
+// Báo lỗi link die (UC25) — hàng chờ xử lý cho Moderator+ (dùng chung quyền download.manage_links,
+// không thêm permission key mới để tránh đổi RBAC trên DB production đang chạy thật).
+model LinkReport {
+  id             String           @id @default(cuid())
+  downloadLinkId String
+  downloadLink   DownloadLink     @relation(fields: [downloadLinkId], references: [id], onDelete: Cascade)
+  reporterId     String
+  reporter       User             @relation("LinkReportReporter", fields: [reporterId], references: [id])
+  note           String?
+  status         LinkReportStatus @default(PENDING)
+  resolvedById   String?
+  resolvedBy     User?            @relation("LinkReportResolvedBy", fields: [resolvedById], references: [id], onDelete: SetNull)
+  resolvedAt     DateTime?
+  createdAt      DateTime         @default(now())
+
+  @@map("link_reports")
 }
 
 // ───────────────────────── Ví $P & SePay (Phase 3) ─────────────────────────

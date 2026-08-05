@@ -16,6 +16,7 @@ import { CommentsModule } from './comments/comments.module';
 import { StorageProvidersModule } from './storage-providers/storage-providers.module';
 import { WalletModule } from './wallet/wallet.module';
 import { DownloadLinksModule } from './download-links/download-links.module';
+import { LinkReportsModule } from './link-reports/link-reports.module';
 import { SepayModule } from './sepay/sepay.module';
 import { RealtimeModule } from './realtime/realtime.module';
 import { CloudFilesModule } from './cloud-files/cloud-files.module';
@@ -43,6 +44,7 @@ import { CacheModule } from './cache/cache.module';
     StorageProvidersModule,
     WalletModule,
     DownloadLinksModule,
+    LinkReportsModule,
     SepayModule,
     RealtimeModule,
     CloudFilesModule,

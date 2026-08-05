@@ -140,6 +140,12 @@ export class MailService {
       ...(dto.passwordReset !== undefined && {
         passwordReset: dto.passwordReset,
       }),
+      ...(dto.linkReportAdmin !== undefined && {
+        linkReportAdmin: dto.linkReportAdmin,
+      }),
+      ...(dto.linkReportResolved !== undefined && {
+        linkReportResolved: dto.linkReportResolved,
+      }),
     };
     await this.prisma.siteSetting.upsert({
       where: { key: MAIL_TEMPLATES_KEY },
@@ -200,6 +206,54 @@ export class MailService {
     await this.sendNotification('downloadUnlock', vars, userEmail);
   }
 
+  // Báo lỗi link die — chỉ gửi Admin (notifyEmail), KHÔNG dùng sendNotification() vì đó luôn cộng
+  // thêm email user vào recipients (ở đây user là người báo cáo, chưa cần xác nhận gì lúc này —
+  // họ sẽ nhận email riêng khi Admin xử lý xong, xem sendLinkReportResolvedNotification).
+  async sendLinkReportAdminNotification(vars: {
+    displayName: string;
+    postTitle: string;
+    fileName: string;
+    note: string;
+  }): Promise<void> {
+    try {
+      const templates = await this.getTemplates();
+      const recipients = [templates.notifyEmail].filter(Boolean);
+      if (recipients.length === 0) return;
+      const { subject, html } = renderMailTemplate(templates.linkReportAdmin, {
+        timestamp: formatTimestamp(new Date()),
+        ...vars,
+      });
+      await this.send({ to: recipients, subject, html });
+    } catch (err) {
+      this.logger.warn(
+        `Gửi mail "linkReportAdmin" thất bại: ${err instanceof Error ? err.message : String(err)}`,
+      );
+    }
+  }
+
+  // Báo lỗi link die đã xử lý xong — chỉ gửi CHO USER đã báo cáo, giống hệt pattern passwordReset
+  // (không liên quan notifyEmail của Admin).
+  async sendLinkReportResolvedNotification(
+    vars: { displayName: string; postTitle: string; fileName: string },
+    reporterEmail: string,
+  ): Promise<void> {
+    try {
+      const templates = await this.getTemplates();
+      const { subject, html } = renderMailTemplate(
+        templates.linkReportResolved,
+        {
+          timestamp: formatTimestamp(new Date()),
+          ...vars,
+        },
+      );
+      await this.send({ to: [reporterEmail], subject, html });
+    } catch (err) {
+      this.logger.warn(
+        `Gửi mail "linkReportResolved" thất bại: ${err instanceof Error ? err.message : String(err)}`,
+      );
+    }
+  }
+
   // Nút "Gửi thử" ở trang Admin — dùng dữ liệu mẫu, gửi đúng cả 2 người nhận thật (notifyEmail +
   // email của chính admin đang bấm nút) để kiểm chứng đúng logic 2 người nhận của luồng thật. Trả
   // {success,message} thay vì throw (khớp pattern testApiConnection() của sepay.service.ts) để FE
@@ -207,12 +261,17 @@ export class MailService {
   // passwordReset khác 2 kind còn lại — gửi CHO USER, không liên quan notifyEmail của Admin — nên
   // chỉ gửi tới testerEmail (chính admin đang bấm nút), resetUrl là link mẫu (không sinh token thật).
   async sendTestNotification(
-    kind: 'topupSuccess' | 'downloadUnlock' | 'passwordReset',
+    kind:
+      | 'topupSuccess'
+      | 'downloadUnlock'
+      | 'passwordReset'
+      | 'linkReportAdmin'
+      | 'linkReportResolved',
     testerEmail: string,
   ): Promise<{ success: boolean; message: string }> {
     const templates = await this.getTemplates();
     const recipients =
-      kind === 'passwordReset'
+      kind === 'passwordReset' || kind === 'linkReportResolved'
         ? [testerEmail]
         : [...new Set([templates.notifyEmail, testerEmail].filter(Boolean))];
     if (recipients.length === 0) {
@@ -222,25 +281,46 @@ export class MailService {
           'Chưa cấu hình "Email nhận thông báo" — nhập rồi lưu lại trước khi gửi thử.',
       };
     }
-    const sampleVars: Record<string, string> =
-      kind === 'topupSuccess'
-        ? {
-            displayName: 'demo_user',
-            amountVnd: '50,000',
-            paymentMethod: 'Vietcombank',
-            transactionCode: 'GD123456',
-          }
-        : kind === 'downloadUnlock'
-          ? {
-              displayName: 'demo_user',
-              postTitle: 'Bài viết mẫu',
-              fileName: 'demo.zip',
-              priceP: '50',
-            }
-          : {
-              displayName: 'demo_user',
-              resetUrl: `${this.config.get<string>('FRONTEND_URL')}/dat-lai-mat-khau?token=demo-token`,
-            };
+    let sampleVars: Record<string, string>;
+    switch (kind) {
+      case 'topupSuccess':
+        sampleVars = {
+          displayName: 'demo_user',
+          amountVnd: '50,000',
+          paymentMethod: 'Vietcombank',
+          transactionCode: 'GD123456',
+        };
+        break;
+      case 'downloadUnlock':
+        sampleVars = {
+          displayName: 'demo_user',
+          postTitle: 'Bài viết mẫu',
+          fileName: 'demo.zip',
+          priceP: '50',
+        };
+        break;
+      case 'linkReportAdmin':
+        sampleVars = {
+          displayName: 'demo_user',
+          postTitle: 'Bài viết mẫu',
+          fileName: 'demo.zip',
+          note: 'Link tải báo lỗi 404.',
+        };
+        break;
+      case 'linkReportResolved':
+        sampleVars = {
+          displayName: 'demo_user',
+          postTitle: 'Bài viết mẫu',
+          fileName: 'demo.zip',
+        };
+        break;
+      case 'passwordReset':
+        sampleVars = {
+          displayName: 'demo_user',
+          resetUrl: `${this.config.get<string>('FRONTEND_URL')}/dat-lai-mat-khau?token=demo-token`,
+        };
+        break;
+    }
     const { subject, html } = renderMailTemplate(templates[kind], {
       timestamp: formatTimestamp(new Date()),
       ...sampleVars,

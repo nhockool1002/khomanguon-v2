@@ -18,6 +18,11 @@ export function DownloadBox({ postId }: { postId: string }) {
   const [link, setLink] = useState<DownloadLinkPublic | null | undefined>(undefined);
   const [unlocking, setUnlocking] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [reportOpen, setReportOpen] = useState(false);
+  const [reportNote, setReportNote] = useState("");
+  const [reporting, setReporting] = useState(false);
+  const [reportSent, setReportSent] = useState(false);
+  const [reportError, setReportError] = useState<string | null>(null);
 
   useEffect(() => {
     apiFetch<DownloadLinkPublic | null>(`/posts/${postId}/download-link`)
@@ -44,6 +49,28 @@ export function DownloadBox({ postId }: { postId: string }) {
       setError(err instanceof ApiError ? err.message : "Có lỗi xảy ra");
     } finally {
       setUnlocking(false);
+    }
+  }
+
+  // Báo lỗi link die (UC25) — chỉ user đã đăng nhập mới báo được (cần reporterId để Admin xử lý
+  // xong còn gửi email xác nhận lại đúng người). Không giữ lại state link tải trong request này,
+  // disable nút sau khi gửi thành công trong phiên xem trang để tránh spam nhiều báo cáo trùng.
+  async function handleReport(e: React.FormEvent) {
+    e.preventDefault();
+    if (!link) return;
+    setReportError(null);
+    setReporting(true);
+    try {
+      await apiFetch("/link-reports", {
+        method: "POST",
+        body: JSON.stringify({ downloadLinkId: link.id, note: reportNote || undefined }),
+      });
+      setReportSent(true);
+      setReportOpen(false);
+    } catch (err) {
+      setReportError(err instanceof ApiError ? err.message : "Có lỗi xảy ra");
+    } finally {
+      setReporting(false);
     }
   }
 
@@ -157,6 +184,52 @@ export function DownloadBox({ postId }: { postId: string }) {
               ? `🔒 Mở khoá & tải xuống — ${link.priceP} $P`
               : "⬇ Tải xuống miễn phí"}
         </button>
+      )}
+
+      {user && (
+        <div className="flex flex-col gap-2">
+          {reportSent ? (
+            <p className="text-center text-xs text-emerald-600">
+              Đã gửi báo cáo, cảm ơn bạn! Admin sẽ xử lý sớm.
+            </p>
+          ) : reportOpen ? (
+            <form onSubmit={handleReport} className="flex flex-col gap-2">
+              <textarea
+                value={reportNote}
+                onChange={(e) => setReportNote(e.target.value)}
+                rows={2}
+                maxLength={500}
+                placeholder="Mô tả lỗi (tuỳ chọn) — vd: link die, tải chậm, sai file..."
+                className="rounded-md border border-zinc-300 px-3 py-2 text-xs outline-none focus:border-[#1d3557] focus:ring-1 focus:ring-[#1d3557]"
+              />
+              {reportError && <p className="text-xs text-red-600">{reportError}</p>}
+              <div className="flex items-center gap-2">
+                <button
+                  type="submit"
+                  disabled={reporting}
+                  className="rounded-md bg-[#1d3557] px-3 py-1.5 text-xs font-medium text-white disabled:opacity-50"
+                >
+                  {reporting ? "Đang gửi..." : "Gửi báo cáo"}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setReportOpen(false)}
+                  className="rounded-md px-3 py-1.5 text-xs font-medium text-zinc-500 hover:bg-zinc-100"
+                >
+                  Huỷ
+                </button>
+              </div>
+            </form>
+          ) : (
+            <button
+              type="button"
+              onClick={() => setReportOpen(true)}
+              className="w-fit text-xs font-medium text-zinc-400 hover:text-zinc-600 hover:underline"
+            >
+              🔗 Báo lỗi link
+            </button>
+          )}
+        </div>
       )}
     </DownloadBoxShell>
   );
