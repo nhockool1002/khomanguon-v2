@@ -511,11 +511,13 @@ enum UserActivityType {
   VIEW_POST
   DEPOSIT
   VISIT_PROFILE
+  COMMENT
 }
 
-// User Activity — tab "Hoạt động" trong trang Hồ sơ, chỉ chính chủ mới xem được (GET /users/me/activity).
-// metadata tuỳ type: VIEW_POST {postTitle, postSlug}; DEPOSIT {amountVnd, transactionCode};
-// VISIT_PROFILE {profileUserId, profileDisplayName}; LOGIN không cần metadata.
+// User Activity — tab "Hoạt động" trong trang Hồ sơ, công khai (GET /users/:id/activity, ai cũng
+// xem được, giống trang Hồ sơ công khai). metadata tuỳ type: VIEW_POST {postTitle, postSlug};
+// DEPOSIT {amountVnd, transactionCode}; VISIT_PROFILE {profileUserId, profileDisplayName};
+// COMMENT {postId, postTitle, commentId}; LOGIN không cần metadata.
 model UserActivity {
   id        String            @id @default(cuid())
   userId    String

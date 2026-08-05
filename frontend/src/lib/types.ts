@@ -41,7 +41,7 @@ export interface AuthResponse {
   accessToken: string;
 }
 
-export type UserActivityType = "LOGIN" | "VIEW_POST" | "DEPOSIT" | "VISIT_PROFILE";
+export type UserActivityType = "LOGIN" | "VIEW_POST" | "DEPOSIT" | "VISIT_PROFILE" | "COMMENT";
 
 export interface UserActivity {
   id: string;

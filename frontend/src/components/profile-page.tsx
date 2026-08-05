@@ -19,6 +19,9 @@ import { ActivityTab } from "@/components/activity-tab";
 
 type Tab = "ho-so" | "thong-tin" | "bao-mat" | "vi" | "hoat-dong";
 const TABS: Tab[] = ["ho-so", "thong-tin", "bao-mat", "vi", "hoat-dong"];
+// Tab công khai — ai cũng xem được, kể cả không phải chính chủ (Hồ sơ + Hoạt động). 3 tab còn lại
+// (Thông tin/Bảo mật/Ví) chỉ chính chủ mới thấy — chứa dữ liệu riêng tư (email, đổi mật khẩu, ví).
+const PUBLIC_TABS: Tab[] = ["ho-so", "hoat-dong"];
 
 // Trang gộp "Hồ sơ công khai" (/nguoi-dung/[id] cũ) + "Tài khoản của tôi" (/tai-khoan cũ) —
 // người khác chỉ thấy tab Hồ sơ; các tab Thông tin/Bảo mật/Ví chỉ hiện khi profileId trùng chính
@@ -42,8 +45,9 @@ export function ProfilePage({
 
   // URL/state đòi tab riêng tư (thong-tin/bao-mat/vi) nhưng đây không phải profile của chính mình
   // (hoặc auth chưa xác định xong) — suy ra ngay lúc render thay vì đồng bộ qua effect (tránh
-  // cascading render), rơi về tab Hồ sơ để không render nhầm form của người khác.
-  const effectiveTab: Tab = isOwnProfile ? tab : "ho-so";
+  // cascading render), rơi về tab Hồ sơ để không render nhầm form của người khác. Tab Hoạt động thì
+  // công khai nên vẫn giữ nguyên dù không phải chính chủ (xem PUBLIC_TABS).
+  const effectiveTab: Tab = isOwnProfile || PUBLIC_TABS.includes(tab) ? tab : "ho-so";
 
   const reloadPublicProfile = useCallback(async () => {
     const next = await fetchPublicProfile(profileId);
@@ -52,31 +56,33 @@ export function ProfilePage({
 
   return (
     <main className="mx-auto flex w-full max-w-3xl flex-1 flex-col gap-6 px-4 py-8">
-      {isOwnProfile && (
-        <div className="flex gap-1 border-b border-zinc-200 font-mono text-sm">
-          <TabButton active={tab === "ho-so"} onClick={() => setTab("ho-so")}>
-            Hồ sơ
-          </TabButton>
-          <TabButton active={tab === "thong-tin"} onClick={() => setTab("thong-tin")}>
-            Thông tin
-          </TabButton>
-          <TabButton active={tab === "bao-mat"} onClick={() => setTab("bao-mat")}>
-            Bảo mật
-          </TabButton>
-          <TabButton active={tab === "vi"} onClick={() => setTab("vi")}>
-            Ví &amp; Nạp tiền
-          </TabButton>
-          <TabButton active={tab === "hoat-dong"} onClick={() => setTab("hoat-dong")}>
-            Hoạt động
-          </TabButton>
-        </div>
-      )}
+      <div className="flex gap-1 border-b border-zinc-200 font-mono text-sm">
+        <TabButton active={tab === "ho-so"} onClick={() => setTab("ho-so")}>
+          Hồ sơ
+        </TabButton>
+        {isOwnProfile && (
+          <>
+            <TabButton active={tab === "thong-tin"} onClick={() => setTab("thong-tin")}>
+              Thông tin
+            </TabButton>
+            <TabButton active={tab === "bao-mat"} onClick={() => setTab("bao-mat")}>
+              Bảo mật
+            </TabButton>
+            <TabButton active={tab === "vi"} onClick={() => setTab("vi")}>
+              Ví &amp; Nạp tiền
+            </TabButton>
+          </>
+        )}
+        <TabButton active={tab === "hoat-dong"} onClick={() => setTab("hoat-dong")}>
+          Hoạt động
+        </TabButton>
+      </div>
 
       {effectiveTab === "ho-so" && <ProfileTab profile={profile} profileId={profileId} />}
       {effectiveTab === "thong-tin" && <AccountInfoTab onSaved={reloadPublicProfile} />}
       {effectiveTab === "bao-mat" && <SecurityTab />}
       {effectiveTab === "vi" && <WalletDashboard />}
-      {effectiveTab === "hoat-dong" && <ActivityTab />}
+      {effectiveTab === "hoat-dong" && <ActivityTab key={profileId} userId={profileId} />}
     </main>
   );
 }

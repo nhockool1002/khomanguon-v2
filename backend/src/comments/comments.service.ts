@@ -3,10 +3,11 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { CommentStatus, Prisma } from '@prisma/client';
+import { CommentStatus, Prisma, UserActivityType } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { NotificationsService } from '../notifications/notifications.service';
 import { NotificationGateway } from '../realtime/notification.gateway';
+import { UserActivityService } from '../user-activity/user-activity.service';
 import { resolveStyleRoleSlug } from '../roles/style-role.util';
 import { CreateCommentDto } from './dto/create-comment.dto';
 
@@ -59,6 +60,7 @@ export class CommentsService {
     private readonly prisma: PrismaService,
     private readonly notificationsService: NotificationsService,
     private readonly notificationGateway: NotificationGateway,
+    private readonly userActivity: UserActivityService,
   ) {}
 
   // Công khai — chỉ bình luận đã duyệt (UC07, wireframe #03). sort/authorId cấu hình được qua
@@ -162,6 +164,11 @@ export class CommentsService {
     });
 
     await this.notifyMentions(userId, comment.id, dto.postId, dto.content);
+    void this.userActivity.log(userId, UserActivityType.COMMENT, {
+      postId: dto.postId,
+      postTitle: post.title,
+      commentId: comment.id,
+    });
 
     return { ...this.stripCount(comment), likedByMe: false };
   }
