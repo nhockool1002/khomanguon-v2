@@ -300,6 +300,8 @@ enum WidgetType {
   // nên chỉ hiển thị thật khi WidgetArea được gọi kèm postId (trang bài viết); các trang khác
   // (trang chủ) coi như không có postId thì bỏ qua loại widget này dù đã cấu hình hiện.
   COMMENTS
+  // Top bài viết xem nhiều nhất — dùng chung config {limit} với RECENT_POSTS, sort theo viewCount.
+  TOP_VIEWED
 }
 
 // Widget sidebar kiểu WordPress — danh sách phẳng (không cây như Menu), thứ tự cập nhật qua kéo-thả.

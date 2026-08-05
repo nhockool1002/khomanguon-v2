@@ -11,7 +11,14 @@ import { ForbiddenPage } from "@/components/forbidden-page";
 import { WidgetListEditor, WIDGET_TYPE_LABEL } from "@/components/widget-list-editor";
 import { DEFAULT_ROLE_OPTIONS } from "@/components/menu-tree-editor";
 
-const WIDGET_TYPES: WidgetType[] = ["SEARCH", "CATEGORIES", "RECENT_POSTS", "HTML", "COMMENTS"];
+const WIDGET_TYPES: WidgetType[] = [
+  "SEARCH",
+  "CATEGORIES",
+  "RECENT_POSTS",
+  "HTML",
+  "COMMENTS",
+  "TOP_VIEWED",
+];
 
 export default function AdminWidgetPage() {
   const { user, loading } = useAuth();
@@ -210,7 +217,7 @@ function WidgetEditPanel({
     setSaving(true);
     try {
       const config: Record<string, unknown> =
-        widget.type === "RECENT_POSTS"
+        widget.type === "RECENT_POSTS" || widget.type === "TOP_VIEWED"
           ? { limit }
           : widget.type === "HTML"
             ? { html }
@@ -241,9 +248,9 @@ function WidgetEditPanel({
         />
       </label>
 
-      {widget.type === "RECENT_POSTS" && (
+      {(widget.type === "RECENT_POSTS" || widget.type === "TOP_VIEWED") && (
         <label className="flex flex-col gap-1 text-sm text-zinc-700">
-          Số bài viết hiển thị
+          Số bài viết hiển thị (khuyến nghị 5-10)
           <input
             type="number"
             min={1}

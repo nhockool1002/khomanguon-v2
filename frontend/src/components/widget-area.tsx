@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { fetchCategories, fetchPosts, fetchWidgets } from "@/lib/public-api";
-import { formatDate } from "@/lib/format";
+import { formatDate, formatViewCount } from "@/lib/format";
 import { CommentSection } from "@/components/comment-section";
 import type { Widget } from "@/lib/types";
 
@@ -36,6 +36,8 @@ async function WidgetRenderer({ widget, postId }: { widget: Widget; postId?: str
       return <CategoriesWidget title={widget.title} />;
     case "RECENT_POSTS":
       return <RecentPostsWidget title={widget.title} limit={Number(widget.config.limit) || 5} />;
+    case "TOP_VIEWED":
+      return <TopViewedWidget title={widget.title} limit={Number(widget.config.limit) || 5} />;
     case "HTML":
       return <HtmlWidget title={widget.title} html={String(widget.config.html ?? "")} />;
     case "COMMENTS": {
@@ -123,6 +125,40 @@ async function RecentPostsWidget({ title, limit }: { title: string; limit: numbe
                 </Link>
                 <p className="mt-0.5 font-mono text-xs text-zinc-400">
                   {formatDate(post.publishedAt ?? post.createdAt)}
+                </p>
+              </div>
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+}
+
+async function TopViewedWidget({ title, limit }: { title: string; limit: number }) {
+  const { items: posts } = await fetchPosts({ limit, sort: "popular" });
+  return (
+    <div className="rounded-lg border border-zinc-200 bg-white p-5">
+      <h3 className="mb-3 text-lg font-bold text-zinc-900">{title || "Bài viết xem nhiều"}</h3>
+      {posts.length === 0 ? (
+        <p className="text-xs text-zinc-400">Chưa có bài viết.</p>
+      ) : (
+        <ul className="flex flex-col gap-3.5">
+          {posts.map((post, index) => (
+            <li key={post.id} className="flex items-start gap-2.5">
+              <span className="mt-0.5 w-4 shrink-0 text-right font-mono text-xs font-semibold text-zinc-400">
+                {index + 1}
+              </span>
+              <div className="min-w-0">
+                <Link
+                  href={`/bai-viet/${post.slug}`}
+                  title={post.title}
+                  className="line-clamp-2 text-sm font-semibold text-rose-600 hover:text-rose-700 hover:underline"
+                >
+                  {post.title}
+                </Link>
+                <p className="mt-0.5 font-mono text-xs text-zinc-400">
+                  👁 {formatViewCount(post.viewCount)}
                 </p>
               </div>
             </li>
