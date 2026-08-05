@@ -93,12 +93,18 @@ export class MailService {
     await transporter.sendMail({ from: this.from, to, subject, html });
   }
 
-  async sendVerificationEmail(to: string, verifyUrl: string): Promise<void> {
-    await this.send({
-      to,
-      subject: 'Xác minh email khomanguon',
-      html: `<p>Chào bạn,</p><p>Bấm vào link sau để xác minh email (hết hạn sau 24 giờ):</p><p><a href="${verifyUrl}">${verifyUrl}</a></p>`,
+  async sendVerificationEmail(
+    to: string,
+    displayName: string,
+    verifyUrl: string,
+  ): Promise<void> {
+    const templates = await this.getTemplates();
+    const { subject, html } = renderMailTemplate(templates.verifyEmail, {
+      displayName,
+      verifyUrl,
+      timestamp: formatTimestamp(new Date()),
     });
+    await this.send({ to, subject, html });
   }
 
   async sendPasswordResetEmail(
@@ -145,6 +151,9 @@ export class MailService {
       }),
       ...(dto.linkReportResolved !== undefined && {
         linkReportResolved: dto.linkReportResolved,
+      }),
+      ...(dto.verifyEmail !== undefined && {
+        verifyEmail: dto.verifyEmail,
       }),
     };
     await this.prisma.siteSetting.upsert({
@@ -266,12 +275,15 @@ export class MailService {
       | 'downloadUnlock'
       | 'passwordReset'
       | 'linkReportAdmin'
-      | 'linkReportResolved',
+      | 'linkReportResolved'
+      | 'verifyEmail',
     testerEmail: string,
   ): Promise<{ success: boolean; message: string }> {
     const templates = await this.getTemplates();
     const recipients =
-      kind === 'passwordReset' || kind === 'linkReportResolved'
+      kind === 'passwordReset' ||
+      kind === 'linkReportResolved' ||
+      kind === 'verifyEmail'
         ? [testerEmail]
         : [...new Set([templates.notifyEmail, testerEmail].filter(Boolean))];
     if (recipients.length === 0) {
@@ -318,6 +330,12 @@ export class MailService {
         sampleVars = {
           displayName: 'demo_user',
           resetUrl: `${this.config.get<string>('FRONTEND_URL')}/dat-lai-mat-khau?token=demo-token`,
+        };
+        break;
+      case 'verifyEmail':
+        sampleVars = {
+          displayName: 'demo_user',
+          verifyUrl: `${this.config.get<string>('FRONTEND_URL')}/xac-minh-email?token=demo-token`,
         };
         break;
     }

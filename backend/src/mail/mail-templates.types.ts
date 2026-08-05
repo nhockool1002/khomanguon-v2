@@ -19,6 +19,9 @@ export interface MailTemplates {
   // khi có báo cáo mới; linkReportResolved gửi CHO USER đã báo cáo khi Admin xử lý xong.
   linkReportAdmin: MailTemplateConfig;
   linkReportResolved: MailTemplateConfig;
+  // Gửi CHO USER lúc đăng ký/bấm "Gửi lại email xác minh" — trước đây hardcode trong
+  // mail.service.ts, giờ admin-editable như passwordReset.
+  verifyEmail: MailTemplateConfig;
 }
 
 export const MAIL_TEMPLATES_KEY = 'mail_templates';
@@ -86,6 +89,10 @@ const LINK_REPORT_RESOLVED_HTML = `<p>Chào {{displayName}},</p>
 <p>Báo cáo lỗi link tải của bạn cho bài viết <strong>{{postTitle}}</strong> (file {{fileName}}) đã được xử lý xong.</p>
 <p>Cảm ơn bạn đã giúp KHOMANGUON.ORG cải thiện chất lượng link tải!</p>`;
 
+const VERIFY_EMAIL_HTML = `<p>Chào {{displayName}},</p>
+<p>Bấm vào link sau để xác minh email (hết hạn sau 24 giờ):</p>
+<p><a href="{{verifyUrl}}">{{verifyUrl}}</a></p>`;
+
 export const DEFAULT_MAIL_TEMPLATES: MailTemplates = {
   // Mặc định email chủ dự án — Admin đổi lại qua /quan-tri/cai-dat/email nếu cần. Email này LUÔN
   // được cộng thêm vào danh sách nhận (cùng với chính email của user vừa nạp/tải) — xem
@@ -113,6 +120,10 @@ export const DEFAULT_MAIL_TEMPLATES: MailTemplates = {
   linkReportResolved: {
     subject: 'Báo cáo lỗi link tải của bạn đã được xử lý — KHOMANGUON.ORG',
     html: LINK_REPORT_RESOLVED_HTML,
+  },
+  verifyEmail: {
+    subject: 'Xác minh email khomanguon',
+    html: VERIFY_EMAIL_HTML,
   },
 };
 

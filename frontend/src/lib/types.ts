@@ -390,6 +390,7 @@ export interface MailTemplates {
   passwordReset: MailTemplateConfig;
   linkReportAdmin: MailTemplateConfig;
   linkReportResolved: MailTemplateConfig;
+  verifyEmail: MailTemplateConfig;
 }
 
 export interface MediaFile {

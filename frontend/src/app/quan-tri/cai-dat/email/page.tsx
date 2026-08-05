@@ -33,6 +33,10 @@ const TEMPLATE_INFO = {
     title: "Khi báo lỗi link đã xử lý xong (gửi user đã báo cáo)",
     placeholders: ["displayName", "postTitle", "fileName", "timestamp"],
   },
+  verifyEmail: {
+    title: "Khi user đăng ký / gửi lại email xác minh",
+    placeholders: ["displayName", "verifyUrl", "timestamp"],
+  },
 } as const;
 
 type Kind = keyof typeof TEMPLATE_INFO;
@@ -69,6 +73,7 @@ export default function MailTemplatesPage() {
     passwordReset: { subject: "", html: "" },
     linkReportAdmin: { subject: "", html: "" },
     linkReportResolved: { subject: "", html: "" },
+    verifyEmail: { subject: "", html: "" },
   });
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
@@ -90,6 +95,7 @@ export default function MailTemplatesPage() {
           passwordReset: res.passwordReset,
           linkReportAdmin: res.linkReportAdmin,
           linkReportResolved: res.linkReportResolved,
+          verifyEmail: res.verifyEmail,
         });
       })
       .catch((err) => setError(err instanceof ApiError ? err.message : "Có lỗi xảy ra"));

@@ -27,6 +27,7 @@ const VALID_KINDS = [
   'passwordReset',
   'linkReportAdmin',
   'linkReportResolved',
+  'verifyEmail',
 ] as const;
 type NotificationKind = (typeof VALID_KINDS)[number];
 

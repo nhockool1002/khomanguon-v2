@@ -82,7 +82,7 @@ export class AuthService {
       },
     });
     await this.roles.assignDefaultRole(user.id);
-    await this.sendVerificationEmail(user.id, user.email);
+    await this.sendVerificationEmail(user.id, user.email, user.displayName);
 
     const tokens = await this.issueTokens(user.id);
     return { user: this.toPublicUser(user), tokens };
@@ -224,10 +224,14 @@ export class AuthService {
     if (user.emailVerifiedAt) {
       throw new BadRequestException('Email đã được xác minh trước đó');
     }
-    await this.sendVerificationEmail(user.id, user.email);
+    await this.sendVerificationEmail(user.id, user.email, user.displayName);
   }
 
-  async sendVerificationEmail(userId: string, email: string): Promise<void> {
+  async sendVerificationEmail(
+    userId: string,
+    email: string,
+    displayName: string,
+  ): Promise<void> {
     const rawToken = generateOpaqueToken();
     await this.prisma.emailVerificationToken.create({
       data: {
@@ -237,7 +241,7 @@ export class AuthService {
       },
     });
     const verifyUrl = `${this.config.get<string>('FRONTEND_URL')}/xac-minh-email?token=${rawToken}`;
-    await this.mail.sendVerificationEmail(email, verifyUrl);
+    await this.mail.sendVerificationEmail(email, displayName, verifyUrl);
   }
 
   async verifyEmail(rawToken: string): Promise<void> {
