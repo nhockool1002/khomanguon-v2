@@ -7,6 +7,7 @@ import { X } from "lucide-react";
 import { useAuth } from "@/context/auth-context";
 import { apiFetch } from "@/lib/api";
 import type { PostListResponse, PostSummary } from "@/lib/types";
+import { Tooltip } from "@/components/ui";
 
 const FIRST_DELAY_MS = 20_000; // chờ 1 chút sau khi vào trang mới hiện lần đầu, tránh làm phiền ngay
 const VISIBLE_MS = 16_000; // tự ẩn nếu user không tương tác
@@ -104,7 +105,13 @@ export function PostPopup() {
           <p className="text-[10px] font-semibold uppercase tracking-wide text-[#ff5da2]">
             Có thể bạn quan tâm
           </p>
-          <h4 className="line-clamp-2 text-sm font-semibold text-zinc-900" title={current.title}>{current.title}</h4>
+          <Tooltip
+            as="h4"
+            content={current.title}
+            className="line-clamp-2 text-sm font-semibold text-zinc-900"
+          >
+            {current.title}
+          </Tooltip>
         </div>
       </Link>
     </div>

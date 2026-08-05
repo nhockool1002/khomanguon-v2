@@ -12,6 +12,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { MailService } from '../mail/mail.service';
 import { RolesService } from '../roles/roles.service';
 import { UserActivityService } from '../user-activity/user-activity.service';
+import { RecaptchaService } from '../recaptcha/recaptcha.service';
 import { generateOpaqueToken, hashToken } from '../common/token.util';
 import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
@@ -44,6 +45,7 @@ export class AuthService {
     private readonly mail: MailService,
     private readonly roles: RolesService,
     private readonly userActivity: UserActivityService,
+    private readonly recaptcha: RecaptchaService,
   ) {}
 
   private toPublicUser(user: {
@@ -65,6 +67,12 @@ export class AuthService {
   async register(
     dto: RegisterDto,
   ): Promise<{ user: PublicUser; tokens: AuthTokens }> {
+    if (!(await this.recaptcha.verify(dto.recaptchaToken))) {
+      throw new BadRequestException(
+        'Xác minh reCAPTCHA thất bại — vui lòng thử lại.',
+      );
+    }
+
     const existing = await this.prisma.user.findUnique({
       where: { email: dto.email },
     });
@@ -82,7 +90,7 @@ export class AuthService {
       },
     });
     await this.roles.assignDefaultRole(user.id);
-    await this.sendVerificationEmail(user.id, user.email);
+    await this.sendVerificationEmail(user.id, user.email, user.displayName);
 
     const tokens = await this.issueTokens(user.id);
     return { user: this.toPublicUser(user), tokens };
@@ -93,6 +101,12 @@ export class AuthService {
     userAgent?: string,
     ip?: string,
   ): Promise<{ user: PublicUser; tokens: AuthTokens }> {
+    if (!(await this.recaptcha.verify(dto.recaptchaToken))) {
+      throw new BadRequestException(
+        'Xác minh reCAPTCHA thất bại — vui lòng thử lại.',
+      );
+    }
+
     const user = await this.prisma.user.findUnique({
       where: { email: dto.email },
     });
@@ -224,10 +238,14 @@ export class AuthService {
     if (user.emailVerifiedAt) {
       throw new BadRequestException('Email đã được xác minh trước đó');
     }
-    await this.sendVerificationEmail(user.id, user.email);
+    await this.sendVerificationEmail(user.id, user.email, user.displayName);
   }
 
-  async sendVerificationEmail(userId: string, email: string): Promise<void> {
+  async sendVerificationEmail(
+    userId: string,
+    email: string,
+    displayName: string,
+  ): Promise<void> {
     const rawToken = generateOpaqueToken();
     await this.prisma.emailVerificationToken.create({
       data: {
@@ -237,7 +255,7 @@ export class AuthService {
       },
     });
     const verifyUrl = `${this.config.get<string>('FRONTEND_URL')}/xac-minh-email?token=${rawToken}`;
-    await this.mail.sendVerificationEmail(email, verifyUrl);
+    await this.mail.sendVerificationEmail(email, displayName, verifyUrl);
   }
 
   async verifyEmail(rawToken: string): Promise<void> {

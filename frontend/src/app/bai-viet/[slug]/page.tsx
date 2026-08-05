@@ -76,6 +76,20 @@ export default async function PostDetailPage({ params }: Props) {
             <span>{formatViewCount(post.viewCount)}</span>
           </div>
 
+          {post.tags.length > 0 && (
+            <div className="flex flex-wrap gap-1.5">
+              {post.tags.map((tag) => (
+                <Link
+                  key={tag.id}
+                  href={`/the/${tag.slug}`}
+                  className="rounded-full border border-zinc-200 px-2.5 py-1 font-mono text-xs text-zinc-600 hover:border-[#1d3557] hover:text-[#1d3557]"
+                >
+                  #{tag.name}
+                </Link>
+              ))}
+            </div>
+          )}
+
           {post.thumbnailUrl && (
             <span className="img-shine block w-full rounded-lg">
               {/* eslint-disable-next-line @next/next/no-img-element */}

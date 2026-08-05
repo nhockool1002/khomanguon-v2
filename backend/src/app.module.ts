@@ -9,6 +9,7 @@ import { RolesModule } from './roles/roles.module';
 import { AuthModule } from './auth/auth.module';
 import { UsersModule } from './users/users.module';
 import { CategoriesModule } from './categories/categories.module';
+import { TagsModule } from './tags/tags.module';
 import { PostsModule } from './posts/posts.module';
 import { UploadsModule } from './uploads/uploads.module';
 import { MenusModule } from './menus/menus.module';
@@ -26,6 +27,9 @@ import { SiteSettingsModule } from './settings/site-settings.module';
 import { MediaModule } from './media/media.module';
 import { CacheModule } from './cache/cache.module';
 import { UserActivityModule } from './user-activity/user-activity.module';
+import { RateLimitModule } from './common/rate-limit/rate-limit.module';
+import { RecaptchaModule } from './recaptcha/recaptcha.module';
+import { DbBackupModule } from './db-backup/db-backup.module';
 
 @Module({
   imports: [
@@ -36,9 +40,13 @@ import { UserActivityModule } from './user-activity/user-activity.module';
     RolesModule,
     AuthModule,
     CacheModule,
+    RateLimitModule,
+    RecaptchaModule,
+    DbBackupModule,
     UserActivityModule,
     UsersModule,
     CategoriesModule,
+    TagsModule,
     PostsModule,
     UploadsModule,
     MenusModule,

@@ -26,6 +26,7 @@ export const PERMISSIONS = {
   MEDIA_MANAGE: "media.manage",
   SETTINGS_MAIL: "settings.mail",
   CACHE_MANAGE: "cache.manage",
+  SETTINGS_BACKUP: "settings.backup",
 } as const;
 
 export type PermissionKey = (typeof PERMISSIONS)[keyof typeof PERMISSIONS];

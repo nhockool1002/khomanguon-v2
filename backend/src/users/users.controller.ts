@@ -45,17 +45,16 @@ export class UsersController {
     return this.usersService.getProfile(user.id);
   }
 
-  // Chỉ chính chủ xem được hoạt động của mình — dùng /me thay vì :id nên không cần check "not self"
-  // riêng (đơn giản/an toàn hơn), khớp đúng pattern các tab riêng tư khác ở profile-page.tsx.
-  @UseGuards(JwtAuthGuard)
-  @Get('me/activity')
-  listMyActivity(
-    @CurrentUser() user: AuthUser,
+  // Tab "Hoạt động" công khai — bất kỳ ai cũng xem được (kể cả khách chưa đăng nhập), giống
+  // getPublicProfile() bên dưới. Đặt TRƯỚC ':id/public-profile' không quan trọng (khác path suffix).
+  @Get(':id/activity')
+  listActivity(
+    @Param('id') id: string,
     @Query('page') page?: string,
     @Query('limit') limit?: string,
   ) {
-    return this.usersService.listMyActivity(
-      user.id,
+    return this.usersService.listActivity(
+      id,
       Number(page) || 1,
       Number(limit) || 20,
     );
@@ -164,6 +163,16 @@ export class UsersController {
       });
     }
     return profile;
+  }
+
+  // Dữ liệu cho card xem nhanh khi hover tên user (StyledUserName) — CÙNG dữ liệu với
+  // public-profile nhưng KHÔNG ghi UserActivity VISIT_PROFILE. Hover xảy ra ở khắp nơi (danh sách
+  // bình luận, byline bài viết...) nên nếu dùng chung endpoint public-profile sẽ ghi log "ghé thăm"
+  // giả hàng loạt mỗi lần rê chuột qua tên, làm sai lệch ý nghĩa thật của VISIT_PROFILE (chỉ nên
+  // tính khi thật sự điều hướng sang trang hồ sơ).
+  @Get(':id/profile-preview')
+  getProfilePreview(@Param('id') id: string) {
+    return this.usersService.getPublicProfile(id);
   }
 
   @Get(':id/messages')

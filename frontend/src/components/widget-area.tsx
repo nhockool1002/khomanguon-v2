@@ -2,6 +2,7 @@ import Link from "next/link";
 import { fetchCategories, fetchPosts, fetchWidgets } from "@/lib/public-api";
 import { formatDate, formatViewCount } from "@/lib/format";
 import { CommentSection } from "@/components/comment-section";
+import { Tooltip } from "@/components/ui";
 import type { Widget } from "@/lib/types";
 
 // Server Component — dùng chung cho trang chủ và trang bài viết (cả 2 đều là Server Component sẵn),
@@ -116,13 +117,14 @@ async function RecentPostsWidget({ title, limit }: { title: string; limit: numbe
                 aria-hidden
               />
               <div>
-                <Link
-                  href={`/bai-viet/${post.slug}`}
-                  title={post.title}
-                  className="text-sm font-semibold text-rose-600 hover:text-rose-700 hover:underline"
-                >
-                  {post.title}
-                </Link>
+                <Tooltip content={post.title}>
+                  <Link
+                    href={`/bai-viet/${post.slug}`}
+                    className="text-sm font-semibold text-rose-600 hover:text-rose-700 hover:underline"
+                  >
+                    {post.title}
+                  </Link>
+                </Tooltip>
                 <p className="mt-0.5 font-mono text-xs text-zinc-400">
                   {formatDate(post.publishedAt ?? post.createdAt)}
                 </p>
@@ -150,13 +152,14 @@ async function TopViewedWidget({ title, limit }: { title: string; limit: number 
                 {index + 1}
               </span>
               <div className="min-w-0">
-                <Link
-                  href={`/bai-viet/${post.slug}`}
-                  title={post.title}
-                  className="line-clamp-2 text-sm font-semibold text-rose-600 hover:text-rose-700 hover:underline"
-                >
-                  {post.title}
-                </Link>
+                <Tooltip content={post.title}>
+                  <Link
+                    href={`/bai-viet/${post.slug}`}
+                    className="line-clamp-2 text-sm font-semibold text-rose-600 hover:text-rose-700 hover:underline"
+                  >
+                    {post.title}
+                  </Link>
+                </Tooltip>
                 <p className="mt-0.5 font-mono text-xs text-zinc-400">
                   👁 {formatViewCount(post.viewCount)}
                 </p>

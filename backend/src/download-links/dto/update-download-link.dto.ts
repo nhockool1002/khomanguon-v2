@@ -1,25 +1,28 @@
 import { IsInt, IsOptional, IsString, Min, MinLength } from 'class-validator';
 
-export class UpsertDownloadLinkDto {
+export class UpdateDownloadLinkDto {
+  @IsOptional()
   @IsString()
   @MinLength(1)
-  label: string;
+  label?: string;
 
+  @IsOptional()
   @IsString()
   @MinLength(1)
-  storageProviderId: string;
+  storageProviderId?: string;
 
-  // Object key/path trong bucket — vd "source-code/example.zip" (xem placeholder trong form FE).
+  @IsOptional()
   @IsString()
   @MinLength(1)
-  objectKey: string;
+  objectKey?: string;
 
   @IsOptional()
   @IsInt()
   @Min(0)
   sizeBytes?: number;
 
+  @IsOptional()
   @IsInt()
   @Min(0)
-  priceP: number;
+  priceP?: number;
 }

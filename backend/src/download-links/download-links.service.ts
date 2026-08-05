@@ -12,7 +12,8 @@ import { WalletGateway } from '../realtime/wallet.gateway';
 import { MailService } from '../mail/mail.service';
 import { EXCLUDE_ADMIN_USER_WHERE } from '../common/exclude-admin-user.filter';
 import { resolveStyleRoleSlug } from '../roles/style-role.util';
-import { UpsertDownloadLinkDto } from './dto/upsert-download-link.dto';
+import { CreateDownloadLinkDto } from './dto/create-download-link.dto';
+import { UpdateDownloadLinkDto } from './dto/update-download-link.dto';
 
 const DOWNLOADER_LIST_LIMIT = 20;
 
@@ -32,9 +33,9 @@ function toPublicShape(link: {
   };
 }
 
-// Mỗi post chỉ có 1 link tải "chính" trong phạm vi hiện tại (khớp dữ liệu WP cũ: custom_key/custom_cash
-// 1-1 theo post) — model DownloadLink hỗ trợ nhiều bản ghi/post để dành mở rộng sau, ở đây luôn thao tác
-// trên bản ghi tạo sớm nhất của post.
+// Nhiều link tải/bài viết (đổi thiết kế — trước đây chỉ hỗ trợ 1 link "chính"/bài, luôn thao tác
+// trên bản ghi tạo sớm nhất). Model DownloadLink vốn đã hỗ trợ N bản ghi/postId từ đầu (không có
+// @unique trên postId) — giới hạn cũ chỉ nằm ở tầng service, không phải DB.
 @Injectable()
 export class DownloadLinksService {
   constructor(
@@ -44,45 +45,67 @@ export class DownloadLinksService {
     private readonly mailService: MailService,
   ) {}
 
-  private findPrimary(postId: string) {
-    return this.prisma.downloadLink.findFirst({
-      where: { postId },
-      orderBy: { createdAt: 'asc' },
-    });
-  }
-
-  async getForAdmin(postId: string) {
-    const link = await this.findPrimary(postId);
-    return link ? toPublicShape(link) : null;
-  }
-
-  async upsertForPost(postId: string, dto: UpsertDownloadLinkDto) {
+  async createForPost(postId: string, dto: CreateDownloadLinkDto) {
     await this.assertPostExists(postId);
     await this.assertStorageProviderExists(dto.storageProviderId);
 
-    const existing = await this.findPrimary(postId);
-    const data = {
-      label: dto.label,
-      storageProviderId: dto.storageProviderId,
-      objectKey: dto.objectKey,
-      sizeBytes: dto.sizeBytes !== undefined ? BigInt(dto.sizeBytes) : null,
-      priceP: dto.priceP,
-    };
-
-    const link = existing
-      ? await this.prisma.downloadLink.update({
-          where: { id: existing.id },
-          data,
-        })
-      : await this.prisma.downloadLink.create({ data: { postId, ...data } });
-
+    const link = await this.prisma.downloadLink.create({
+      data: {
+        postId,
+        label: dto.label,
+        storageProviderId: dto.storageProviderId,
+        objectKey: dto.objectKey,
+        sizeBytes: dto.sizeBytes !== undefined ? BigInt(dto.sizeBytes) : null,
+        priceP: dto.priceP,
+      },
+    });
     return toPublicShape(link);
   }
 
-  async getPublicInfo(postId: string) {
-    const link = await this.findPrimary(postId);
-    if (!link) return null;
+  async updateLink(linkId: string, dto: UpdateDownloadLinkDto) {
+    await this.getLinkOrThrow(linkId);
+    if (dto.storageProviderId) {
+      await this.assertStorageProviderExists(dto.storageProviderId);
+    }
 
+    const link = await this.prisma.downloadLink.update({
+      where: { id: linkId },
+      data: {
+        ...(dto.label !== undefined && { label: dto.label }),
+        ...(dto.storageProviderId !== undefined && {
+          storageProviderId: dto.storageProviderId,
+        }),
+        ...(dto.objectKey !== undefined && { objectKey: dto.objectKey }),
+        ...(dto.sizeBytes !== undefined && {
+          sizeBytes: BigInt(dto.sizeBytes),
+        }),
+        ...(dto.priceP !== undefined && { priceP: dto.priceP }),
+      },
+    });
+    return toPublicShape(link);
+  }
+
+  async deleteLink(linkId: string): Promise<void> {
+    await this.getLinkOrThrow(linkId);
+    await this.prisma.downloadLink.delete({ where: { id: linkId } });
+  }
+
+  async getPublicList(postId: string) {
+    const links = await this.prisma.downloadLink.findMany({
+      where: { postId },
+      orderBy: { createdAt: 'asc' },
+    });
+    return Promise.all(links.map((link) => this.toPublicInfo(link)));
+  }
+
+  private async toPublicInfo(link: {
+    id: string;
+    label: string;
+    objectKey: string;
+    storageProviderId: string;
+    sizeBytes: bigint | null;
+    priceP: number;
+  }) {
     const [downloaders, sizeBytes] = await Promise.all([
       this.prisma.downloadGrant.findMany({
         where: { downloadLinkId: link.id, ...EXCLUDE_ADMIN_USER_WHERE },
@@ -148,12 +171,15 @@ export class DownloadLinksService {
   // tải lại miễn phí" như thiết kế Phase 3 ban đầu (đã bỏ do yêu cầu thực tế: mỗi lần tải = 1 lần
   // trừ $P). DownloadGrant vẫn được ghi mỗi lần tải thành công — không còn dùng để kiểm tra quyền
   // truy cập, chỉ còn là lịch sử mua phục vụ tính doanh thu/danh sách member (cloud-files.service.ts).
-  async unlock(userId: string, postId: string, ipAddress: string) {
-    const link = await this.findPrimary(postId);
-    if (!link) throw new NotFoundException('Bài viết này chưa có link tải');
+  // Nhận thẳng linkId (thay vì postId) — đúng thiết kế nhiều link/bài, mỗi link mở khoá độc lập.
+  async unlock(userId: string, linkId: string, ipAddress: string) {
+    const link = await this.prisma.downloadLink.findUnique({
+      where: { id: linkId },
+    });
+    if (!link) throw new NotFoundException('Không tìm thấy link tải');
 
     const post = await this.prisma.post.findUnique({
-      where: { id: postId },
+      where: { id: link.postId },
       select: { title: true },
     });
     const fileName = link.objectKey.split('/').pop() || link.label;
@@ -232,6 +258,14 @@ export class DownloadLinksService {
       link.objectKey,
     );
     return { url };
+  }
+
+  private async getLinkOrThrow(linkId: string) {
+    const link = await this.prisma.downloadLink.findUnique({
+      where: { id: linkId },
+    });
+    if (!link) throw new NotFoundException('Không tìm thấy link tải');
+    return link;
   }
 
   private async assertPostExists(postId: string): Promise<void> {

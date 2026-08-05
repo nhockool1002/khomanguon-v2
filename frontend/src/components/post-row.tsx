@@ -1,6 +1,7 @@
 import Link from "next/link";
 import type { PostSummary } from "@/lib/types";
 import { formatDate } from "@/lib/format";
+import { Tooltip } from "@/components/ui";
 
 // Thẻ bài viết dạng hàng ngang cho trang danh mục (wireframe #02).
 export function PostRow({ post }: { post: PostSummary }) {
@@ -22,7 +23,9 @@ export function PostRow({ post }: { post: PostSummary }) {
         )}
       </div>
       <div className="flex flex-col gap-1">
-        <h3 className="text-sm font-semibold text-[#1d3557]" title={post.title}>{post.title}</h3>
+        <Tooltip as="h3" content={post.title} className="text-sm font-semibold text-[#1d3557]">
+          {post.title}
+        </Tooltip>
         <p className="font-mono text-xs text-[#5c6370]">
           {post.author.displayName} · {formatDate(post.publishedAt ?? post.createdAt)}
         </p>

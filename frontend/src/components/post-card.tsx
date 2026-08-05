@@ -2,6 +2,7 @@ import Link from "next/link";
 import type { PostSummary } from "@/lib/types";
 import { formatDate } from "@/lib/format";
 import { StyledUserName } from "@/components/styled-user-name";
+import { Tooltip } from "@/components/ui";
 
 // Thẻ bài viết dạng lưới cho trang chủ (wireframe #01): ảnh -> tiêu đề (navy) -> meta -> excerpt 2 dòng.
 export function PostCard({ post }: { post: PostSummary }) {
@@ -22,9 +23,13 @@ export function PostCard({ post }: { post: PostSummary }) {
           <span className="font-mono text-xs text-zinc-400">Chưa có ảnh</span>
         )}
       </div>
-      <h3 className="line-clamp-2 text-sm font-semibold text-[#1d3557]" title={post.title}>
+      <Tooltip
+        as="h3"
+        content={post.title}
+        className="line-clamp-2 text-sm font-semibold text-[#1d3557]"
+      >
         {post.title}
-      </h3>
+      </Tooltip>
       <p className="flex flex-wrap items-center gap-1 font-mono text-xs text-[#5c6370]">
         <StyledUserName styleRoleSlug={post.author.styleRoleSlug}>
           {post.author.displayName}

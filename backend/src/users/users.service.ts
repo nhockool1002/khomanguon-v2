@@ -402,8 +402,9 @@ export class UsersService {
     };
   }
 
-  // Tab "Hoạt động" ở trang Hồ sơ — chỉ chính chủ xem được (kiểm soát ở controller qua /me).
-  async listMyActivity(userId: string, page: number, limit: number) {
+  // Tab "Hoạt động" ở trang Hồ sơ — công khai, ai cũng xem được (kiểm soát route ở controller qua
+  // GET /users/:id/activity, không cần đăng nhập, giống getPublicProfile()).
+  async listActivity(userId: string, page: number, limit: number) {
     const take = Math.min(Math.max(limit, 1), 50);
     const skip = (Math.max(page, 1) - 1) * take;
     const [items, total] = await this.prisma.$transaction([

@@ -17,6 +17,10 @@ RUN pnpm run build
 # Cài lại trực tiếp trong stage runtime để node_modules được tạo mới, tự chứa 100% trong
 # đúng layer sẽ chạy — image nặng hơn một chút (2 lần install) nhưng chắc chắn resolve đúng.
 FROM base AS runtime
+# postgresql16-client cung cấp pg_dump — cần cho tính năng Backup DB (db-backup module chạy pg_dump
+# qua child_process nhắm vào container "postgres" riêng cùng docker-compose network, không có sẵn
+# trong image node:22-alpine gốc). Bản 16 khớp đúng Postgres 16 đang chạy production.
+RUN apk add --no-cache postgresql16-client
 COPY package.json pnpm-lock.yaml ./
 # Cài trước khi đặt NODE_ENV=production — đặt sớm hơn khiến pnpm bỏ qua devDependencies,
 # nhưng "prisma" (CLI, cần cho lệnh generate dưới đây) và "ts-node" (cần cho seed) đều nằm

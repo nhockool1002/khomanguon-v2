@@ -26,6 +26,11 @@ export const PERMISSIONS = {
   MEDIA_MANAGE: 'media.manage',
   SETTINGS_MAIL: 'settings.mail',
   CACHE_MANAGE: 'cache.manage',
+  // Backup DB chứa toàn bộ dữ liệu hệ thống — mức nhạy cảm cao nhất, KHÔNG gán cho Super Moderator
+  // mặc định (xem DEFAULT_ROLE_PERMISSIONS bên dưới, chỉ admin có qua ALL_PERMISSION_KEYS). Permission
+  // mới thêm sau khi seed đã chạy vẫn tự backfill cho Admin lần deploy tiếp theo — seed.ts dùng
+  // upsert cho vòng lặp linking role<->permission, không chỉ chạy 1 lần lúc tạo role mới.
+  SETTINGS_BACKUP: 'settings.backup',
 } as const;
 
 export type PermissionKey = (typeof PERMISSIONS)[keyof typeof PERMISSIONS];

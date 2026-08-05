@@ -12,12 +12,31 @@ import type {
   GeneralSettings,
   HeaderBackgroundAttachment,
   HeaderBackgroundSize,
+  RateLimitSettings,
+  RecaptchaAdminConfig,
 } from "@/lib/types";
 import { ErrorBanner, SuccessBanner } from "@/components/ui";
 import { ForbiddenPage } from "@/components/forbidden-page";
 
 const inputClass =
   "rounded-md border border-zinc-300 px-3 py-2 text-sm outline-none focus:border-[#1d3557] focus:ring-1 focus:ring-[#1d3557]";
+
+const RATE_LIMIT_LABEL: Record<keyof Omit<RateLimitSettings, "enabled">, string> = {
+  login: "Đăng nhập",
+  register: "Đăng ký",
+  forgotPassword: "Quên mật khẩu",
+  search: "Tìm kiếm / duyệt bài viết",
+  commentCreate: "Đăng bình luận",
+};
+
+const DEFAULT_RATE_LIMITS: RateLimitSettings = {
+  enabled: true,
+  login: { windowSec: 600, max: 5 },
+  register: { windowSec: 3600, max: 5 },
+  forgotPassword: { windowSec: 900, max: 3 },
+  search: { windowSec: 60, max: 30 },
+  commentCreate: { windowSec: 60, max: 10 },
+};
 
 export default function GeneralSettingsPage() {
   const { user, loading } = useAuth();
@@ -43,6 +62,14 @@ export default function GeneralSettingsPage() {
   const [headerSloganBold, setHeaderSloganBold] = useState(true);
   const [headerSloganItalic, setHeaderSloganItalic] = useState(false);
   const [footerText, setFooterText] = useState("");
+  const [rateLimits, setRateLimits] = useState<RateLimitSettings>(DEFAULT_RATE_LIMITS);
+
+  const [recaptchaEnabled, setRecaptchaEnabled] = useState(false);
+  const [recaptchaSiteKey, setRecaptchaSiteKey] = useState("");
+  const [recaptchaSecretKey, setRecaptchaSecretKey] = useState("");
+  const [recaptchaHasSecretKey, setRecaptchaHasSecretKey] = useState(false);
+  const [savingRecaptcha, setSavingRecaptcha] = useState(false);
+  const [recaptchaMessage, setRecaptchaMessage] = useState<string | null>(null);
 
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
@@ -78,9 +105,44 @@ export default function GeneralSettingsPage() {
         setHeaderSloganBold(res.headerSloganBold);
         setHeaderSloganItalic(res.headerSloganItalic);
         setFooterText(res.footerText);
+        setRateLimits(res.rateLimits);
       })
       .catch((err) => setError(err instanceof ApiError ? err.message : "Có lỗi xảy ra"));
   }, [user]);
+
+  useEffect(() => {
+    if (!user) return;
+    apiFetch<RecaptchaAdminConfig>("/recaptcha/admin-config")
+      .then((res) => {
+        setRecaptchaEnabled(res.enabled);
+        setRecaptchaSiteKey(res.siteKey);
+        setRecaptchaHasSecretKey(res.hasSecretKey);
+      })
+      .catch(() => {});
+  }, [user]);
+
+  async function handleSaveRecaptcha() {
+    setError(null);
+    setRecaptchaMessage(null);
+    setSavingRecaptcha(true);
+    try {
+      const res = await apiFetch<RecaptchaAdminConfig>("/recaptcha/admin-config", {
+        method: "PUT",
+        body: JSON.stringify({
+          enabled: recaptchaEnabled,
+          siteKey: recaptchaSiteKey,
+          secretKey: recaptchaSecretKey || undefined,
+        }),
+      });
+      setRecaptchaHasSecretKey(res.hasSecretKey);
+      setRecaptchaSecretKey("");
+      setRecaptchaMessage("Đã lưu cấu hình reCAPTCHA.");
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : "Có lỗi xảy ra");
+    } finally {
+      setSavingRecaptcha(false);
+    }
+  }
 
   async function handleSave() {
     setError(null);
@@ -109,6 +171,7 @@ export default function GeneralSettingsPage() {
           headerSloganBold,
           headerSloganItalic,
           footerText,
+          rateLimits,
         }),
       });
       setMessage("Đã lưu cấu hình chung.");
@@ -463,6 +526,116 @@ export default function GeneralSettingsPage() {
             className={inputClass}
           />
         </label>
+      </div>
+
+      <div className="flex flex-col gap-3 rounded-md border border-zinc-200 p-4">
+        <div className="flex items-center justify-between">
+          <p className="text-xs font-semibold uppercase tracking-wide text-zinc-500">
+            Rate limit API công khai
+          </p>
+          <label className="flex items-center gap-2 text-xs text-zinc-600">
+            <input
+              type="checkbox"
+              checked={rateLimits.enabled}
+              onChange={(e) => setRateLimits((prev) => ({ ...prev, enabled: e.target.checked }))}
+            />
+            Bật rate limit
+          </label>
+        </div>
+        <p className="text-xs text-zinc-400">
+          Số lượt tối đa cho mỗi IP trong 1 khoảng thời gian — chặn brute-force đăng nhập, spam đăng
+          ký/bình luận, dò quét tìm kiếm hàng loạt.
+        </p>
+        {(Object.keys(RATE_LIMIT_LABEL) as (keyof typeof RATE_LIMIT_LABEL)[]).map((key) => (
+          <div key={key} className="grid grid-cols-1 items-end gap-2 sm:grid-cols-3">
+            <span className="text-sm text-zinc-700 sm:col-span-1">{RATE_LIMIT_LABEL[key]}</span>
+            <label className="flex flex-col gap-1 text-xs text-zinc-500">
+              Số lượt tối đa
+              <input
+                type="number"
+                min={1}
+                value={rateLimits[key].max}
+                onChange={(e) =>
+                  setRateLimits((prev) => ({
+                    ...prev,
+                    [key]: { ...prev[key], max: Math.max(1, Number(e.target.value) || 1) },
+                  }))
+                }
+                className={inputClass}
+              />
+            </label>
+            <label className="flex flex-col gap-1 text-xs text-zinc-500">
+              Trong (giây)
+              <input
+                type="number"
+                min={1}
+                value={rateLimits[key].windowSec}
+                onChange={(e) =>
+                  setRateLimits((prev) => ({
+                    ...prev,
+                    [key]: { ...prev[key], windowSec: Math.max(1, Number(e.target.value) || 1) },
+                  }))
+                }
+                className={inputClass}
+              />
+            </label>
+          </div>
+        ))}
+      </div>
+
+      <div className="flex flex-col gap-3 rounded-md border border-zinc-200 p-4">
+        <div className="flex items-center justify-between">
+          <p className="text-xs font-semibold uppercase tracking-wide text-zinc-500">
+            reCAPTCHA v2 (đăng ký / đăng nhập)
+          </p>
+          <label className="flex items-center gap-2 text-xs text-zinc-600">
+            <input
+              type="checkbox"
+              checked={recaptchaEnabled}
+              onChange={(e) => setRecaptchaEnabled(e.target.checked)}
+            />
+            Bật reCAPTCHA
+          </label>
+        </div>
+        <p className="text-xs text-zinc-400">
+          Lấy cặp key tại{" "}
+          <a
+            href="https://www.google.com/recaptcha/admin"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="font-medium text-[#1d3557] hover:underline"
+          >
+            google.com/recaptcha/admin
+          </a>{" "}
+          (chọn loại &quot;reCAPTCHA v2 - Hộp kiểm&quot;).
+        </p>
+        <label className="flex flex-col gap-1 text-sm text-zinc-700">
+          Site key
+          <input
+            value={recaptchaSiteKey}
+            onChange={(e) => setRecaptchaSiteKey(e.target.value)}
+            className={inputClass}
+          />
+        </label>
+        <label className="flex flex-col gap-1 text-sm text-zinc-700">
+          Secret key
+          <input
+            type="password"
+            value={recaptchaSecretKey}
+            onChange={(e) => setRecaptchaSecretKey(e.target.value)}
+            placeholder={recaptchaHasSecretKey ? "•••••••• (để trống để giữ nguyên)" : "Chưa cấu hình"}
+            className={inputClass}
+          />
+        </label>
+        {recaptchaMessage && <p className="text-xs text-emerald-600">{recaptchaMessage}</p>}
+        <button
+          type="button"
+          onClick={handleSaveRecaptcha}
+          disabled={savingRecaptcha}
+          className="w-fit rounded-md border border-[#1d3557] px-3 py-1.5 text-sm font-medium text-[#1d3557] hover:bg-[#1d3557]/5 disabled:opacity-50"
+        >
+          {savingRecaptcha ? "Đang lưu..." : "Lưu reCAPTCHA"}
+        </button>
       </div>
 
       <p className="text-xs text-zinc-400">

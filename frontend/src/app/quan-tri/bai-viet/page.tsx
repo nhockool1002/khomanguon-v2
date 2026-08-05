@@ -8,7 +8,7 @@ import { apiFetch, ApiError } from "@/lib/api";
 import { PERMISSIONS } from "@/lib/permissions";
 import type { PostListResponse, PostStatus } from "@/lib/types";
 import { formatDate } from "@/lib/format";
-import { ErrorBanner } from "@/components/ui";
+import { ErrorBanner, Tooltip } from "@/components/ui";
 import { ForbiddenPage } from "@/components/forbidden-page";
 
 const STATUS_LABEL: Record<PostStatus, string> = {
@@ -99,9 +99,13 @@ export default function AdminPostsPage() {
             <tbody>
               {data.items.map((post) => (
                 <tr key={post.id} className="border-t border-zinc-100">
-                  <td className="max-w-xs truncate px-3 py-2 font-medium text-[#1d3557]" title={post.title}>
+                  <Tooltip
+                    as="td"
+                    content={post.title}
+                    className="max-w-xs truncate px-3 py-2 font-medium text-[#1d3557]"
+                  >
                     {post.title}
-                  </td>
+                  </Tooltip>
                   <td className="px-3 py-2 text-zinc-600">{post.author.displayName}</td>
                   <td className="px-3 py-2">
                     <span className="rounded-full bg-zinc-100 px-2 py-0.5 font-mono text-xs text-zinc-600">

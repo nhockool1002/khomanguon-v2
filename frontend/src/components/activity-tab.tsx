@@ -13,6 +13,7 @@ const TYPE_ICON: Record<UserActivity["type"], string> = {
   VIEW_POST: "👁",
   DEPOSIT: "💰",
   VISIT_PROFILE: "👤",
+  COMMENT: "💬",
 };
 
 function describe(activity: UserActivity): string {
@@ -26,6 +27,8 @@ function describe(activity: UserActivity): string {
       return `Nạp ${Number(meta.amountVnd ?? 0).toLocaleString("vi-VN")} VNĐ vào ví`;
     case "VISIT_PROFILE":
       return `Ghé thăm trang hồ sơ của ${String(meta.profileDisplayName ?? "")}`;
+    case "COMMENT":
+      return `Bình luận vào bài viết "${String(meta.postTitle ?? "")}"`;
     default:
       return "";
   }
@@ -35,12 +38,14 @@ function activityLink(activity: UserActivity): string | null {
   const meta = activity.metadata ?? {};
   if (activity.type === "VIEW_POST" && meta.postSlug) return `/bai-viet/${String(meta.postSlug)}`;
   if (activity.type === "VISIT_PROFILE" && meta.profileUserId) return `/nguoi-dung/${String(meta.profileUserId)}`;
+  // COMMENT chỉ lưu postId (không có slug) — không đủ để build link an toàn, hiện dạng text thuần.
   return null;
 }
 
-// Tab "Hoạt động" — chỉ chính chủ xem được (GET /users/me/activity), gộp 4 loại: đăng nhập, xem bài
-// viết, nạp tiền, ghé thăm profile người khác (đúng phạm vi yêu cầu, không cố log "mọi hành động").
-export function ActivityTab() {
+// Tab "Hoạt động" — công khai, ai cũng xem được (GET /users/:id/activity), gộp 5 loại: đăng nhập,
+// xem bài viết, nạp tiền, ghé thăm profile người khác, bình luận (đúng phạm vi yêu cầu, không cố
+// log "mọi hành động" — thao tác quản trị/backend không ghi vào đây).
+export function ActivityTab({ userId }: { userId: string }) {
   const [items, setItems] = useState<UserActivity[] | null>(null);
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
@@ -48,14 +53,14 @@ export function ActivityTab() {
 
   const reload = useCallback(() => {
     apiFetch<{ items: UserActivity[]; total: number }>(
-      `/users/me/activity?page=${page}&limit=${PAGE_SIZE}`,
+      `/users/${userId}/activity?page=${page}&limit=${PAGE_SIZE}`,
     )
       .then((res) => {
         setItems((prev) => (page === 1 ? res.items : [...(prev ?? []), ...res.items]));
         setTotal(res.total);
       })
       .catch((err) => setError(err instanceof ApiError ? err.message : "Có lỗi xảy ra"));
-  }, [page]);
+  }, [userId, page]);
 
   useEffect(() => {
     reload();

@@ -41,7 +41,7 @@ export interface AuthResponse {
   accessToken: string;
 }
 
-export type UserActivityType = "LOGIN" | "VIEW_POST" | "DEPOSIT" | "VISIT_PROFILE";
+export type UserActivityType = "LOGIN" | "VIEW_POST" | "DEPOSIT" | "VISIT_PROFILE" | "COMMENT";
 
 export interface UserActivity {
   id: string;
@@ -66,6 +66,12 @@ export interface CategoryRef {
   slug: string;
 }
 
+export interface Tag {
+  id: string;
+  name: string;
+  slug: string;
+}
+
 export interface PostAuthor {
   id: string;
   displayName: string;
@@ -84,6 +90,7 @@ export interface PostSummary {
   publishedAt: string | null;
   createdAt: string;
   category: CategoryRef | null;
+  tags: Tag[];
   author: PostAuthor;
 }
 
@@ -242,6 +249,42 @@ export interface StorageProvider {
   createdAt: string;
 }
 
+export interface BackupConfig {
+  enabled: boolean;
+  hour: number;
+  minute: number;
+  retentionCount: number;
+  storageProviderId: string | null;
+}
+
+export type DbBackupStatus = "SUCCESS" | "FAILED";
+
+export interface DbBackupRecord {
+  id: string;
+  status: DbBackupStatus;
+  sizeBytes: number | null;
+  storageProviderId: string | null;
+  objectKey: string | null;
+  errorMessage: string | null;
+  createdAt: string;
+}
+
+export type CloudUploadStatus = "SUCCESS" | "FAILED" | "CANCELLED";
+
+export interface CloudUploadRecord {
+  id: string;
+  fileName: string;
+  objectKey: string | null;
+  folder: string | null;
+  sizeBytes: number | null;
+  status: CloudUploadStatus;
+  errorMessage: string | null;
+  storageProviderId: string | null;
+  providerLabel: string | null;
+  uploadedBy: { id: string; displayName: string } | null;
+  createdAt: string;
+}
+
 export interface DownloadLinkAdmin {
   id: string;
   label: string;
@@ -354,6 +397,20 @@ export interface CloudFile {
 export type HeaderBackgroundSize = "cover" | "contain" | "auto";
 export type HeaderBackgroundAttachment = "scroll" | "fixed";
 
+export interface RateLimitRule {
+  windowSec: number;
+  max: number;
+}
+
+export interface RateLimitSettings {
+  enabled: boolean;
+  login: RateLimitRule;
+  register: RateLimitRule;
+  forgotPassword: RateLimitRule;
+  search: RateLimitRule;
+  commentCreate: RateLimitRule;
+}
+
 export interface GeneralSettings {
   postsPerPage: number;
   siteTitle: string;
@@ -376,6 +433,13 @@ export interface GeneralSettings {
   gaTrackingId: string;
   googleSiteVerification: string;
   footerText: string;
+  rateLimits: RateLimitSettings;
+}
+
+export interface RecaptchaAdminConfig {
+  enabled: boolean;
+  siteKey: string;
+  hasSecretKey: boolean;
 }
 
 export interface MailTemplateConfig {
@@ -390,6 +454,7 @@ export interface MailTemplates {
   passwordReset: MailTemplateConfig;
   linkReportAdmin: MailTemplateConfig;
   linkReportResolved: MailTemplateConfig;
+  verifyEmail: MailTemplateConfig;
 }
 
 export interface MediaFile {

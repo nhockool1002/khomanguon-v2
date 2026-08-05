@@ -71,6 +71,7 @@ model User {
   uploadedMediaFiles     MediaFile[]
   profileMessagesReceived ProfileMessage[] @relation("ProfileMessagesReceived")
   profileMessagesSent     ProfileMessage[] @relation("ProfileMessagesSent")
+  uploadedCloudFiles      CloudUploadRecord[]
 
   @@map("users")
 }
@@ -510,11 +511,13 @@ enum UserActivityType {
   VIEW_POST
   DEPOSIT
   VISIT_PROFILE
+  COMMENT
 }
 
-// User Activity — tab "Hoạt động" trong trang Hồ sơ, chỉ chính chủ mới xem được (GET /users/me/activity).
-// metadata tuỳ type: VIEW_POST {postTitle, postSlug}; DEPOSIT {amountVnd, transactionCode};
-// VISIT_PROFILE {profileUserId, profileDisplayName}; LOGIN không cần metadata.
+// User Activity — tab "Hoạt động" trong trang Hồ sơ, công khai (GET /users/:id/activity, ai cũng
+// xem được, giống trang Hồ sơ công khai). metadata tuỳ type: VIEW_POST {postTitle, postSlug};
+// DEPOSIT {amountVnd, transactionCode}; VISIT_PROFILE {profileUserId, profileDisplayName};
+// COMMENT {postId, postTitle, commentId}; LOGIN không cần metadata.
 model UserActivity {
   id        String            @id @default(cuid())
   userId    String
@@ -640,4 +643,53 @@ model MediaFile {
   createdAt    DateTime @default(now())
 
   @@map("media_files")
+}
+
+enum DbBackupStatus {
+  SUCCESS
+  FAILED
+}
+
+// Lịch sử mỗi lần backup DB (thủ công qua nút "Backup ngay" hoặc cron hàng ngày) — không ràng buộc
+// FK cứng tới StorageProvider (provider có thể bị Admin xoá sau, lịch sử backup cũ vẫn giữ nguyên
+// để biết đã từng backup, dù không còn tải lại được file thật). Ghi cả bản ghi FAILED (không chỉ
+// SUCCESS) để Admin thấy ngay backup có lỗi thay vì im lặng biến mất — xem DbBackupService.runBackup.
+model DbBackupRecord {
+  id                String         @id @default(cuid())
+  status            DbBackupStatus
+  sizeBytes         BigInt?
+  storageProviderId String?
+  objectKey         String?
+  errorMessage      String?
+  createdAt         DateTime       @default(now())
+
+  @@map("db_backup_records")
+}
+
+enum CloudUploadStatus {
+  SUCCESS
+  FAILED
+  CANCELLED
+}
+
+// Lịch sử upload file lên bucket qua trang "Upload File Cloud" (hàng đợi nền, xem
+// frontend/src/context/upload-queue-context.tsx) — ghi lại cả FAILED/CANCELLED (không chỉ SUCCESS)
+// để admin tra cứu được vì sao 1 lần upload không ra file, không chỉ thấy "biến mất". Không ràng
+// buộc FK cứng tới StorageProvider (provider có thể bị xoá sau) — cùng lý do đã áp dụng cho
+// DbBackupRecord, snapshot providerLabel riêng để lịch sử cũ vẫn đọc được tên dù provider đã đổi/xoá.
+model CloudUploadRecord {
+  id                String            @id @default(cuid())
+  fileName          String
+  objectKey         String?
+  folder            String?
+  sizeBytes         BigInt?
+  status            CloudUploadStatus
+  errorMessage      String?
+  storageProviderId String?
+  providerLabel     String?
+  uploadedById      String?
+  uploadedBy        User?             @relation(fields: [uploadedById], references: [id], onDelete: SetNull)
+  createdAt         DateTime          @default(now())
+
+  @@map("cloud_upload_records")
 }

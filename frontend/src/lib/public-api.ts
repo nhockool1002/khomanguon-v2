@@ -6,6 +6,7 @@ import type {
   PostListResponse,
   PublicProfile,
   RoleBadgeInfo,
+  Tag,
   Widget,
 } from "./types";
 
@@ -30,6 +31,7 @@ async function publicFetch<T>(path: string, revalidateSeconds = 30): Promise<T |
 
 export async function fetchPosts(params: {
   categorySlug?: string;
+  tagSlug?: string;
   q?: string;
   sort?: "newest" | "popular";
   page?: number;
@@ -37,6 +39,7 @@ export async function fetchPosts(params: {
 }): Promise<PostListResponse> {
   const query = new URLSearchParams();
   if (params.categorySlug) query.set("category", params.categorySlug);
+  if (params.tagSlug) query.set("tag", params.tagSlug);
   if (params.q) query.set("q", params.q);
   if (params.sort) query.set("sort", params.sort);
   if (params.page) query.set("page", String(params.page));
@@ -53,8 +56,20 @@ export async function fetchPublicProfile(id: string): Promise<PublicProfile | nu
   return publicFetch<PublicProfile>(`/users/${id}/public-profile`);
 }
 
+// Dùng riêng cho card xem nhanh khi hover tên user — KHÔNG dùng fetchPublicProfile() ở đây vì
+// endpoint đó ghi UserActivity VISIT_PROFILE cho người xem, hover ở khắp nơi (bình luận, byline...)
+// sẽ ghi log "ghé thăm" giả hàng loạt (xem users.controller.ts getProfilePreview()).
+export async function fetchUserPreview(id: string): Promise<PublicProfile | null> {
+  return publicFetch<PublicProfile>(`/users/${id}/profile-preview`);
+}
+
 export async function fetchCategories(): Promise<Category[]> {
   const result = await publicFetch<Category[]>("/categories");
+  return result ?? [];
+}
+
+export async function fetchTags(): Promise<Tag[]> {
+  const result = await publicFetch<Tag[]>("/tags");
   return result ?? [];
 }
 
@@ -104,6 +119,14 @@ export const DEFAULT_GENERAL_SETTINGS: GeneralSettings = {
   gaTrackingId: "",
   googleSiteVerification: "",
   footerText: "KHOMANGUON Version 2 (C) 2026. All Rights Reserved.",
+  rateLimits: {
+    enabled: true,
+    login: { windowSec: 600, max: 5 },
+    register: { windowSec: 3600, max: 5 },
+    forgotPassword: { windowSec: 900, max: 3 },
+    search: { windowSec: 60, max: 30 },
+    commentCreate: { windowSec: 60, max: 10 },
+  },
 };
 
 export async function fetchGeneralSettings(): Promise<GeneralSettings> {

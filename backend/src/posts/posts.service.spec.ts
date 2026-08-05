@@ -19,6 +19,7 @@ describe('PostsService.update — phân quyền sửa bài (post.edit.own / post
     id: 'post-1',
     authorId: 'author-1',
     publishedAt: null as Date | null,
+    tags: [] as { tag: { id: string; name: string; slug: string } }[],
     author: {
       id: 'author-1',
       displayName: 'Author',

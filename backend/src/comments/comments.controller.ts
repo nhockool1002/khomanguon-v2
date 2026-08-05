@@ -18,6 +18,8 @@ import { Permissions } from '../roles/decorators/permissions.decorator';
 import { PERMISSIONS } from '../roles/permissions.constant';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { CreateCommentDto } from './dto/create-comment.dto';
+import { PublicRateLimitGuard } from '../common/rate-limit/public-rate-limit.guard';
+import { RateLimitKey } from '../common/rate-limit/rate-limit-key.decorator';
 import {
   PinCommentDto,
   UpdateCommentStatusDto,
@@ -79,7 +81,8 @@ export class CommentsController {
     );
   }
 
-  @UseGuards(JwtAuthGuard, PermissionsGuard)
+  @UseGuards(PublicRateLimitGuard, JwtAuthGuard, PermissionsGuard)
+  @RateLimitKey('commentCreate')
   @Permissions(PERMISSIONS.COMMENT_CREATE)
   @Post()
   create(@CurrentUser() user: AuthUser, @Body() dto: CreateCommentDto) {
