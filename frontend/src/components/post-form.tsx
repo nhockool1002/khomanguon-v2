@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { apiFetch, ApiError } from "@/lib/api";
-import type { Category, PostDetail, PostStatus } from "@/lib/types";
+import type { Category, PostDetail, PostStatus, Tag } from "@/lib/types";
 import { ErrorBanner, FormField, SuccessBanner } from "@/components/ui";
 import { RichTextEditor } from "@/components/rich-text-editor";
 import { ImageUploadField } from "@/components/image-upload-field";
@@ -21,6 +21,7 @@ export interface PostFormValues {
   excerpt: string;
   thumbnailUrl: string;
   categoryId: string;
+  tagIds: string[];
   contentHtml: string;
   status: PostStatus;
   metaTitle: string;
@@ -38,11 +39,15 @@ export function PostForm({
   onSubmit: (values: PostFormValues) => Promise<void>;
 }) {
   const [categories, setCategories] = useState<Category[]>([]);
+  const [tags, setTags] = useState<Tag[]>([]);
   const [title, setTitle] = useState(initial?.title ?? "");
   const [slug, setSlug] = useState(initial?.slug ?? "");
   const [excerpt, setExcerpt] = useState(initial?.excerpt ?? "");
   const [thumbnailUrl, setThumbnailUrl] = useState(initial?.thumbnailUrl ?? "");
   const [categoryId, setCategoryId] = useState(initial?.categoryId ?? "");
+  const [tagIds, setTagIds] = useState<string[]>(
+    initial?.tags?.map((t) => t.id) ?? [],
+  );
   const [contentHtml, setContentHtml] = useState(initial?.contentHtml ?? "");
   const [status, setStatus] = useState<PostStatus>(initial?.status ?? "DRAFT");
   const [metaTitle, setMetaTitle] = useState(initial?.metaTitle ?? "");
@@ -55,7 +60,14 @@ export function PostForm({
 
   useEffect(() => {
     apiFetch<Category[]>("/categories").then(setCategories).catch(() => setCategories([]));
+    apiFetch<Tag[]>("/tags").then(setTags).catch(() => setTags([]));
   }, []);
+
+  function toggleTag(tagId: string) {
+    setTagIds((prev) =>
+      prev.includes(tagId) ? prev.filter((id) => id !== tagId) : [...prev, tagId],
+    );
+  }
 
   async function submitWithStatus(targetStatus: PostStatus) {
     setError(null);
@@ -78,6 +90,7 @@ export function PostForm({
         excerpt,
         thumbnailUrl,
         categoryId,
+        tagIds,
         contentHtml,
         status: targetStatus,
         metaTitle,
@@ -185,6 +198,31 @@ export function PostForm({
               ))}
             </select>
           </label>
+
+          {tags.length > 0 && (
+            <div className="flex flex-col gap-1.5 text-sm text-zinc-700">
+              Tag
+              <div className="flex flex-wrap gap-1.5">
+                {tags.map((t) => {
+                  const active = tagIds.includes(t.id);
+                  return (
+                    <button
+                      key={t.id}
+                      type="button"
+                      onClick={() => toggleTag(t.id)}
+                      className={`rounded-full border px-2.5 py-1 text-xs font-medium transition-colors ${
+                        active
+                          ? "border-[#1d3557] bg-[#1d3557] text-white"
+                          : "border-zinc-300 text-zinc-600 hover:border-[#1d3557] hover:text-[#1d3557]"
+                      }`}
+                    >
+                      {t.name}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
 
           <ImageUploadField
             label="Ảnh đại diện"

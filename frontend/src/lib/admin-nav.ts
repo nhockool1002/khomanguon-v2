@@ -5,6 +5,7 @@ import {
   CreditCard,
   FileText,
   FolderTree,
+  Tag as TagIcon,
   Image as ImageIcon,
   LayoutGrid,
   LayoutTemplate,
@@ -70,6 +71,14 @@ export const ADMIN_NAV: NavEntry[] = [
         icon: FolderTree,
         match: "prefix",
         // Chưa có quyền category.manage riêng — categories.controller.ts tái dùng POST_PUBLISH.
+        permission: PERMISSIONS.POST_PUBLISH,
+      },
+      {
+        href: "/quan-tri/tag",
+        label: "Tag",
+        icon: TagIcon,
+        match: "prefix",
+        // Chưa có quyền tag.manage riêng — tags.controller.ts tái dùng POST_PUBLISH (giống Danh mục).
         permission: PERMISSIONS.POST_PUBLISH,
       },
     ],

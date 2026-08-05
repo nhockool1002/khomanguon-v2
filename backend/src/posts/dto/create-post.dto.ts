@@ -1,5 +1,6 @@
 import { PostStatus } from '@prisma/client';
 import {
+  IsArray,
   IsEnum,
   IsOptional,
   IsString,
@@ -40,6 +41,11 @@ export class CreatePostDto {
   @IsOptional()
   @IsString()
   categoryId?: string;
+
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  tagIds?: string[];
 
   @IsOptional()
   @IsEnum(PostStatus)

@@ -49,6 +49,7 @@ export class PostsController {
   @Get()
   list(
     @Query('category') categorySlug?: string,
+    @Query('tag') tagSlug?: string,
     @Query('q') q?: string,
     @Query('sort') sort?: 'newest' | 'popular',
     @Query('page') page?: string,
@@ -56,6 +57,7 @@ export class PostsController {
   ) {
     return this.postsService.listPublic({
       categorySlug,
+      tagSlug,
       q,
       sort,
       ...parsePageQuery(page, limit),

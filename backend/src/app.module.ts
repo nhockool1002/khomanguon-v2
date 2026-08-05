@@ -9,6 +9,7 @@ import { RolesModule } from './roles/roles.module';
 import { AuthModule } from './auth/auth.module';
 import { UsersModule } from './users/users.module';
 import { CategoriesModule } from './categories/categories.module';
+import { TagsModule } from './tags/tags.module';
 import { PostsModule } from './posts/posts.module';
 import { UploadsModule } from './uploads/uploads.module';
 import { MenusModule } from './menus/menus.module';
@@ -39,6 +40,7 @@ import { UserActivityModule } from './user-activity/user-activity.module';
     UserActivityModule,
     UsersModule,
     CategoriesModule,
+    TagsModule,
     PostsModule,
     UploadsModule,
     MenusModule,

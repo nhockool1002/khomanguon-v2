@@ -44,6 +44,7 @@ export default function EditPostPage() {
         excerpt: values.excerpt || undefined,
         thumbnailUrl: values.thumbnailUrl || undefined,
         categoryId: values.categoryId || undefined,
+        tagIds: values.tagIds,
         contentHtml: values.contentHtml,
         status: values.status,
         metaTitle: values.metaTitle || undefined,

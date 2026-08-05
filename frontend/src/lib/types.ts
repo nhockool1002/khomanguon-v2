@@ -66,6 +66,12 @@ export interface CategoryRef {
   slug: string;
 }
 
+export interface Tag {
+  id: string;
+  name: string;
+  slug: string;
+}
+
 export interface PostAuthor {
   id: string;
   displayName: string;
@@ -84,6 +90,7 @@ export interface PostSummary {
   publishedAt: string | null;
   createdAt: string;
   category: CategoryRef | null;
+  tags: Tag[];
   author: PostAuthor;
 }
 

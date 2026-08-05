@@ -6,6 +6,7 @@ import type {
   PostListResponse,
   PublicProfile,
   RoleBadgeInfo,
+  Tag,
   Widget,
 } from "./types";
 
@@ -30,6 +31,7 @@ async function publicFetch<T>(path: string, revalidateSeconds = 30): Promise<T |
 
 export async function fetchPosts(params: {
   categorySlug?: string;
+  tagSlug?: string;
   q?: string;
   sort?: "newest" | "popular";
   page?: number;
@@ -37,6 +39,7 @@ export async function fetchPosts(params: {
 }): Promise<PostListResponse> {
   const query = new URLSearchParams();
   if (params.categorySlug) query.set("category", params.categorySlug);
+  if (params.tagSlug) query.set("tag", params.tagSlug);
   if (params.q) query.set("q", params.q);
   if (params.sort) query.set("sort", params.sort);
   if (params.page) query.set("page", String(params.page));
@@ -55,6 +58,11 @@ export async function fetchPublicProfile(id: string): Promise<PublicProfile | nu
 
 export async function fetchCategories(): Promise<Category[]> {
   const result = await publicFetch<Category[]>("/categories");
+  return result ?? [];
+}
+
+export async function fetchTags(): Promise<Tag[]> {
+  const result = await publicFetch<Tag[]>("/tags");
   return result ?? [];
 }
 

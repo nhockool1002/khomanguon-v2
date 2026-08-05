@@ -25,6 +25,7 @@ const listSelect = {
   publishedAt: true,
   createdAt: true,
   category: { select: { id: true, name: true, slug: true } },
+  tags: { select: { tag: { select: { id: true, name: true, slug: true } } } },
   author: {
     select: {
       id: true,
@@ -65,8 +66,11 @@ function toPagination({ page = 1, limit = 12 }: PageQuery) {
 }
 
 // Resolve author.roles + primaryRoleId -> author.styleRoleSlug cho FE style tên tác giả theo
-// đúng 1 role (xem components/styled-user-name.tsx).
-function mapAuthor<T extends { author: PostListRow['author'] }>(post: T) {
+// đúng 1 role (xem components/styled-user-name.tsx). Đồng thời làm phẳng post.tags (mảng
+// {tag:{id,name,slug}} do đi qua join PostTag) thành tags:{id,name,slug}[] cho FE dùng thẳng.
+function mapPost<
+  T extends { author: PostListRow['author']; tags: PostListRow['tags'] },
+>(post: T) {
   const { primaryRoleId, roles, ...authorRest } = post.author;
   return {
     ...post,
@@ -74,6 +78,7 @@ function mapAuthor<T extends { author: PostListRow['author'] }>(post: T) {
       ...authorRest,
       styleRoleSlug: resolveStyleRoleSlug(primaryRoleId, roles),
     },
+    tags: post.tags.map((t) => t.tag),
   };
 }
 
@@ -90,6 +95,7 @@ export class PostsService {
   async listPublic(
     query: PageQuery & {
       categorySlug?: string;
+      tagSlug?: string;
       q?: string;
       sort?: 'newest' | 'popular';
     },
@@ -98,6 +104,9 @@ export class PostsService {
     const where: Prisma.PostWhereInput = {
       status: PostStatus.PUBLISHED,
       ...(query.categorySlug && { category: { slug: query.categorySlug } }),
+      ...(query.tagSlug && {
+        tags: { some: { tag: { slug: query.tagSlug } } },
+      }),
       ...(query.q && {
         OR: [
           { title: { contains: query.q, mode: 'insensitive' } },
@@ -119,7 +128,7 @@ export class PostsService {
       }),
       this.prisma.post.count({ where }),
     ]);
-    return { items: items.map(mapAuthor), total };
+    return { items: items.map(mapPost), total };
   }
 
   // Route GET :slug được @Cacheable ở controller — request này xuất phát từ SERVER Next.js (Server
@@ -134,7 +143,7 @@ export class PostsService {
       select: detailSelect,
     });
     if (!post) throw new NotFoundException('Không tìm thấy bài viết');
-    return mapAuthor(post);
+    return mapPost(post);
   }
 
   // Gọi từ POST /posts/:id/view — updateMany + lọc status để tự no-op an toàn nếu id sai/bài chưa
@@ -174,7 +183,7 @@ export class PostsService {
       }),
       this.prisma.post.count({ where }),
     ]);
-    return { items: items.map(mapAuthor), total };
+    return { items: items.map(mapPost), total };
   }
 
   async getByIdAdmin(id: string) {
@@ -183,7 +192,7 @@ export class PostsService {
       select: detailSelect,
     });
     if (!post) throw new NotFoundException('Không tìm thấy bài viết');
-    return mapAuthor(post);
+    return mapPost(post);
   }
 
   async create(authorId: string, dto: CreatePostDto) {
@@ -211,11 +220,14 @@ export class PostsService {
         metaDescription: dto.metaDescription,
         ogImageUrl: dto.ogImageUrl,
         canonicalUrl: dto.canonicalUrl,
+        ...(dto.tagIds && {
+          tags: { create: dto.tagIds.map((tagId) => ({ tagId })) },
+        }),
       },
       select: detailSelect,
     });
     await this.cache.invalidatePrefix('posts');
-    return mapAuthor(created);
+    return mapPost(created);
   }
 
   async update(userId: string, id: string, dto: UpdatePostDto) {
@@ -262,11 +274,19 @@ export class PostsService {
           publishedAt:
             nextStatus === PostStatus.PUBLISHED ? new Date() : post.publishedAt,
         }),
+        // Đồng bộ toàn bộ tag theo tagIds mới (xoá hết + tạo lại) — đơn giản hơn diff thêm/bớt,
+        // chỉ đụng vào khi FE thực sự gửi tagIds (undefined = giữ nguyên tag hiện có).
+        ...(dto.tagIds !== undefined && {
+          tags: {
+            deleteMany: {},
+            create: dto.tagIds.map((tagId) => ({ tagId })),
+          },
+        }),
       },
       select: detailSelect,
     });
     await this.cache.invalidatePrefix('posts');
-    return mapAuthor(updated);
+    return mapPost(updated);
   }
 
   async remove(id: string): Promise<void> {
