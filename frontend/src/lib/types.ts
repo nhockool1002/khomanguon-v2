@@ -249,6 +249,26 @@ export interface StorageProvider {
   createdAt: string;
 }
 
+export interface BackupConfig {
+  enabled: boolean;
+  hour: number;
+  minute: number;
+  retentionCount: number;
+  storageProviderId: string | null;
+}
+
+export type DbBackupStatus = "SUCCESS" | "FAILED";
+
+export interface DbBackupRecord {
+  id: string;
+  status: DbBackupStatus;
+  sizeBytes: number | null;
+  storageProviderId: string | null;
+  objectKey: string | null;
+  errorMessage: string | null;
+  createdAt: string;
+}
+
 export interface DownloadLinkAdmin {
   id: string;
   label: string;

@@ -29,6 +29,7 @@ import { CacheModule } from './cache/cache.module';
 import { UserActivityModule } from './user-activity/user-activity.module';
 import { RateLimitModule } from './common/rate-limit/rate-limit.module';
 import { RecaptchaModule } from './recaptcha/recaptcha.module';
+import { DbBackupModule } from './db-backup/db-backup.module';
 
 @Module({
   imports: [
@@ -41,6 +42,7 @@ import { RecaptchaModule } from './recaptcha/recaptcha.module';
     CacheModule,
     RateLimitModule,
     RecaptchaModule,
+    DbBackupModule,
     UserActivityModule,
     UsersModule,
     CategoriesModule,

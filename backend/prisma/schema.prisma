@@ -641,3 +641,24 @@ model MediaFile {
 
   @@map("media_files")
 }
+
+enum DbBackupStatus {
+  SUCCESS
+  FAILED
+}
+
+// Lịch sử mỗi lần backup DB (thủ công qua nút "Backup ngay" hoặc cron hàng ngày) — không ràng buộc
+// FK cứng tới StorageProvider (provider có thể bị Admin xoá sau, lịch sử backup cũ vẫn giữ nguyên
+// để biết đã từng backup, dù không còn tải lại được file thật). Ghi cả bản ghi FAILED (không chỉ
+// SUCCESS) để Admin thấy ngay backup có lỗi thay vì im lặng biến mất — xem DbBackupService.runBackup.
+model DbBackupRecord {
+  id                String         @id @default(cuid())
+  status            DbBackupStatus
+  sizeBytes         BigInt?
+  storageProviderId String?
+  objectKey         String?
+  errorMessage      String?
+  createdAt         DateTime       @default(now())
+
+  @@map("db_backup_records")
+}
