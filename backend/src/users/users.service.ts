@@ -6,12 +6,13 @@ import {
   UnauthorizedException,
 } from '@nestjs/common';
 import * as argon2 from 'argon2';
-import { Prisma, UserStatus } from '@prisma/client';
+import { AuditAction, Prisma, UserStatus } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { RolesService } from '../roles/roles.service';
 import { resolveStyleRoleSlug } from '../roles/style-role.util';
 import { PERMISSIONS } from '../roles/permissions.constant';
 import { AuthService } from '../auth/auth.service';
+import { AuditLogService } from '../audit-log/audit-log.service';
 import { UpdateProfileDto } from './dto/update-profile.dto';
 import { ChangePasswordDto } from './dto/change-password.dto';
 import { CreateProfileMessageDto } from './dto/create-profile-message.dto';
@@ -25,6 +26,7 @@ export class UsersService {
     private readonly prisma: PrismaService,
     private readonly roles: RolesService,
     private readonly authService: AuthService,
+    private readonly auditLog: AuditLogService,
   ) {}
 
   async getProfile(userId: string) {
@@ -337,7 +339,7 @@ export class UsersService {
     return { id: userId, status };
   }
 
-  async assignRole(userId: string, roleSlug: string) {
+  async assignRole(userId: string, roleSlug: string, actorUserId: string) {
     const [user, role] = await Promise.all([
       this.prisma.user.findUnique({ where: { id: userId } }),
       this.prisma.role.findUnique({ where: { slug: roleSlug } }),
@@ -350,10 +352,15 @@ export class UsersService {
       update: {},
       create: { userId, roleId: role.id },
     });
+    void this.auditLog.log(actorUserId, AuditAction.ROLE_ASSIGNED, {
+      targetType: 'user',
+      targetId: userId,
+      metadata: { roleSlug },
+    });
     return this.roles.getUserRoleSlugs(userId);
   }
 
-  async removeRole(userId: string, roleSlug: string) {
+  async removeRole(userId: string, roleSlug: string, actorUserId: string) {
     const role = await this.prisma.role.findUnique({
       where: { slug: roleSlug },
     });
@@ -361,6 +368,11 @@ export class UsersService {
 
     await this.prisma.userRole.deleteMany({
       where: { userId, roleId: role.id },
+    });
+    void this.auditLog.log(actorUserId, AuditAction.ROLE_REMOVED, {
+      targetType: 'user',
+      targetId: userId,
+      metadata: { roleSlug },
     });
     return this.roles.getUserRoleSlugs(userId);
   }

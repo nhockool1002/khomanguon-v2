@@ -54,9 +54,17 @@ export function ProfilePage({
     if (next) setProfile(next);
   }, [profileId]);
 
+  // Ghi UserActivity VISIT_PROFILE cho người xem — phải gọi từ client qua apiFetch (đính Bearer
+  // token) vì fetchPublicProfile() ở trên dùng publicFetch() không token (chạy cả server-side lúc
+  // SSR trang này), nên backend không thể nhận diện viewer nếu ghi log ngay ở đó.
+  useEffect(() => {
+    if (loading || !user || isOwnProfile) return;
+    apiFetch(`/users/${profileId}/visit`, { method: "POST" }).catch(() => {});
+  }, [loading, user, isOwnProfile, profileId]);
+
   return (
     <main className="mx-auto flex w-full max-w-3xl flex-1 flex-col gap-6 px-4 py-8">
-      <div className="flex gap-1 border-b border-zinc-200 font-mono text-sm">
+      <div className="flex gap-1 overflow-x-auto border-b border-zinc-200 font-mono text-sm">
         <TabButton active={tab === "ho-so"} onClick={() => setTab("ho-so")}>
           Hồ sơ
         </TabButton>
@@ -170,7 +178,6 @@ function AccountInfoTab({ onSaved }: { onSaved: () => Promise<void> }) {
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
-  const [savingTitle, setSavingTitle] = useState(false);
   const [resending, setResending] = useState(false);
   const [savingStyleRole, setSavingStyleRole] = useState(false);
   const [savingPopupPref, setSavingPopupPref] = useState(false);
@@ -215,6 +222,14 @@ function AccountInfoTab({ onSaved }: { onSaved: () => Promise<void> }) {
         method: "PATCH",
         body: JSON.stringify({ displayName, bio }),
       });
+      // Title dùng endpoint riêng (cooldown/quyền HTML khác cơ chế displayName/bio) — chỉ gọi khi
+      // thật sự đổi và còn quyền đổi, để 1 nút Lưu duy nhất vẫn tôn trọng đúng rule cooldown cũ.
+      if (profile?.canChangeTitle && title !== (profile?.title ?? "")) {
+        await apiFetch("/users/me/title", {
+          method: "PATCH",
+          body: JSON.stringify({ title }),
+        });
+      }
       await Promise.all([refreshUser(), onSaved()]);
       loadProfile();
       setMessage("Đã lưu thay đổi.");
@@ -222,26 +237,6 @@ function AccountInfoTab({ onSaved }: { onSaved: () => Promise<void> }) {
       setError(err instanceof ApiError ? err.message : "Có lỗi xảy ra");
     } finally {
       setSaving(false);
-    }
-  }
-
-  async function handleSaveTitle(e: React.FormEvent) {
-    e.preventDefault();
-    setError(null);
-    setMessage(null);
-    setSavingTitle(true);
-    try {
-      const updated = await apiFetch<Profile>("/users/me/title", {
-        method: "PATCH",
-        body: JSON.stringify({ title }),
-      });
-      setProfile(updated);
-      await onSaved();
-      setMessage("Đã lưu Title.");
-    } catch (err) {
-      setError(err instanceof ApiError ? err.message : "Có lỗi xảy ra");
-    } finally {
-      setSavingTitle(false);
     }
   }
 
@@ -254,6 +249,9 @@ function AccountInfoTab({ onSaved }: { onSaved: () => Promise<void> }) {
         body: JSON.stringify({ showPostPopup: next }),
       });
       setProfile(updated);
+      // PostPopup đọc showPostPopup từ AuthContext (user), không phải state `profile` cục bộ ở đây —
+      // thiếu refreshUser() thì DB đã lưu đúng nhưng popup vẫn dùng giá trị cũ tới khi F5.
+      await refreshUser();
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "Có lỗi xảy ra");
     } finally {
@@ -417,24 +415,6 @@ function AccountInfoTab({ onSaved }: { onSaved: () => Promise<void> }) {
           </p>
         )}
         <label className="flex flex-col gap-1.5 text-sm text-zinc-700">
-          Giới thiệu bản thân
-          <textarea
-            value={bio}
-            maxLength={280}
-            onChange={(e) => setBio(e.target.value)}
-            rows={3}
-            className="rounded-md border border-zinc-300 px-3 py-2 text-sm text-zinc-900 outline-none focus:border-[#1d3557] focus:ring-1 focus:ring-[#1d3557]"
-          />
-        </label>
-        <div>
-          <SubmitButton type="submit" loading={saving}>
-            Lưu thay đổi
-          </SubmitButton>
-        </div>
-      </form>
-
-      <form onSubmit={handleSaveTitle} className="flex flex-col gap-2 rounded-md border border-zinc-200 p-4">
-        <label className="flex flex-col gap-1.5 text-sm text-zinc-700">
           Title (dòng chữ hiện dưới tên ở trang Hồ sơ)
           {profile.userTitleConfig.allowHtml ? (
             <textarea
@@ -453,17 +433,27 @@ function AccountInfoTab({ onSaved }: { onSaved: () => Promise<void> }) {
             />
           )}
         </label>
-        <p className="text-xs text-zinc-400">
+        <p className="-mt-2 text-xs text-zinc-400">
           {profile.userTitleConfig.allowHtml && "Vai trò của bạn được dùng thẻ HTML trong Title. "}
           Tối đa {profile.userTitleConfig.maxLength} ký tự (còn {Math.max(titleLeft, 0)}).{" "}
           {profile.userTitleConfig.cooldownDays === null
             ? "Đổi tự do, không giới hạn."
             : `Đổi tối đa mỗi ${profile.userTitleConfig.cooldownDays} ngày.`}
         </p>
-        {titleCooldownText && <p className="text-xs text-amber-600">{titleCooldownText}</p>}
+        {titleCooldownText && <p className="-mt-2 text-xs text-amber-600">{titleCooldownText}</p>}
+        <label className="flex flex-col gap-1.5 text-sm text-zinc-700">
+          Giới thiệu bản thân
+          <textarea
+            value={bio}
+            maxLength={280}
+            onChange={(e) => setBio(e.target.value)}
+            rows={3}
+            className="rounded-md border border-zinc-300 px-3 py-2 text-sm text-zinc-900 outline-none focus:border-[#1d3557] focus:ring-1 focus:ring-[#1d3557]"
+          />
+        </label>
         <div>
-          <SubmitButton type="submit" loading={savingTitle} disabled={!profile.canChangeTitle}>
-            Lưu Title
+          <SubmitButton type="submit" loading={saving}>
+            Lưu thay đổi
           </SubmitButton>
         </div>
       </form>
@@ -492,8 +482,8 @@ function ToggleSwitch({
       }`}
     >
       <span
-        className={`absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition-transform ${
-          checked ? "translate-x-5" : "translate-x-0.5"
+        className={`absolute left-0.5 top-0.5 h-5 w-5 rounded-full bg-white shadow transition-transform ${
+          checked ? "translate-x-5" : "translate-x-0"
         }`}
       />
     </button>

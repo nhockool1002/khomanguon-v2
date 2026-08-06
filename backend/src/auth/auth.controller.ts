@@ -127,6 +127,8 @@ export class AuthController {
     };
   }
 
+  @UseGuards(PublicRateLimitGuard)
+  @RateLimitKey('resetPassword')
   @Post('reset-password')
   @HttpCode(HttpStatus.OK)
   async resetPassword(@Body() dto: ResetPasswordDto) {

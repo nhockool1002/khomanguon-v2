@@ -27,6 +27,7 @@ import { SiteSettingsModule } from './settings/site-settings.module';
 import { MediaModule } from './media/media.module';
 import { CacheModule } from './cache/cache.module';
 import { UserActivityModule } from './user-activity/user-activity.module';
+import { AuditLogModule } from './audit-log/audit-log.module';
 import { RateLimitModule } from './common/rate-limit/rate-limit.module';
 import { RecaptchaModule } from './recaptcha/recaptcha.module';
 import { DbBackupModule } from './db-backup/db-backup.module';
@@ -44,6 +45,7 @@ import { DbBackupModule } from './db-backup/db-backup.module';
     RecaptchaModule,
     DbBackupModule,
     UserActivityModule,
+    AuditLogModule,
     UsersModule,
     CategoriesModule,
     TagsModule,

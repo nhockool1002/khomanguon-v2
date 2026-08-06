@@ -269,7 +269,7 @@ export default function AdminWalletTransactionsPage() {
   const totalPages = Math.max(Math.ceil(total / PAGE_SIZE), 1);
 
   return (
-    <div className="flex w-full flex-col gap-4 px-8 py-8">
+    <div className="flex w-full flex-col gap-4 px-4 py-6 sm:px-8 sm:py-8">
       <h1 className="text-xl font-semibold text-zinc-900">Quản lý giao dịch ($P)</h1>
       <p className="text-sm text-zinc-500">
         Sổ dòng tiền $P toàn hệ thống — nạp tiền, mua hàng, hoàn tiền và điều chỉnh tay. Dùng để đối

@@ -14,6 +14,6 @@ import { AuthModule } from '../auth/auth.module';
   imports: [AuthModule],
   controllers: [CacheController],
   providers: [CacheService, HttpCacheInterceptor, FrontendRevalidateService],
-  exports: [CacheService, HttpCacheInterceptor],
+  exports: [CacheService, HttpCacheInterceptor, FrontendRevalidateService],
 })
 export class CacheModule {}

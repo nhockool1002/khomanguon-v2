@@ -46,7 +46,7 @@ export default function NewPostPage() {
   }
 
   return (
-    <div className="flex w-full flex-col gap-6 px-8 py-8">
+    <div className="flex w-full flex-col gap-6 px-4 py-6 sm:px-8 sm:py-8">
       <h1 className="text-xl font-semibold text-zinc-900">Bài viết mới</h1>
       <PostForm onSubmit={handleSubmit} />
     </div>

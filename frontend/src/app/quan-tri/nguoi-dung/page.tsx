@@ -180,7 +180,7 @@ export default function AdminUsersPage() {
   const totalPages = Math.max(Math.ceil(total / PAGE_SIZE), 1);
 
   return (
-    <div className="flex w-full flex-col gap-4 px-8 py-8">
+    <div className="flex w-full flex-col gap-4 px-4 py-6 sm:px-8 sm:py-8">
       <h1 className="text-xl font-semibold text-zinc-900">Quản lý User</h1>
       <p className="text-sm text-zinc-500">
         Khoá/mở khoá tài khoản, gán hoặc gỡ vai trò, gửi email đặt lại mật khẩu. Khoá tài khoản sẽ

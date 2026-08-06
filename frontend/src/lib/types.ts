@@ -321,6 +321,22 @@ export interface LinkReport {
   resolvedBy: { id: string; displayName: string } | null;
 }
 
+export type AuditAction =
+  | "ROLE_ASSIGNED"
+  | "ROLE_REMOVED"
+  | "WALLET_ADJUSTED"
+  | "STORAGE_PROVIDER_KEY_CHANGED";
+
+export interface AuditLogEntry {
+  id: string;
+  action: AuditAction;
+  targetType: string | null;
+  targetId: string | null;
+  metadata: Record<string, unknown> | null;
+  createdAt: string;
+  actor: { id: string; displayName: string; email: string };
+}
+
 export interface Wallet {
   balance: number;
   updatedAt: string;
@@ -407,6 +423,7 @@ export interface RateLimitSettings {
   login: RateLimitRule;
   register: RateLimitRule;
   forgotPassword: RateLimitRule;
+  resetPassword: RateLimitRule;
   search: RateLimitRule;
   commentCreate: RateLimitRule;
 }

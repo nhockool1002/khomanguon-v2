@@ -3,7 +3,12 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { Prisma, WalletTxStatus, WalletTxType } from '@prisma/client';
+import {
+  AuditAction,
+  Prisma,
+  WalletTxStatus,
+  WalletTxType,
+} from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { WalletGateway } from '../realtime/wallet.gateway';
 
@@ -240,6 +245,17 @@ export class WalletService {
       await tx.wallet.update({
         where: { userId: targetUser.id },
         data: { balance: balanceAfter },
+      });
+      // Ghi trong cùng transaction với thao tác tiền thật (không qua AuditLogService.log() —
+      // service đó dùng this.prisma, không phải tx, sẽ phá tính atomic của điều chỉnh ví).
+      await tx.auditLog.create({
+        data: {
+          actorUserId: adminUserId,
+          action: AuditAction.WALLET_ADJUSTED,
+          targetType: 'user',
+          targetId: targetUser.id,
+          metadata: { amount, balanceAfter, note },
+        },
       });
       return created;
     });

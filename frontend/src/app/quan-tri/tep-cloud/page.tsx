@@ -96,7 +96,7 @@ export default function CloudFilesPage() {
   }
 
   return (
-    <div className="flex w-full flex-col gap-4 px-8 py-8">
+    <div className="flex w-full flex-col gap-4 px-4 py-6 sm:px-8 sm:py-8">
       <h1 className="text-xl font-semibold text-zinc-900">Quản lý File Cloud</h1>
       <p className="text-sm text-zinc-500">
         Xem file thật đang nằm trong bucket, đối chiếu với cấu hình link tải (lượt tải, member đã
@@ -169,7 +169,7 @@ export default function CloudFilesPage() {
           <SuccessBanner message={message} />
 
           {files && (
-            <div className="grid grid-cols-3 gap-3 text-center">
+            <div className="grid grid-cols-1 gap-3 text-center sm:grid-cols-3">
               <div className="rounded-md border border-zinc-200 p-3">
                 <p className="text-2xl font-bold text-zinc-900">{totals.count}</p>
                 <p className="text-xs text-zinc-500">Tổng số tệp</p>

@@ -11,6 +11,7 @@ import { PERMISSIONS } from '../roles/permissions.constant';
 import { resolveStyleRoleSlug } from '../roles/style-role.util';
 import { buildUniqueSlug } from '../common/slugify';
 import { CacheService } from '../cache/cache.service';
+import { FrontendRevalidateService } from '../cache/frontend-revalidate.service';
 import { CreatePostDto } from './dto/create-post.dto';
 import { UpdatePostDto } from './dto/update-post.dto';
 
@@ -88,6 +89,7 @@ export class PostsService {
     private readonly prisma: PrismaService,
     private readonly roles: RolesService,
     private readonly cache: CacheService,
+    private readonly frontendRevalidate: FrontendRevalidateService,
   ) {}
 
   // "sort=popular" sắp theo viewCount — tìm kiếm dùng ILIKE trên title/excerpt (đơn giản, đủ
@@ -226,7 +228,12 @@ export class PostsService {
       },
       select: detailSelect,
     });
-    await this.cache.invalidatePrefix('posts');
+    // revalidateAll() best-effort (không bao giờ throw) — publish/sửa/xoá bài purge luôn ISR cache
+    // frontend ngay, không phải đợi Admin bấm tay nút "Xoá cache" (PLAN.md 4.2, nợ kỹ thuật cũ).
+    await Promise.all([
+      this.cache.invalidatePrefix('posts'),
+      this.frontendRevalidate.revalidateAll(),
+    ]);
     return mapPost(created);
   }
 
@@ -285,7 +292,12 @@ export class PostsService {
       },
       select: detailSelect,
     });
-    await this.cache.invalidatePrefix('posts');
+    // revalidateAll() best-effort (không bao giờ throw) — publish/sửa/xoá bài purge luôn ISR cache
+    // frontend ngay, không phải đợi Admin bấm tay nút "Xoá cache" (PLAN.md 4.2, nợ kỹ thuật cũ).
+    await Promise.all([
+      this.cache.invalidatePrefix('posts'),
+      this.frontendRevalidate.revalidateAll(),
+    ]);
     return mapPost(updated);
   }
 
@@ -293,7 +305,12 @@ export class PostsService {
     const post = await this.prisma.post.findUnique({ where: { id } });
     if (!post) throw new NotFoundException('Không tìm thấy bài viết');
     await this.prisma.post.delete({ where: { id } });
-    await this.cache.invalidatePrefix('posts');
+    // revalidateAll() best-effort (không bao giờ throw) — publish/sửa/xoá bài purge luôn ISR cache
+    // frontend ngay, không phải đợi Admin bấm tay nút "Xoá cache" (PLAN.md 4.2, nợ kỹ thuật cũ).
+    await Promise.all([
+      this.cache.invalidatePrefix('posts'),
+      this.frontendRevalidate.revalidateAll(),
+    ]);
   }
 
   // Chỉ user có quyền post.publish mới được đặt status PUBLISHED trực tiếp

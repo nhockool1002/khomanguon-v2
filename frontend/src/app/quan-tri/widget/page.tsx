@@ -124,7 +124,7 @@ export default function AdminWidgetPage() {
   }
 
   return (
-    <div className="flex w-full max-w-4xl flex-col gap-4 px-8 py-8">
+    <div className="flex w-full max-w-4xl flex-col gap-4 px-4 py-6 sm:px-8 sm:py-8">
       <div className="flex items-center justify-between">
         <h1 className="text-xl font-semibold text-zinc-900">Quản lý Widget</h1>
         <div className="flex items-center gap-2">

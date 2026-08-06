@@ -18,6 +18,7 @@ import {
   datedUploadDestination,
   UPLOAD_ROOT,
 } from '../common/dated-upload.util';
+import { processUploadedImage } from '../common/image-pipeline.util';
 
 const ALLOWED_MIME_TYPES = [
   'image/jpeg',
@@ -61,8 +62,9 @@ export class UploadsController {
       },
     }),
   )
-  upload(@UploadedFile() file: Express.Multer.File) {
+  async upload(@UploadedFile() file: Express.Multer.File) {
     if (!file) throw new BadRequestException('Thiếu file');
+    await processUploadedImage(file);
     const relPath = relative(UPLOAD_ROOT, file.path).split(sep).join('/');
     return { url: `/uploads/${relPath}` };
   }

@@ -80,7 +80,7 @@ export default function UploadCloudFilePage() {
   ).length;
 
   return (
-    <div className="flex w-full max-w-6xl flex-col gap-4 px-8 py-8">
+    <div className="flex w-full max-w-6xl flex-col gap-4 px-4 py-6 sm:px-8 sm:py-8">
       <div className="flex items-center gap-2 text-sm text-zinc-500">
         <Link href="/quan-tri/tep-cloud" className="flex items-center gap-1 hover:text-[#1d3557]">
           <ChevronLeft size={15} strokeWidth={1.75} aria-hidden />

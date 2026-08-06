@@ -116,7 +116,7 @@ export default function AdminSepaySettingsPage() {
   }
 
   return (
-    <div className="flex w-full max-w-3xl flex-col gap-4 px-8 py-8">
+    <div className="flex w-full max-w-3xl flex-col gap-4 px-4 py-6 sm:px-8 sm:py-8">
       <h1 className="text-xl font-semibold text-zinc-900">Cài đặt SePay</h1>
       <p className="text-sm text-zinc-500">
         Cấu hình nhận nạp tiền qua VietQR + webhook SePay. Webhook URL cần khai trong dashboard SePay:{" "}

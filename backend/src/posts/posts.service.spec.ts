@@ -6,6 +6,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { RolesService } from '../roles/roles.service';
 import { PERMISSIONS } from '../roles/permissions.constant';
 import { CacheService } from '../cache/cache.service';
+import { FrontendRevalidateService } from '../cache/frontend-revalidate.service';
 
 describe('PostsService.update — phân quyền sửa bài (post.edit.own / post.edit.any)', () => {
   let service: PostsService;
@@ -54,6 +55,10 @@ describe('PostsService.update — phân quyền sửa bài (post.edit.own / post
         {
           provide: CacheService,
           useValue: { invalidatePrefix: jest.fn() },
+        },
+        {
+          provide: FrontendRevalidateService,
+          useValue: { revalidateAll: jest.fn() },
         },
       ],
     }).compile();

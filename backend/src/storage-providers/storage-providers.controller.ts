@@ -13,8 +13,14 @@ import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { PermissionsGuard } from '../roles/guards/permissions.guard';
 import { Permissions } from '../roles/decorators/permissions.decorator';
 import { PERMISSIONS } from '../roles/permissions.constant';
+import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { CreateStorageProviderDto } from './dto/create-storage-provider.dto';
 import { UpdateStorageProviderDto } from './dto/update-storage-provider.dto';
+
+interface AuthUser {
+  id: string;
+  email: string;
+}
 
 // PermissionsGuard chỉ đọc metadata gắn TRỰC TIẾP trên từng handler (context.getHandler()), không
 // gộp metadata ở class level — nên @Permissions phải khai báo lại ở mỗi method (giống CategoriesController),
@@ -44,8 +50,12 @@ export class StorageProvidersController {
   @UseGuards(JwtAuthGuard, PermissionsGuard)
   @Permissions(PERMISSIONS.SETTINGS_STORAGE_KEYS)
   @Patch(':id')
-  update(@Param('id') id: string, @Body() dto: UpdateStorageProviderDto) {
-    return this.storageProvidersService.update(id, dto);
+  update(
+    @Param('id') id: string,
+    @Body() dto: UpdateStorageProviderDto,
+    @CurrentUser() actor: AuthUser,
+  ) {
+    return this.storageProvidersService.update(id, dto, actor.id);
   }
 
   @UseGuards(JwtAuthGuard, PermissionsGuard)

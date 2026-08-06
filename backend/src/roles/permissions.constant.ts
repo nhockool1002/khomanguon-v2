@@ -31,6 +31,9 @@ export const PERMISSIONS = {
   // mới thêm sau khi seed đã chạy vẫn tự backfill cho Admin lần deploy tiếp theo — seed.ts dùng
   // upsert cho vòng lặp linking role<->permission, không chỉ chạy 1 lần lúc tạo role mới.
   SETTINGS_BACKUP: 'settings.backup',
+  // Audit log (đổi quyền, chỉnh ví tay, đổi key R2/S3) — cùng mức nhạy cảm với SETTINGS_BACKUP,
+  // KHÔNG gán cho Super Moderator mặc định (xem DEFAULT_ROLE_PERMISSIONS bên dưới).
+  AUDIT_VIEW: 'audit.view',
 } as const;
 
 export type PermissionKey = (typeof PERMISSIONS)[keyof typeof PERMISSIONS];
