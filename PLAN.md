@@ -36,31 +36,38 @@ Quy ước: mỗi phase có **Definition of Done (DoD)** rõ ràng — không sa
 | Module | Vai trò |
 |---|---|
 | `auth/` | Đăng ký/đăng nhập/refresh token, quên/đặt lại mật khẩu, xác minh email |
+| `recaptcha/` | Cấu hình + xác minh reCAPTCHA v2 cho đăng ký/đăng nhập |
 | `users/` | Hồ sơ user, admin quản lý user, tìm user (autocomplete @mention/filter), trang profile công khai + lời nhắn kiểu guestbook (`ProfileMessage`) |
+| `user-activity/` | Ghi nhật ký hoạt động user (đăng nhập, xem bài, nạp tiền, ghé thăm profile người khác) — tab "Hoạt động" công khai ở trang Hồ sơ |
 | `roles/` | RBAC: permissions, role CRUD, custom role, style badge role (title/màu/đậm/nghiêng/font) |
+| `audit-log/` | Nhật ký thao tác nhạy cảm chỉ Admin xem được (đổi quyền, chỉnh ví tay, đổi key R2/S3) — khác `user-activity/` (công khai, hành vi user thường) |
 | `posts/` | Bài viết CRUD, workflow xuất bản |
 | `categories/` | Danh mục bài viết |
+| `tags/` | Tag bài viết (gắn tag khi soạn bài, trang công khai `/the/[slug]`, quản lý tag ở `/quan-tri/tag`) |
 | `menus/` | Menu điều hướng đa cấp (kéo-thả) |
 | `comments/` | Bình luận (threaded) + kiểm duyệt + @mention |
 | `notifications/` | Thông báo trong app (mention...) + đẩy realtime |
 | `widgets/` | Widget sidebar (CMS: tìm kiếm, danh mục, bài mới, HTML tự do, bình luận) |
 | `wallet/` | Ví $P — API cho user tự xem + admin điều chỉnh tay (`wallet.adjust`) |
 | `sepay/` | Tích hợp SePay: cấu hình, tạo yêu cầu nạp + VietQR, webhook, cron hết hạn đơn |
-| `download-links/` | Link tải trả phí gắn bài viết (mua bằng $P, presigned URL) |
+| `download-links/` | Link tải trả phí gắn bài viết (mua bằng $P, presigned URL, hỗ trợ nhiều link/bài) |
+| `link-reports/` | Hàng chờ báo lỗi link tải die, Admin xử lý qua `/quan-tri/bao-loi-link` |
 | `storage-providers/` | Cấu hình nhiều provider R2/S3/Mailjet (secret mã hoá, chọn provider mặc định) |
 | `storage/` | `r2-client.service.ts` — client S3/R2 dùng chung (AWS SDK thật) cho mọi module cần |
 | `cloud-files/` | Duyệt/xoá file trong bucket qua trang admin |
-| `uploads/` | Upload file chung (ảnh bài viết, avatar, banner...) — lưu đĩa cục bộ theo thư mục ngày kiểu WordPress `uploads/posts/yyyy/mm/dd/` (`common/dated-upload.util.ts`), không ghi vào `MediaFile` |
-| `settings/` | Cấu hình chung toàn site (số bài viết/trang trang chủ, tiêu đề/slogan/nền banner đầu trang chủ) — key/value trong `SiteSetting` (key `general_settings`), theo đúng mẫu `sepay_config` |
+| `db-backup/` | Backup PostgreSQL tự động (cron cấu hình được) + backup thủ công, nén gzip, upload lên storage provider, retention |
+| `uploads/` | Upload file chung (ảnh bài viết, avatar, banner...) — lưu đĩa cục bộ theo thư mục ngày kiểu WordPress `uploads/posts/yyyy/mm/dd/` (`common/dated-upload.util.ts`), resize + convert WebP qua `common/image-pipeline.util.ts`, không ghi vào `MediaFile` |
+| `settings/` | Cấu hình chung toàn site (số bài viết/trang trang chủ, tiêu đề/slogan/nền banner đầu trang chủ, rate limit) — key/value trong `SiteSetting` (key `general_settings`), theo đúng mẫu `sepay_config` |
 | `media/` | Thư viện Media kiểu WordPress — upload/xoá ảnh (`MediaFile` ghi tên gốc + người tải lên), nhưng **liệt kê bằng cách quét trực tiếp đĩa** `uploads/posts/**` (đệ quy) để luôn thấy đủ ảnh dù tới từ `media/` hay `uploads/` |
 | `mail/` | Gửi email transactional (xác minh, đặt lại mật khẩu) + email thông báo Admin (nạp tiền/tải file) với template tự chỉnh (`mail_templates` trong `SiteSetting`) |
 | `realtime/` | WebSocket gateway (`wallet.gateway.ts`, `notification.gateway.ts`) — mỗi user 1 room riêng, xác thực bằng JWT |
+| `cache/` | Object cache Redis (`CacheService`, decorator `@Cacheable()`, `HttpCacheInterceptor`) + webhook purge ISR frontend (`FrontendRevalidateService`) |
+| `common/` | Tiện ích dùng chung: mã hoá secret, slugify, token util, filter ẩn tài khoản admin, thư mục upload theo ngày (`dated-upload.util.ts`), pipeline resize/WebP ảnh (`image-pipeline.util.ts`), rate limit công khai (`common/rate-limit/`) |
 | `prisma/` | `PrismaService`/`PrismaModule` — client DB dùng chung, `@Global()` |
-| `common/` | Tiện ích dùng chung: mã hoá secret, slugify, token util, filter ẩn tài khoản admin, thư mục upload theo ngày (`dated-upload.util.ts`) |
 
 **`frontend/src/`** — Next.js App Router:
 
-- `app/` — route theo tiếng Việt, URL thân thiện: `/dang-nhap`, `/dang-ky`, `/quen-mat-khau`, `/dat-lai-mat-khau`, `/xac-minh-email`, `/bai-viet/[slug]`, `/danh-muc/[slug]`, `/tim-kiem`, `/tai-khoan` (+ `/tai-khoan/vi`), `/nguoi-dung/[id]` (trang profile công khai), `/sitemap.xml`, `/robots.txt`, `/quan-tri/*` (toàn bộ khu quản trị: `bai-viet`, `danh-muc`, `menu`, `widget`, `nguoi-dung`, `giao-dich`, `binh-luan`, `vai-tro`, `cai-dat/storage`, `cai-dat/sepay`, `cai-dat/email`, `cai-dat/chung`, `tep-cloud`, `thu-vien-media`)
+- `app/` — route theo tiếng Việt, URL thân thiện: `/dang-nhap`, `/dang-ky`, `/quen-mat-khau`, `/dat-lai-mat-khau`, `/xac-minh-email`, `/bai-viet/[slug]`, `/danh-muc/[slug]`, `/the/[slug]` (trang tag công khai), `/tim-kiem`, `/tai-khoan` (nay chỉ là redirect sang `/nguoi-dung/[id]`, xem Phase 1.2), `/nguoi-dung/[id]` (trang profile công khai, gộp cả "Tài khoản của tôi"), `/sitemap.xml`, `/robots.txt`, `/quan-tri/*` (toàn bộ khu quản trị: `bai-viet`, `danh-muc`, `tag`, `menu`, `widget`, `nguoi-dung`, `giao-dich`, `binh-luan`, `vai-tro`, `bao-loi-link`, `audit-log`, `cai-dat/storage`, `cai-dat/sepay`, `cai-dat/email`, `cai-dat/chung`, `cai-dat/backup-db`, `tep-cloud`, `thu-vien-media` — chưa có trang landing/dashboard riêng cho `/quan-tri`, xem Phase 4.1)
 - `components/` — component dùng chung (UI cơ bản, rich-text-editor, comment-section, mention-textarea, styled-user-name, notification-bell...)
 - `context/` — React context (`auth-context`, `role-badges-context`)
 - `lib/` — `api.ts` (client có token, tự refresh), `public-api.ts` (fetch phía server không token), `types.ts`, `format.ts`, `fonts.ts`, `socket.ts`
@@ -126,19 +133,19 @@ Quy ước: mỗi phase có **Definition of Done (DoD)** rõ ràng — không sa
 ### 1.3 RBAC cơ bản
 - [x] Bảng `roles`, `permissions`, `role_permissions`, `user_roles`; seed permission + 4 role mặc định (Admin/Super Mod/Mod/Member) đúng ma trận quyền mục 06 tài liệu thiết kế (`prisma/seed.ts`)
 - [x] `PermissionsGuard` + `@Permissions(...)` kiểm tra theo mã quyền (không hard-code theo tên role) — đã test 403 đúng khi member gọi endpoint cần `user.manage`
-- [x] `GET /users` (list, cần `user.manage`), `POST/DELETE /users/:id/roles` (gán/gỡ role, cần `user.assign_role`) — UC18, đã test admin gán role thành công + member bị chặn
+- [x] `GET /users` (list, cần `user.manage`), `POST/DELETE /users/:id/roles` (gán/gỡ role, cần `user.assign_role`) — UC18, đã test admin gán role thành công + member bị chặn. **Cập nhật 2026-08-06:** 2 endpoint này giờ nhận thêm `@CurrentUser() actor` để ghi `AuditLog` (module `audit-log/` mới, xem Phase 4.3) mỗi lần đổi role.
 - [x] Bổ sung 2026-08-03: role thứ 5 `unverified` (Chưa kích hoạt) — xem mục 1.1.
 
 ### 1.4 CMS bài viết (khung cơ bản)
-- [x] Model Post, Category (chưa có Tag/SEO nâng cao) — đã có sẵn từ ERD Phase 0, không cần migration mới
+- [x] Model Post, Category — đã có sẵn từ ERD Phase 0, không cần migration mới. **Cập nhật:** Tag/SEO nâng cao ban đầu ghi "chưa có" ở đây đã lỗi thời — xem Phase 2.4 (module `tags/` + gắn tag khi soạn bài) và Phase 2.1 (panel SEO).
 - [x] API CRUD bài viết (chưa có WYSIWYG, chỉ textarea tạm) — `backend/src/posts`, `backend/src/categories`; phân quyền `post.create`/`post.edit.own`/`post.edit.any`/`post.publish`/`post.delete`
 - [x] UI trang chủ (wireframe #01), trang danh mục (wireframe #02), chi tiết bài viết (wireframe #03) — bản khung, chưa có link tải/bình luận
 - [x] Layout public bám bản sắc v1 (navbar tối, thẻ bài viết, gạch chân gradient — mục 02 tài liệu thiết kế)
 
 ### 1.5 Kiểm thử
-- [ ] Test unit cho Auth (đăng ký/đăng nhập/reset mật khẩu) — **vẫn chưa có** `auth.service.spec.ts`/`auth.controller.spec.ts` thật sự nào. Đã có thay thế một phần: `backend/test/auth.e2e-spec.ts` (Jest + supertest) phủ đăng ký, đăng nhập, refresh token xoay vòng, permission 403 — nhưng **chưa test luồng quên/đặt lại mật khẩu**. Ưu tiên bổ sung unit test thật trước khi coi mục này xong.
+- [ ] Test unit cho Auth (đăng ký/đăng nhập/reset mật khẩu) — **vẫn chưa có** `auth.service.spec.ts`/`auth.controller.spec.ts` thật sự nào, và luồng quên/đặt lại mật khẩu vẫn hoàn toàn chưa có test tự động (không có trong `auth.e2e-spec.ts`). **Cập nhật 2026-08-06:** riêng dòng "chưa có unit test nào" đã lỗi thời cho phần còn lại của backend — đã có `backend/src/posts/posts.service.spec.ts` (7 case phân quyền sửa bài) và `backend/src/common/slugify.spec.ts`; chỉ Auth cụ thể là còn thiếu. Đã có thay thế một phần: `backend/test/auth.e2e-spec.ts` (Jest + supertest) phủ đăng ký, đăng nhập, refresh token xoay vòng, permission 403, verify-email — nhưng **chưa test luồng quên/đặt lại mật khẩu**. Ưu tiên bổ sung unit test thật trước khi coi mục này xong.
 
-**DoD:** User đăng ký/đăng nhập/sửa hồ sơ được ✅; Admin đăng nhập thấy danh sách bài viết ✅; phân quyền cơ bản chặn đúng theo role ✅. Nợ kỹ thuật còn lại: chưa có unit test riêng cho Auth (không chặn các phase sau vì đã có e2e coverage một phần).
+**DoD:** User đăng ký/đăng nhập/sửa hồ sơ được ✅; Admin đăng nhập thấy danh sách bài viết ✅; phân quyền cơ bản chặn đúng theo role ✅. Nợ kỹ thuật còn lại: chưa có unit test riêng cho Auth, chưa test tự động luồng quên/đặt lại mật khẩu (không chặn các phase sau vì đã có e2e coverage một phần).
 
 ---
 
@@ -163,7 +170,7 @@ Quy ước: mỗi phase có **Definition of Done (DoD)** rõ ràng — không sa
 
 ### 2.4 Tìm kiếm & danh mục
 - [x] Tìm kiếm full-text (Postgres `tsvector` hoặc Meilisearch nếu traffic lớn) — UC05. **Đơn giản hoá:** dùng `ILIKE` (case-insensitive `contains`) trên title/excerpt thay vì tsvector/Meilisearch — đủ dùng ở quy mô hiện tại, nâng cấp sau khi traffic lớn.
-- [x] Lọc theo danh mục/tag, sắp xếp mới nhất/phổ biến — wireframe #02. **Chưa làm lọc theo tag** (model `Tag`/`PostTag` có sẵn nhưng chưa có UI gắn tag cho bài viết) — để dành phase sau.
+- [x] Lọc theo danh mục/tag, sắp xếp mới nhất/phổ biến — wireframe #02. **Cập nhật 2026-08-06:** dòng "chưa làm lọc theo tag" đã lỗi thời — module `backend/src/tags/` đầy đủ CRUD, trang quản lý tag `/quan-tri/tag`, form soạn bài gửi kèm `tagIds` khi lưu, trang công khai `/the/[slug]` liệt kê bài theo tag (tương đương trang danh mục).
 
 ### 2.5 Custom Role đầy đủ
 - [x] UI ma trận quyền tick chọn theo module (tạo custom role) — UC17, wireframe #11
@@ -201,7 +208,7 @@ Quy ước: mỗi phase có **Definition of Done (DoD)** rõ ràng — không sa
 
 ### 3.3 Link tải & giá $P
 - [x] Model `download_links` (gắn Post, provider R2/S3, object key, giá $P)
-- [x] UI quản lý link tải trong trình soạn bài — wireframe #09. **Giới hạn hiện tại:** mỗi bài viết chỉ hỗ trợ 1 link tải "chính" (model đã sẵn sàng cho nhiều link/bài nhưng service chỉ thao tác trên bản ghi sớm nhất) — nếu cần nhiều link/bài thật, phải mở rộng `download-links.service.ts`. Có ô "Dung lượng (byte)" + nút "Dò dung lượng" (đọc thật từ bucket qua `GET /storage-providers/:id/files`) — trước đó form không gửi `sizeBytes` nên mỗi lần lưu tự xoá về `null`, khối "Dung lượng" ở trang bài viết luôn hiện "—" (đã sửa 2026-08-03). **Bổ sung cùng ngày:** các link tải tạo từ trước khi có ô này (đang có `sizeBytes = null` sẵn trong DB) không cần Admin vào sửa lại tay — `getPublicInfo()` tự HEAD object lấy dung lượng thật (`R2ClientService.headObjectSize`) và lưu ngược vào DB ngay lần đầu có người xem trang chi tiết bài viết đó, các lần sau đọc thẳng từ DB (không gọi lại S3/R2 mỗi request).
+- [x] UI quản lý link tải trong trình soạn bài — wireframe #09. **Cập nhật 2026-08-06:** giới hạn "mỗi bài viết chỉ 1 link tải chính" đã được gỡ bỏ — `download-links.service.ts` giờ hỗ trợ đầy đủ CRUD nhiều link/bài (`unlock(userId, linkId, ...)` thao tác theo `linkId` cụ thể, không còn ngầm định link sớm nhất), FE `download-config-panel.tsx` có nút "+ Thêm link tải" quản lý danh sách. Có ô "Dung lượng (byte)" + nút "Dò dung lượng" (đọc thật từ bucket qua `GET /storage-providers/:id/files`) — trước đó form không gửi `sizeBytes` nên mỗi lần lưu tự xoá về `null`, khối "Dung lượng" ở trang bài viết luôn hiện "—" (đã sửa 2026-08-03). **Bổ sung cùng ngày:** các link tải tạo từ trước khi có ô này (đang có `sizeBytes = null` sẵn trong DB) không cần Admin vào sửa lại tay — `getPublicInfo()` tự HEAD object lấy dung lượng thật (`R2ClientService.headObjectSize`) và lưu ngược vào DB ngay lần đầu có người xem trang chi tiết bài viết đó, các lần sau đọc thẳng từ DB (không gọi lại S3/R2 mỗi request).
 - [x] API mua + sinh presigned URL: kiểm tra số dư → trừ tiền (1 transaction) → gọi SDK R2/S3 thật → TTL 10 phút — UC11, UC24
 - [x] **Đổi thiết kế 2026-08-03 (yêu cầu thực tế, khác Phase 3 ban đầu):** bỏ hẳn cơ chế "mở khoá 1 lần → tải lại miễn phí mãi mãi" qua `DownloadGrant.expiresAt` — **mỗi lượt tải đều kiểm tra + trừ $P**, kể cả user đã tải trước đó (gọi `POST /posts/:postId/download-link/unlock` là luôn trừ tiền nếu `priceP > 0`, không có ngoại lệ). `DownloadGrant` vẫn được ghi mỗi lượt tải thành công nhưng chỉ còn là lịch sử mua (phục vụ tính doanh thu/danh sách member ở `cloud-files.service.ts`), không còn dùng để bỏ qua thanh toán. Trường `hasAccess` đã bỏ khỏi API công khai (`GET /posts/:postId/download-link`) vì không còn ý nghĩa. Đẩy realtime số dư qua WebSocket ngay sau khi trừ tiền (trước đó `download-links.service.ts` không emit, chip $P ở navbar không tự cập nhật sau khi tải).
 - [x] Sửa cùng ngày: `DownloadBox` (FE) trước đó vẫn giữ lại presigned URL trong state sau khi mở khoá thành công và hiện thành 1 link "Tải xuống ngay" bấm lại được thoải mái mà KHÔNG gọi lại API — tức bên BE đã tính đúng "mỗi lần tải trừ $P" nhưng FE lại cho tải lại miễn phí trong cùng phiên xem trang (không khớp yêu cầu). Đã bỏ hẳn state lưu link tải — nút luôn quay về trạng thái khoá "🔒 Mở khoá & tải xuống — X $P" ngay sau khi mở tab tải, bấm lại luôn tính 1 lượt mở khoá mới (gọi lại `unlock()`, trừ $P mới).
@@ -233,13 +240,13 @@ Quy ước: mỗi phase có **Definition of Done (DoD)** rõ ràng — không sa
 
 ### 3.7 UX & vận hành bổ sung (ngoài kế hoạch ban đầu — bổ sung 2026-08-05, PR #43)
 - [x] Fix bug upload file lớn (>5GB) qua multipart bị lỗi "Lỗi mạng lúc tải phần 1" — nguyên nhân: `@aws-sdk/client-s3` bản mới tự thêm checksum vào request đã ký (presigned URL), trình duyệt PUT thô không gửi đúng checksum đó nên bị R2 từ chối. Tắt bằng `requestChecksumCalculation`/`responseChecksumValidation: 'WHEN_REQUIRED'` ở `r2-client.service.ts`. Kèm hướng dẫn cấu hình CORS bucket R2 ngay trên trang Upload (trước đây chưa tài liệu hoá ở đâu). **Chưa verify được bằng bucket R2 thật** (sandbox không có credential) — cần chủ dự án tự upload thử lại 1 file lớn để xác nhận.
-- [x] Tooltip `title="..."` cho tiêu đề bài viết ở mọi nơi có thể bị cắt ngắn (PostCard, PostRow, PostPopup, widget "Bài mới", bảng admin).
+- [x] Tooltip cho tiêu đề bài viết ở mọi nơi có thể bị cắt ngắn (PostCard, PostRow, PostPopup, widget "Bài mới", bảng admin) — **đính chính:** không phải thuộc tính `title="..."` native (không tin cậy, không style được) mà là component `Tooltip` tự viết (`components/ui.tsx`).
 - [x] Đếm lượt xem bài viết chống spam F5 — tách hẳn khỏi route `GET /posts/:slug` (vốn được Next.js Server Component gọi từ server, không thấy IP người xem thật) sang endpoint riêng `POST /posts/:id/view` gọi từ trình duyệt, dedup 30 phút/người xem (ưu tiên userId, fallback IP). Thêm `app.set('trust proxy', 1)` ở `main.ts` — cải thiện luôn độ chính xác IP cho `DownloadRateLimitGuard`/`DownloadEvent` có sẵn.
 - [x] Widget mới "Bài viết xem nhiều" (`TOP_VIEWED`) — số lượng tuỳ chọn, dùng lại `sort=popular` đã có.
 - [x] Trang Admin `/quan-tri/nguoi-dung`: bấm email user → mở trang profile công khai (tab mới).
-- [x] User Activity log — model `UserActivity` mới, ghi lại đăng nhập/xem bài viết/nạp tiền/ghé thăm profile người khác, tab "Hoạt động" mới ở trang Hồ sơ (`GET /users/me/activity`, chỉ chính chủ xem được).
+- [x] User Activity log — model `UserActivity` mới, ghi lại đăng nhập/xem bài viết/nạp tiền/ghé thăm profile người khác, tab "Hoạt động" ở trang Hồ sơ. **Đính chính 2026-08-06:** endpoint thật là `GET /users/:id/activity`, **công khai** (không cần đăng nhập, ai cũng xem được — giống trang Hồ sơ công khai), không phải `GET /users/me/activity` riêng tư như ghi ban đầu. Việc ghi nhận `VISIT_PROFILE` (ghé thăm profile người khác) từng bị lỗi (endpoint cũ dùng `OptionalJwtAuthGuard` nhưng FE gọi qua `publicFetch()` không gửi token nên viewer không bao giờ được nhận diện) — đã sửa bằng endpoint riêng `POST /users/:id/visit` (`JwtAuthGuard`, gọi từ client sau khi mount trang profile). PR #46.
 
-**DoD:** Nạp tiền qua SePay thành công và cộng đúng $P ✅ (đã chạy thật trên production, xem lịch sử giao dịch thật đã có dữ liệu); mua link tải trừ đúng tiền, tải được file qua presigned URL còn hạn ✅; webhook gọi trùng không gây cộng/trừ tiền sai ✅ (theo code, chưa có test tự động xác nhận); báo lỗi link die + hàng chờ xử lý ✅ (mục 3.5). Còn nợ: rate limit toàn site (Phase 4.3), nút test kết nối R2/S3 (mục 3.4), toàn bộ bộ test E2E Playwright của phase này (mục 3.6), verify thật bug upload file lớn trên bucket production (mục 3.7).
+**DoD:** Nạp tiền qua SePay thành công và cộng đúng $P ✅ (đã chạy thật trên production, xem lịch sử giao dịch thật đã có dữ liệu); mua link tải trừ đúng tiền, tải được file qua presigned URL còn hạn ✅; webhook gọi trùng không gây cộng/trừ tiền sai ✅ (theo code, chưa có test tự động xác nhận); báo lỗi link die + hàng chờ xử lý ✅ (mục 3.5). Còn nợ: nút test kết nối R2/S3 (mục 3.4), toàn bộ bộ test E2E Playwright của phase này (mục 3.6), verify thật bug upload file lớn trên bucket production (mục 3.7). (Rate limit toàn site đã xong ở Phase 4.3, xem cập nhật 2026-08-06.)
 
 ---
 
@@ -250,16 +257,16 @@ Quy ước: mỗi phase có **Definition of Done (DoD)** rõ ràng — không sa
 - [ ] Thống kê doanh thu, user mới, bài viết chờ duyệt, lượt tải — UC22, wireframe #08 — **chưa làm**, `/quan-tri` chưa có trang landing/dashboard nào (chỉ có `layout.tsx`, các trang con phải vào thẳng URL cụ thể)
 
 ### 4.2 Tối ưu tốc độ (theo mục 09 tài liệu thiết kế)
-- [x] ISR cho toàn bộ trang public — `frontend/src/lib/public-api.ts`'s `publicFetch()` đổi từ `cache: "no-store"` sang `next: { revalidate: 30 }` (mặc định 30s cho mọi fetcher: bài viết, danh mục, menu, widget, cài đặt chung...). Next.js tự suy ra thời gian revalidate của cả route từ các lệnh fetch dùng trong Server Component nên không cần khai báo `export const revalidate` riêng ở từng `page.tsx`. **Cập nhật 2026-08-04:** webhook purge cache Next.js đã có — `frontend/src/app/api/revalidate/route.ts` (`revalidatePath("/", "layout")`, xác thực header `x-revalidate-secret` so với `REVALIDATE_SECRET`), gọi từ `FrontendRevalidateService` (`backend/src/cache/frontend-revalidate.service.ts`). **Còn thiếu:** hiện chỉ được gọi thủ công khi Admin bấm nút "Xoá cache" ở topbar (`cache.controller.ts`) — `posts.service.ts` khi publish/sửa bài mới chỉ gọi `cache.invalidatePrefix('posts')` (xoá object cache Redis phía backend), **chưa** gọi `FrontendRevalidateService.revalidateAll()` để tự động purge ISR ngay sau khi publish như dự tính ban đầu.
+- [x] ISR cho toàn bộ trang public — `frontend/src/lib/public-api.ts`'s `publicFetch()` đổi từ `cache: "no-store"` sang `next: { revalidate: 30 }` (mặc định 30s cho mọi fetcher: bài viết, danh mục, menu, widget, cài đặt chung...). Next.js tự suy ra thời gian revalidate của cả route từ các lệnh fetch dùng trong Server Component nên không cần khai báo `export const revalidate` riêng ở từng `page.tsx`. **Cập nhật 2026-08-04:** webhook purge cache Next.js đã có — `frontend/src/app/api/revalidate/route.ts` (`revalidatePath("/", "layout")`, xác thực header `x-revalidate-secret` so với `REVALIDATE_SECRET`), gọi từ `FrontendRevalidateService` (`backend/src/cache/frontend-revalidate.service.ts`). **Cập nhật 2026-08-06:** `posts.service.ts` (`create`/`update`/`remove`) giờ gọi kèm `frontendRevalidate.revalidateAll()` ngay sau `cache.invalidatePrefix('posts')` — publish/sửa/xoá bài tự động purge ISR frontend, không còn phải đợi Admin bấm tay nút "Xoá cache". PR #46.
 - [ ] Cache Cloudflare Edge cho trang public + asset tĩnh — **chưa làm** (cấu hình dashboard Cloudflare, không phải việc trong code)
 - [x] Redis cache cho query nóng (bài mới, đếm lượt tải) — **Cập nhật 2026-08-04:** object cache kiểu WP-Rocket/LiteSpeed đã làm đầy đủ ở `backend/src/cache/` (`CacheService` dùng `ioredis`, cache-aside qua decorator `@Cacheable()` + `HttpCacheInterceptor`, key có tiền tố `kmg:cache:` để xoá chọn lọc bằng `SCAN`, fail-open khi Redis lỗi). Gắn cho `posts`/`categories`/`menus`/`widgets`/`roles`/`site-settings`, tự `invalidatePrefix(namespace)` ngay sau mỗi lần ghi (create/update/xoá/reorder). Nút "Xoá cache" trên topbar (quyền `cache.manage`, thường chỉ Admin) dọn sạch toàn bộ Redis + gọi kèm webhook revalidate frontend ở trên. PR #36 (`90bbe3d`).
-- [ ] Pipeline ảnh: resize + WebP/AVIF khi upload, lazy-load — **chưa làm**, chưa có `sharp` hay thư viện xử lý ảnh nào trong backend (cần thêm dependency binary gốc, nên tách task riêng để đánh giá kỹ tương thích môi trường deploy trước khi thêm)
+- [x] Pipeline ảnh: resize + WebP khi upload — **Cập nhật 2026-08-06:** thêm dependency `sharp`, util dùng chung `backend/src/common/image-pipeline.util.ts` (resize tối đa 1920px + convert WebP quality 82, bỏ qua GIF để giữ animation), áp cho cả 2 điểm upload ảnh trong hệ thống (`POST /uploads` và `POST /media`). **Chưa làm:** AVIF, lazy-load phía FE (Next.js `<Image>` component chưa được dùng — hiện toàn dùng `<img>` thô kèm `eslint-disable @next/next/no-img-element`, tách task riêng nếu cần). PR #46.
 - [ ] Giảm JS client: tối đa hoá React Server Components — chưa rà soát riêng, mặc định theo hành vi Next.js
 
 ### 4.3 Bảo mật
 - [ ] Rà soát OWASP Top 10 (đặc biệt XSS trong output WYSIWYG, CSRF, injection) — chưa có bằng chứng đã rà soát có hệ thống
-- [ ] Rate limit toàn bộ API công khai (đăng nhập, tìm kiếm, tải) — **chưa làm**, chưa cài `@nestjs/throttler` hay tương đương
-- [ ] Audit log cho thao tác nhạy cảm: đổi quyền, điều chỉnh ví thủ công, đổi key R2/S3 — **chưa làm**, chưa có model `AuditLog` nào trong schema
+- [x] Rate limit toàn bộ API công khai (đăng nhập, tìm kiếm, tải) — **Cập nhật 2026-08-06:** phát hiện hạ tầng thực ra **đã có sẵn từ trước** (`backend/src/common/rate-limit/` — `PublicRateLimitService`/`PublicRateLimitGuard`/`@RateLimitKey()`, cấu hình qua `SiteSetting.rateLimits`, chỉnh được ở trang Cài đặt chung), đã áp cho login/register/forgotPassword/search — dòng "chưa làm" trước đây đã lỗi thời. Vá nốt lỗ hổng còn lại: `POST /auth/reset-password` (đặt lại mật khẩu) trước đó không có guard nào — đã thêm key `resetPassword` (`900s/5 lượt`) + guard. Có chủ đích **không** dùng `@nestjs/throttler` — giữ đúng kỹ thuật sliding-window trong bộ nhớ nhất quán với `DownloadRateLimitGuard` (lý do: chỉ chạy 1 instance backend). PR #46.
+- [x] Audit log cho thao tác nhạy cảm: đổi quyền, điều chỉnh ví thủ công, đổi key R2/S3 — **Cập nhật 2026-08-06:** model `AuditLog` mới (migration `20260806010000_add_audit_log`) + `AuditLogService`/`AuditLogModule`, ghi log tại `users.service.ts` (`assignRole`/`removeRole`), `wallet.service.ts` (`adjustBalance`, ghi trong cùng `$transaction`), `storage-providers.service.ts` (`update`, chỉ khi đổi `accessKeyId`/`secretAccessKey`). Trang xem log `/quan-tri/audit-log` (quyền `audit.view`, mặc định chỉ Admin). PR #46.
 
 ### 4.4 Hạ tầng Production — Vercel (frontend) + aaPanel (backend)
 - [x] 🔴 Làm theo thứ tự trong [`Deploy_Checklist.md`](Deploy_Checklist.md) — đã deploy thật, cả 2 domain đang chạy
@@ -267,7 +274,7 @@ Quy ước: mỗi phase có **Definition of Done (DoD)** rõ ràng — không sa
 - [x] Setup aaPanel cho backend (Docker Compose: postgres/redis/backend) — `kmn2api.nhutnm.id.vn` đang chạy, health check `{"status":"ok","db":"up"}`
 - [x] Cấu hình CORS/cookie cross-origin đúng — đã xác nhận `Access-Control-Allow-Origin` trả đúng domain Vercel, đăng nhập + giữ phiên hoạt động qua domain production
 - [x] CI/CD backend — **cách làm thực tế khác với kế hoạch ban đầu:** job `deploy-backend` trong `.github/workflows/ci.yml` SSH thẳng vào VPS, `git reset --hard origin/main` rồi `docker compose up -d --build` build lại image ngay trên VPS + `prisma migrate deploy` + `prisma db seed` — **không** build image đẩy lên GHCR rồi pull như dự tính ban đầu. Job này chạy **tự động** mỗi khi có push vào `main` sau khi job `backend` (lint/build/test) xanh — **không có bước duyệt thủ công** như kế hoạch ban đầu yêu cầu. ⚠️ Rủi ro cần lưu ý: 1 lần merge quên chạy test đã từng làm hỏng CI và chặn deploy — nếu muốn thêm gate duyệt thủ công (`environment:` protection rule trên GitHub) thì cần làm trước khi tăng tần suất merge.
-- [ ] Backup PostgreSQL tự động hàng ngày + đã thử restore ít nhất 1 lần — **chưa làm**, không có script/cron backup nào trong repo, `Deploy_Checklist.md` cũng chưa nhắc tới backup
+- [x] Backup PostgreSQL tự động hàng ngày — **Cập nhật 2026-08-06:** dòng "chưa làm" đã lỗi thời, module `db-backup/` đầy đủ: cron cấu hình được (bật/tắt, giờ/phút, chạy mỗi phút kiểm tra `hasRunToday()`, mặc định **tắt** — Admin phải tự bật ở `/quan-tri/cai-dat/backup-db`), `pg_dump` nén gzip, upload lên storage provider (R2/S3) đã chọn, retention (`retentionCount`, mặc định giữ 7 bản), nút "Backup ngay" chạy thủ công, tải lại bản backup qua presigned URL. **Còn thiếu thật:** chưa có tính năng restore/import ngược lại từ file backup (chỉ tải file gzip về, phục hồi vẫn phải làm tay/ngoài hệ thống) — mục "đã thử restore ít nhất 1 lần" trong tiêu đề vẫn chưa làm được vì thiếu chính công cụ restore.
 - [ ] Giám sát: Sentry (lỗi, cả frontend lẫn backend), Uptime Kuma (uptime cả 2 domain), theo dõi tài nguyên VPS aaPanel — **chưa làm**, chưa tích hợp Sentry hay Uptime Kuma ở đâu
 
 ### 4.5 Dữ liệu & nội dung
@@ -282,7 +289,7 @@ Quy ước: mỗi phase có **Definition of Done (DoD)** rõ ràng — không sa
 - [ ] Rollback plan sẵn sàng (giữ image tag bản trước) — chưa có, cách deploy hiện tại (`git reset --hard` + rebuild) không tự giữ lại bản trước để rollback nhanh
 - [ ] 🔴 Thông báo người dùng v1 về thời điểm chuyển đổi (nếu áp dụng)
 
-**DoD:** Site chạy thật trên domain chính ✅ (đã đạt sớm hơn kế hoạch — xem ghi chú Phase 2.7), nhận thanh toán thật (cần chủ dự án xác nhận key production vs sandbox), có backup + giám sát hoạt động (❌ chưa có cả hai), rollback đã diễn tập (❌ chưa).
+**DoD:** Site chạy thật trên domain chính ✅ (đã đạt sớm hơn kế hoạch — xem ghi chú Phase 2.7), nhận thanh toán thật (cần chủ dự án xác nhận key production vs sandbox), có backup tự động ✅ (chưa thử restore — mục 4.4), giám sát hoạt động ❌ (chưa có Sentry/Uptime Kuma), rollback đã diễn tập (❌ chưa).
 
 ---
 
