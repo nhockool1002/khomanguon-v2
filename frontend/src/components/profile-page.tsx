@@ -144,7 +144,11 @@ function ProfileTab({ profile, profileId }: { profile: PublicProfile; profileId:
           </StyledUserName>
           {profile.title &&
             (profile.titleAllowHtml ? (
-              <p
+              // <div> thay vì <p> — Title cho phép HTML tự do (role Admin/Super Mod), có thể chứa
+              // <style> hoặc thẻ block khác mà <p> (chỉ nhận nội dung dạng text/inline) không cho
+              // phép làm con hợp lệ. Trình duyệt tự "sửa" bằng cách đóng <p> sớm, tạo ra DOM khác
+              // với server render → lỗi hydration React #418 (đã gặp thật, xem PLAN.md).
+              <div
                 className="text-sm text-zinc-600"
                 dangerouslySetInnerHTML={{ __html: profile.title }}
               />

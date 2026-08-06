@@ -6,9 +6,8 @@ export class PresignUploadDto {
   @MaxLength(255)
   filename: string;
 
-  // Thư mục con tuỳ chọn (vd "game-pc/2026") — để trống thì cloud-files.service.ts tự đặt vào
-  // thư mục theo ngày "cloud-uploads/yyyy/mm/dd/" giống quy ước dated-upload.util.ts đang dùng
-  // cho ảnh bài viết, chỉ khác là bên bucket S3/R2 thay vì đĩa cục bộ.
+  // Thư mục con tuỳ chọn (vd "game-pc/2026") — để trống thì upload thẳng gốc bucket theo đúng
+  // uploadPrefix đã cấu hình ở Storage Provider (xem cloud-files.service.ts buildUploadKey()).
   @IsOptional()
   @IsString()
   @MaxLength(200)
