@@ -6,7 +6,7 @@ import { Tooltip } from "@/components/ui";
 import type { Widget } from "@/lib/types";
 
 // Server Component — dùng chung cho trang chủ và trang bài viết (cả 2 đều là Server Component sẵn),
-// đọc danh sách widget đã cấu hình qua /quan-tri/widget thay vì hard-code sidebar riêng từng trang.
+// đọc danh sách widget đã cấu hình qua /admin/widget thay vì hard-code sidebar riêng từng trang.
 // postId chỉ có ở trang bài viết — widget loại COMMENTS cần nó để biết bình luận của bài nào, nên bị
 // lọc bỏ khi không có (vd trang chủ), dù admin đang để "Đang hiện".
 export async function WidgetArea({ area, postId }: { area: string; postId?: string }) {

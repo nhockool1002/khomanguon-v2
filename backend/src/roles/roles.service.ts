@@ -37,7 +37,7 @@ export interface RoleStyleInput {
 }
 
 // Khác RoleStyleInput (badge tên hiển thị) — đây là quyền hạn User Title do role này cấp, chỉnh ở
-// cùng trang /quan-tri/vai-tro nhưng là 1 khối riêng.
+// cùng trang /admin/roles nhưng là 1 khối riêng.
 export interface RoleUserTitleInput {
   cooldownDays?: number | null;
   allowHtml?: boolean;

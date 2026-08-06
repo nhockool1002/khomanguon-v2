@@ -196,7 +196,7 @@ export interface Role {
   bold: boolean;
   italic: boolean;
   fontFamily: string | null;
-  // Quyền hạn User Title cho user thuộc role này (xem /quan-tri/vai-tro) — null cooldown = đổi tự do.
+  // Quyền hạn User Title cho user thuộc role này (xem /admin/roles) — null cooldown = đổi tự do.
   userTitleCooldownDays: number | null;
   userTitleAllowHtml: boolean;
   userTitleMaxLength: number;

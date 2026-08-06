@@ -26,7 +26,7 @@ declare global {
   }
 }
 
-// Widget reCAPTCHA v2 checkbox — chỉ render khi Admin đã bật ở /quan-tri/cai-dat/chung (fetch
+// Widget reCAPTCHA v2 checkbox — chỉ render khi Admin đã bật ở /admin/settings/general (fetch
 // GET /recaptcha/config, public). Dùng render tường minh (grecaptcha.render) thay vì để script tự
 // quét DOM (implicit render) — script quét DOM CHỈ 1 LẦN lúc load, nếu user điều hướng SPA (đăng ký
 // -> đăng nhập) mà không reload trang, script không quét lại nên widget trang sau sẽ không hiện.

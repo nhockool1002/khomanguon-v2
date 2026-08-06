@@ -306,7 +306,7 @@ function AccountInfoTab({ onSaved }: { onSaved: () => Promise<void> }) {
       <div className="flex flex-wrap items-center justify-end gap-2">
         {canAccessAdmin && (
           <Link
-            href="/quan-tri/bai-viet"
+            href="/admin/posts"
             className="flex items-center gap-1.5 rounded-md border border-zinc-300 px-3 py-1.5 text-sm text-zinc-700 hover:bg-zinc-50"
           >
             <ShieldCheck size={16} strokeWidth={1.75} aria-hidden />

@@ -28,7 +28,7 @@ import {
 } from "@/context/upload-queue-context";
 
 // Trang này chỉ còn là lớp hiển thị thuần — toàn bộ state/logic hàng đợi nằm ở
-// context/upload-queue-context.tsx (mount tại layout /quan-tri) để rời trang rồi quay lại vẫn giữ
+// context/upload-queue-context.tsx (mount tại layout /admin) để rời trang rồi quay lại vẫn giữ
 // nguyên tiến độ. Bố cục 2 cột: trái = khu vực xử lý upload (hàng đợi hiện tại), phải = lịch sử
 // upload đã lưu DB (nhiều admin cùng xem được, không chỉ localStorage của riêng máy đang dùng).
 export default function UploadCloudFilePage() {
@@ -82,7 +82,7 @@ export default function UploadCloudFilePage() {
   return (
     <div className="flex w-full max-w-6xl flex-col gap-4 px-4 py-6 sm:px-8 sm:py-8">
       <div className="flex items-center gap-2 text-sm text-zinc-500">
-        <Link href="/quan-tri/tep-cloud" className="flex items-center gap-1 hover:text-[#1d3557]">
+        <Link href="/admin/cloud-files" className="flex items-center gap-1 hover:text-[#1d3557]">
           <ChevronLeft size={15} strokeWidth={1.75} aria-hidden />
           Quản lý File Cloud
         </Link>

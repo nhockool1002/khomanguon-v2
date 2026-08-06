@@ -1,3 +1,5 @@
+import { beginRequest, endRequest } from "./loading-store";
+
 export const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000";
 
 let accessToken: string | null = null;
@@ -40,31 +42,40 @@ async function rawFetch(path: string, options: RequestInit) {
 
 // Access token sống trong bộ nhớ (không localStorage, tránh XSS đọc trộm). Khi hết hạn (401),
 // thử refresh 1 lần qua cookie httpOnly rồi lặp lại request gốc — người dùng không nhận ra.
+//
+// beginRequest/endRequest bọc toàn bộ hàm (kể cả lượt refresh token nếu có) — đây là điểm hội tụ
+// duy nhất mọi trang cần đăng nhập dùng để gọi API, nên GlobalLoadingBar (xem loading-store.ts)
+// tự động phản ánh đúng mọi action gọi API mà không cần từng trang tự khai báo loading riêng.
 export async function apiFetch<T>(
   path: string,
   options: ApiFetchOptions = {},
 ): Promise<T> {
-  let res = await rawFetch(path, options);
+  beginRequest();
+  try {
+    let res = await rawFetch(path, options);
 
-  if (res.status === 401 && !options.skipAuthRetry && path !== "/auth/refresh") {
-    const refreshed = await tryRefresh();
-    if (refreshed) {
-      res = await rawFetch(path, options);
+    if (res.status === 401 && !options.skipAuthRetry && path !== "/auth/refresh") {
+      const refreshed = await tryRefresh();
+      if (refreshed) {
+        res = await rawFetch(path, options);
+      }
     }
+
+    const isJson = res.headers.get("content-type")?.includes("application/json");
+    const body = isJson ? await res.json() : null;
+
+    if (!res.ok) {
+      const message =
+        (body && typeof body === "object" && "message" in body
+          ? String((body as { message: unknown }).message)
+          : null) ?? `Lỗi ${res.status}`;
+      throw new ApiError(message, res.status);
+    }
+
+    return body as T;
+  } finally {
+    endRequest();
   }
-
-  const isJson = res.headers.get("content-type")?.includes("application/json");
-  const body = isJson ? await res.json() : null;
-
-  if (!res.ok) {
-    const message =
-      (body && typeof body === "object" && "message" in body
-        ? String((body as { message: unknown }).message)
-        : null) ?? `Lỗi ${res.status}`;
-    throw new ApiError(message, res.status);
-  }
-
-  return body as T;
 }
 
 let refreshPromise: Promise<boolean> | null = null;

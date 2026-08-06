@@ -22,7 +22,7 @@ function loadPreview(userId: string): Promise<PublicProfile | null> {
   return cached;
 }
 
-// Style (màu/đậm/nghiêng/font) do Admin cấu hình cho 1 role ở /quan-tri/vai-tro — mọi user thuộc
+// Style (màu/đậm/nghiêng/font) do Admin cấu hình cho 1 role ở /admin/roles — mọi user thuộc
 // role đó hiển thị tên theo đúng style này (không phải badge riêng, style áp thẳng lên tên).
 // User thuộc nhiều role thì styleRoleSlug đã được backend resolve theo lựa chọn của chính họ
 // (xem backend/src/roles/style-role.util.ts) — FE chỉ cần tra đúng 1 role tương ứng.

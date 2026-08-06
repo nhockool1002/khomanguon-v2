@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { ShieldX } from "lucide-react";
 
-// Hiện khi user đăng nhập cố tình vào thẳng URL /quan-tri/* mà không có quyền tương ứng (xem
+// Hiện khi user đăng nhập cố tình vào thẳng URL /admin/* mà không có quyền tương ứng (xem
 // lib/admin-nav.ts) — chặn ở từng trang thay vì chỉ dựa vào lỗi 403 im lặng từ API.
 export function ForbiddenPage() {
   return (

@@ -3,7 +3,7 @@ import { UploadQueueProvider } from "@/context/upload-queue-context";
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   return (
-    // Mount ở layout (không phải trong trang upload) để hàng đợi sống suốt vòng đời /quan-tri/* —
+    // Mount ở layout (không phải trong trang upload) để hàng đợi sống suốt vòng đời /admin/* —
     // điều hướng SPA sang trang admin khác rồi quay lại vẫn giữ nguyên tiến độ, xem
     // context/upload-queue-context.tsx.
     <UploadQueueProvider>

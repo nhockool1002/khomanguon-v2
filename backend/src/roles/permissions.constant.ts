@@ -93,7 +93,7 @@ export interface RoleUserTitleConfig {
 }
 
 // Mặc định User Title cho 4 role hệ thống lúc khởi tạo (seed.ts — chỉ áp khi TẠO MỚI role, không
-// ghi đè role đã tồn tại để không xoá tuỳ chỉnh Admin đã lưu qua /quan-tri/vai-tro). Role không có
+// ghi đè role đã tồn tại để không xoá tuỳ chỉnh Admin đã lưu qua /admin/roles). Role không có
 // trong map này (custom role Admin tự tạo, hoặc UNVERIFIED) dùng default cột trong schema.prisma
 // (60 ngày / không HTML / 150 ký tự) làm baseline an toàn.
 export const DEFAULT_ROLE_USER_TITLE_CONFIG: Partial<

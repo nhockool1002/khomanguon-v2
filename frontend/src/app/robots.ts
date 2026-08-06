@@ -7,7 +7,7 @@ export default function robots(): MetadataRoute.Robots {
     rules: {
       userAgent: "*",
       allow: "/",
-      disallow: ["/quan-tri/", "/tai-khoan/"],
+      disallow: ["/admin/", "/tai-khoan/"],
     },
     sitemap: `${SITE_URL}/sitemap.xml`,
   };

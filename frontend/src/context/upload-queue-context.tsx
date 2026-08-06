@@ -1,6 +1,6 @@
 "use client";
 
-// Hàng đợi upload sống ở đây (mount 1 lần trong layout /quan-tri, xem quan-tri/layout.tsx) thay vì
+// Hàng đợi upload sống ở đây (mount 1 lần trong layout /admin, xem admin/layout.tsx) thay vì
 // bên trong trang upload — điều hướng SPA sang trang admin khác rồi quay lại vẫn giữ nguyên tiến độ
 // (không sống qua reload toàn trang, JS không giữ được đối tượng File qua lần tải lại — nằm ngoài
 // phạm vi hợp lý để giải quyết). Toàn bộ state/logic dưới đây chuyển nguyên trạng từ

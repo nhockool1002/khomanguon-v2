@@ -1,6 +1,7 @@
 "use client";
 
 import { useRef, useState } from "react";
+import { Loader2 } from "lucide-react";
 
 export function FormField({
   label,
@@ -47,8 +48,9 @@ export function SubmitButton({
     <button
       {...props}
       disabled={loading || props.disabled}
-      className="rounded-md bg-[#1d3557] px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-[#16294a] disabled:opacity-50"
+      className="inline-flex items-center justify-center gap-1.5 rounded-md bg-[#1d3557] px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-[#16294a] disabled:opacity-50"
     >
+      {loading && <Loader2 size={15} strokeWidth={2} className="animate-spin" aria-hidden />}
       {loading ? "Đang xử lý..." : children}
     </button>
   );

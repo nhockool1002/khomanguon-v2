@@ -55,7 +55,7 @@ tại trước khi tạo với các bảng không có khoá tự nhiên như Com
 
 ## Sau khi migrate
 
-- Mở `http://localhost:3000/quan-tri/bai-viet` kiểm tra danh sách bài.
+- Mở `http://localhost:3000/admin/posts` kiểm tra danh sách bài.
 - `DownloadLink` migrate xong sẽ trỏ vào 1 `StorageProvider` placeholder tên **"Legacy R2 (migrated)"**
   (chưa có key thật — key `CHANGE_ME`). Vào **Admin > Cài đặt Storage** sửa lại đúng
   Access Key/Secret/Bucket R2 thật của bucket đang chứa các file trong `object_key`, rồi chạy lại

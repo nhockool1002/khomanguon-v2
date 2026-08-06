@@ -15,7 +15,7 @@ const CONFIG_CACHE_MS = 30_000; // chấp nhận admin đổi ngưỡng có đ�
 
 // Sliding-window rate limit trong bộ nhớ, cùng kỹ thuật DownloadRateLimitGuard nhưng tổng quát hoá
 // cho nhiều route công khai (login/register/forgot-password/search/comment) với ngưỡng cấu hình được
-// qua /quan-tri/cai-dat/chung thay vì hard-code — Global() nên chỉ 1 instance/bộ đếm dùng chung cho
+// qua /admin/settings/general thay vì hard-code — Global() nên chỉ 1 instance/bộ đếm dùng chung cho
 // toàn app (không cần Redis, giống lý do đã ghi ở download-rate-limit.guard.ts).
 @Injectable()
 export class PublicRateLimitService {

@@ -95,6 +95,24 @@ export class DbBackupService {
     return { url };
   }
 
+  // Xoá tay 1 bản backup từ Lịch sử — cùng logic best-effort với applyRetention() (object bucket
+  // xoá trước, lỗi không chặn xoá record DB, vì record đằng nào cũng không dùng lại được nếu file
+  // trên bucket đã mất).
+  async deleteRecord(recordId: string): Promise<{ id: string }> {
+    const record = await this.prisma.dbBackupRecord.findUnique({
+      where: { id: recordId },
+    });
+    if (!record) throw new NotFoundException('Không tìm thấy bản backup');
+
+    if (record.objectKey && record.storageProviderId) {
+      await this.r2Client
+        .deleteObject(record.storageProviderId, record.objectKey)
+        .catch(() => {});
+    }
+    await this.prisma.dbBackupRecord.delete({ where: { id: recordId } });
+    return { id: recordId };
+  }
+
   async hasRunToday(): Promise<boolean> {
     const startOfDay = new Date();
     startOfDay.setHours(0, 0, 0, 0);

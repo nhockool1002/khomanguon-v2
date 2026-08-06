@@ -36,8 +36,8 @@ export function PostPopup() {
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Không hiện trong khu quản trị — gợi ý bài viết chỉ có ý nghĩa ở phần công khai, hiện ở
-  // /quan-tri/* chỉ gây rối khi Admin/Mod đang thao tác.
-  const inAdmin = pathname?.startsWith("/quan-tri") ?? false;
+  // /admin/* chỉ gây rối khi Admin/Mod đang thao tác.
+  const inAdmin = pathname?.startsWith("/admin") ?? false;
   const enabled = !inAdmin && !loading && user?.showPostPopup !== false;
 
   useEffect(() => {
