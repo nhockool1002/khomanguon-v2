@@ -39,6 +39,7 @@ export default function AdminBackupDbPage() {
   const [message, setMessage] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [running, setRunning] = useState(false);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
 
   useEffect(() => {
     if (!loading && !user) router.replace("/dang-nhap");
@@ -130,6 +131,22 @@ export default function AdminBackupDbPage() {
       window.open(res.url, "_blank", "noopener,noreferrer");
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "Có lỗi xảy ra");
+    }
+  }
+
+  async function handleDelete(record: DbBackupRecord) {
+    if (!confirm("Xoá bản backup này (cả file trên bucket)? Không thể hoàn tác.")) return;
+    setError(null);
+    setMessage(null);
+    setDeletingId(record.id);
+    try {
+      await apiFetch(`/db-backup/records/${record.id}`, { method: "DELETE" });
+      setMessage("Đã xoá bản backup.");
+      reloadRecords();
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : "Có lỗi xảy ra");
+    } finally {
+      setDeletingId(null);
     }
   }
 
@@ -259,15 +276,25 @@ export default function AdminBackupDbPage() {
                     </span>
                   )}
                 </div>
-                {r.status === "SUCCESS" && (
+                <div className="flex items-center gap-1">
+                  {r.status === "SUCCESS" && (
+                    <button
+                      type="button"
+                      onClick={() => handleDownload(r)}
+                      className="rounded px-2 py-0.5 text-xs font-medium text-[#1d3557] hover:bg-zinc-100"
+                    >
+                      Tải xuống
+                    </button>
+                  )}
                   <button
                     type="button"
-                    onClick={() => handleDownload(r)}
-                    className="rounded px-2 py-0.5 text-xs font-medium text-[#1d3557] hover:bg-zinc-100"
+                    onClick={() => handleDelete(r)}
+                    disabled={deletingId === r.id}
+                    className="rounded px-2 py-0.5 text-xs font-medium text-red-600 hover:bg-red-50 disabled:opacity-50"
                   >
-                    Tải xuống
+                    {deletingId === r.id ? "Đang xoá..." : "Xoá"}
                   </button>
-                )}
+                </div>
               </div>
             ))}
           </div>

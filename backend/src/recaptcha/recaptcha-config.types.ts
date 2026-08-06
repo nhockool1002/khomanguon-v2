@@ -1,5 +1,5 @@
 // Lưu trong SiteSetting.value (key = RECAPTCHA_SETTING_KEY) — TÁCH RIÊNG khỏi GeneralSettings dù
-// cùng chỉnh ở trang /quan-tri/cai-dat/chung, vì GET /settings/general là endpoint CÔNG KHAI (trang
+// cùng chỉnh ở trang /admin/settings/general, vì GET /settings/general là endpoint CÔNG KHAI (trang
 // chủ cần đọc banner) — không được lẫn secretKeyEncrypted vào đó. siteKey vốn public theo thiết kế
 // của Google (luôn lộ trong HTML mọi trang có reCAPTCHA) nên an toàn trả qua endpoint công khai riêng.
 export interface RecaptchaConfig {

@@ -42,7 +42,7 @@ export default function NewPostPage() {
         canonicalUrl: values.canonicalUrl || undefined,
       }),
     });
-    router.push(`/quan-tri/bai-viet/${created.id}`);
+    router.push(`/admin/posts/${created.id}`);
   }
 
   return (

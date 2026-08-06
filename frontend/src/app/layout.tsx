@@ -6,6 +6,7 @@ import { AuthProvider } from "@/context/auth-context";
 import { RoleBadgesProvider } from "@/context/role-badges-context";
 import { Navbar } from "@/components/navbar";
 import { PostPopup } from "@/components/post-popup";
+import { GlobalLoadingBar } from "@/components/global-loading-bar";
 import { Footer } from "@/components/footer";
 import { fetchGeneralSettings, fetchMenus, fetchRoleBadges } from "@/lib/public-api";
 import { ROLE_FONT_VARS } from "@/lib/fonts";
@@ -57,6 +58,7 @@ export default async function RootLayout({
       className={`${geistSans.variable} ${geistMono.variable} ${ROLE_FONT_VARS} h-full antialiased`}
     >
       <body className="flex min-h-full flex-col">
+        <GlobalLoadingBar />
         {settings.gaTrackingId && (
           <>
             <Script

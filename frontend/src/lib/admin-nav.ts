@@ -55,20 +55,20 @@ export type NavEntry = ({ kind: "leaf" } & NavLeaf) | ({ kind: "group" } & NavGr
 // "Viết bài mới" riêng vì trang Quản lý bài viết đã có nút tạo bài mới ngay trên đầu trang.
 //
 // Nguồn sự thật duy nhất cho việc "chức năng nào ẩn/hiện với user nào" — dùng chung bởi
-// components/admin-sidebar.tsx (lọc menu) và từng trang /quan-tri/* (chặn truy cập URL trực
+// components/admin-sidebar.tsx (lọc menu) và từng trang /admin/* (chặn truy cập URL trực
 // tiếp, xem components/forbidden-page.tsx) để 2 nơi không bao giờ lệch nhau.
 export const ADMIN_NAV: NavEntry[] = [
   {
     kind: "group",
     label: "Quản lý bài viết",
     icon: FileText,
-    href: "/quan-tri/bai-viet",
+    href: "/admin/posts",
     match: "exact-prefix",
     // Khớp @Permissions(PERMISSIONS.POST_CREATE) trên GET /posts/admin/list và /posts/admin/:id.
     permission: PERMISSIONS.POST_CREATE,
     children: [
       {
-        href: "/quan-tri/danh-muc",
+        href: "/admin/categories",
         label: "Danh mục",
         icon: FolderTree,
         match: "prefix",
@@ -76,7 +76,7 @@ export const ADMIN_NAV: NavEntry[] = [
         permission: PERMISSIONS.POST_PUBLISH,
       },
       {
-        href: "/quan-tri/tag",
+        href: "/admin/tags",
         label: "Tag",
         icon: TagIcon,
         match: "prefix",
@@ -87,7 +87,7 @@ export const ADMIN_NAV: NavEntry[] = [
   },
   {
     kind: "leaf",
-    href: "/quan-tri/thu-vien-media",
+    href: "/admin/media-library",
     label: "Thư viện Media",
     icon: ImageIcon,
     match: "prefix",
@@ -95,7 +95,7 @@ export const ADMIN_NAV: NavEntry[] = [
   },
   {
     kind: "leaf",
-    href: "/quan-tri/binh-luan",
+    href: "/admin/comments",
     label: "Quản lý bình luận",
     icon: MessageSquare,
     match: "prefix",
@@ -107,14 +107,14 @@ export const ADMIN_NAV: NavEntry[] = [
     icon: LayoutTemplate,
     children: [
       {
-        href: "/quan-tri/widget",
+        href: "/admin/widget",
         label: "Quản lý Widget",
         icon: LayoutGrid,
         match: "prefix",
         permission: PERMISSIONS.WIDGET_MANAGE,
       },
       {
-        href: "/quan-tri/menu",
+        href: "/admin/menu",
         label: "Quản lý Menu",
         icon: MenuIcon,
         match: "prefix",
@@ -124,7 +124,7 @@ export const ADMIN_NAV: NavEntry[] = [
   },
   {
     kind: "leaf",
-    href: "/quan-tri/giao-dich",
+    href: "/admin/transactions",
     label: "Quản lý Giao Dịch",
     icon: Wallet,
     match: "prefix",
@@ -136,14 +136,14 @@ export const ADMIN_NAV: NavEntry[] = [
     icon: Users,
     children: [
       {
-        href: "/quan-tri/nguoi-dung",
+        href: "/admin/users",
         label: "Quản lý User",
         icon: User,
         match: "prefix",
         permission: PERMISSIONS.USER_MANAGE,
       },
       {
-        href: "/quan-tri/vai-tro",
+        href: "/admin/roles",
         label: "Quản lý Permission",
         icon: ShieldCheck,
         match: "prefix",
@@ -155,12 +155,12 @@ export const ADMIN_NAV: NavEntry[] = [
     kind: "group",
     label: "Quản lý File Cloud",
     icon: Cloud,
-    href: "/quan-tri/tep-cloud",
+    href: "/admin/cloud-files",
     match: "exact-prefix",
     permission: PERMISSIONS.DOWNLOAD_MANAGE_LINKS,
     children: [
       {
-        href: "/quan-tri/tep-cloud/upload",
+        href: "/admin/cloud-files/upload",
         label: "Upload File Cloud",
         icon: Upload,
         match: "prefix",
@@ -172,7 +172,7 @@ export const ADMIN_NAV: NavEntry[] = [
   },
   {
     kind: "leaf",
-    href: "/quan-tri/bao-loi-link",
+    href: "/admin/link-reports",
     label: "Báo lỗi link tải",
     icon: AlertTriangle,
     match: "prefix",
@@ -185,42 +185,42 @@ export const ADMIN_NAV: NavEntry[] = [
     icon: Settings,
     children: [
       {
-        href: "/quan-tri/cai-dat/storage",
+        href: "/admin/settings/storage",
         label: "Cài đặt Provider",
         icon: Server,
         match: "prefix",
         permission: PERMISSIONS.SETTINGS_STORAGE_KEYS,
       },
       {
-        href: "/quan-tri/cai-dat/sepay",
+        href: "/admin/settings/sepay",
         label: "Cài đặt SePay",
         icon: CreditCard,
         match: "prefix",
         permission: PERMISSIONS.SETTINGS_PAYMENT,
       },
       {
-        href: "/quan-tri/cai-dat/email",
+        href: "/admin/settings/email",
         label: "Cài đặt Email",
         icon: Mail,
         match: "prefix",
         permission: PERMISSIONS.SETTINGS_MAIL,
       },
       {
-        href: "/quan-tri/cai-dat/chung",
+        href: "/admin/settings/general",
         label: "Cài đặt chung",
         icon: SlidersHorizontal,
         match: "prefix",
         permission: PERMISSIONS.SETTINGS_GENERAL,
       },
       {
-        href: "/quan-tri/cai-dat/backup-db",
+        href: "/admin/settings/backup-db",
         label: "Backup DB",
         icon: DatabaseBackup,
         match: "prefix",
         permission: PERMISSIONS.SETTINGS_BACKUP,
       },
       {
-        href: "/quan-tri/audit-log",
+        href: "/admin/audit-log",
         label: "Nhật ký hệ thống",
         icon: FileClock,
         match: "prefix",

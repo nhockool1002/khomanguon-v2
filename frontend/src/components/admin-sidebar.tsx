@@ -15,8 +15,8 @@ function isActive(pathname: string, href: string, mode: MatchMode): boolean {
   if (mode === "exact") return pathname === href;
   if (mode === "prefix") return pathname.startsWith(href);
   // "exact-prefix": Quản lý bài viết chỉ active khi KHÔNG phải trang "Viết bài mới"
-  // (cả hai đều bắt đầu bằng /quan-tri/bai-viet).
-  return pathname.startsWith(href) && pathname !== "/quan-tri/bai-viet/moi";
+  // (cả hai đều bắt đầu bằng /admin/posts).
+  return pathname.startsWith(href) && pathname !== "/admin/posts/new";
 }
 
 function groupIsActive(pathname: string, group: NavGroup): boolean {

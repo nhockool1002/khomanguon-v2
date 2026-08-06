@@ -179,7 +179,7 @@ export class UsersService {
   // Heuristic đơn giản (không thêm thư viện sanitize-html/DOMPurify) — chỉ cần biết "có giống thẻ
   // HTML không" để chặn role không được phép, không cần parse đầy đủ. Role được allowHtml=true vẫn
   // được tin cậy render thẳng qua dangerouslySetInnerHTML (cùng mức tin cậy với HtmlWidget/
-  // ProseContent — do Admin/Super Moderator quyết định ai được cấp quyền này qua /quan-tri/vai-tro).
+  // ProseContent — do Admin/Super Moderator quyết định ai được cấp quyền này qua /admin/roles).
   private looksLikeHtml(value: string): boolean {
     return /<[a-z][^>]*>/i.test(value);
   }

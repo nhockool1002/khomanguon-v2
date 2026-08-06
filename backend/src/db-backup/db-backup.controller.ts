@@ -1,6 +1,7 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
   Param,
   Post,
@@ -60,5 +61,12 @@ export class DbBackupController {
   @Post('run-now')
   runNow() {
     return this.dbBackupService.runBackup();
+  }
+
+  @UseGuards(JwtAuthGuard, PermissionsGuard)
+  @Permissions(PERMISSIONS.SETTINGS_BACKUP)
+  @Delete('records/:id')
+  deleteRecord(@Param('id') id: string) {
+    return this.dbBackupService.deleteRecord(id);
   }
 }

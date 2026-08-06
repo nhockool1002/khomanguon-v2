@@ -252,3 +252,23 @@ body {
     opacity: 1;
   }
 }
+
+/*
+ * Thanh loading toàn trang (global-loading-bar.tsx) — dải gradient thương hiệu trượt lặp lại qua
+ * lại, kiểu thanh tiến trình "không xác định" (indeterminate) vì không biết trước request còn bao
+ * lâu.
+ */
+.global-loading-bar-inner {
+  background-image: linear-gradient(90deg, transparent, #ff5da2, #ffcf3f, transparent);
+  background-size: 50% 100%;
+  animation: global-loading-bar-slide 1.1s ease-in-out infinite;
+}
+
+@keyframes global-loading-bar-slide {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(200%);
+  }
+}

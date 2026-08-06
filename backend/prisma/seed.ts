@@ -22,7 +22,7 @@ async function main() {
   console.log('Seeding roles...');
   for (const role of Object.values(DEFAULT_ROLES)) {
     // update: {} — không đụng vào role đã tồn tại (giữ tuỳ chỉnh style/User Title Admin đã lưu qua
-    // /quan-tri/vai-tro). Giá trị User Title riêng cho 4 role hệ thống chỉ áp lúc TẠO MỚI (fresh
+    // /admin/roles). Giá trị User Title riêng cho 4 role hệ thống chỉ áp lúc TẠO MỚI (fresh
     // DB) — trên DB đã có sẵn 4 role này (production), giá trị đúng do migration
     // 20260804220000_add_user_title UPDATE theo slug đảm nhiệm.
     const titleConfig = DEFAULT_ROLE_USER_TITLE_CONFIG[role.slug];

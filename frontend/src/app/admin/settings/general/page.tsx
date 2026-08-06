@@ -642,7 +642,7 @@ export default function GeneralSettingsPage() {
 
       <p className="text-xs text-zinc-400">
         Google Analytics / Search Console đã chuyển sang trang{" "}
-        <Link href="/quan-tri/cai-dat/storage" className="font-medium text-[#1d3557] hover:underline">
+        <Link href="/admin/settings/storage" className="font-medium text-[#1d3557] hover:underline">
           Cài đặt Provider
         </Link>
         .

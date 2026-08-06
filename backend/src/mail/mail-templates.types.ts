@@ -94,7 +94,7 @@ const VERIFY_EMAIL_HTML = `<p>Chào {{displayName}},</p>
 <p><a href="{{verifyUrl}}">{{verifyUrl}}</a></p>`;
 
 export const DEFAULT_MAIL_TEMPLATES: MailTemplates = {
-  // Mặc định email chủ dự án — Admin đổi lại qua /quan-tri/cai-dat/email nếu cần. Email này LUÔN
+  // Mặc định email chủ dự án — Admin đổi lại qua /admin/settings/email nếu cần. Email này LUÔN
   // được cộng thêm vào danh sách nhận (cùng với chính email của user vừa nạp/tải) — xem
   // mail.service.ts sendNotification().
   notifyEmail: 'nhut.nguyenminh.it@gmail.com',

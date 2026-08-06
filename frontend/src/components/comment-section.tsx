@@ -48,7 +48,7 @@ export function CommentSection({
   const [content, setContent] = useState("");
   const [replyingTo, setReplyingTo] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
-  // Mặc định lấy từ config widget (Admin đặt ở /quan-tri/widget) — người xem có thể tự đổi lại.
+  // Mặc định lấy từ config widget (Admin đặt ở /admin/widget) — người xem có thể tự đổi lại.
   const [activeSort, setActiveSort] = useState<"newest" | "oldest">(
     sortOrder === "oldest" ? "oldest" : "newest",
   );

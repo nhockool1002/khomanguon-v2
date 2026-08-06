@@ -69,7 +69,7 @@ export default function AdminPostsPage() {
       <div className="flex items-center justify-between">
         <h1 className="text-xl font-semibold text-zinc-900">Quản lý bài viết</h1>
         <Link
-          href="/quan-tri/bai-viet/moi"
+          href="/admin/posts/new"
           className="rounded-md bg-[#1d3557] px-4 py-2 text-sm font-medium text-white hover:bg-[#16294a]"
         >
           Bài viết mới
@@ -115,7 +115,7 @@ export default function AdminPostsPage() {
                   <td className="px-3 py-2 text-zinc-500">{formatDate(post.createdAt)}</td>
                   <td className="px-3 py-2 text-right">
                     <Link
-                      href={`/quan-tri/bai-viet/${post.id}`}
+                      href={`/admin/posts/${post.id}`}
                       className="mr-3 text-xs font-medium text-[#1d3557] hover:underline"
                     >
                       Sửa

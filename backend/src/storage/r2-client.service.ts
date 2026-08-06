@@ -146,7 +146,7 @@ export class R2ClientService {
     return getSignedUrl(client, command, { expiresIn: expiresInSeconds });
   }
 
-  // Trang "Upload File Cloud" (/quan-tri/tep-cloud/upload) — trình duyệt PUT thẳng lên R2/S3 bằng
+  // Trang "Upload File Cloud" (/admin/cloud-files/upload) — trình duyệt PUT thẳng lên R2/S3 bằng
   // URL này, KHÔNG qua backend, để không giữ 1 request NestJS mở suốt lúc tải file nặng lên (tránh
   // timeout/nghẽn thread). Cố tình KHÔNG đưa ContentType vào command để ký — nếu ký kèm, request PUT
   // thật từ trình duyệt bắt buộc phải gửi đúng y hệt header Content-Type đã ký (SigV4), sai lệch dù
