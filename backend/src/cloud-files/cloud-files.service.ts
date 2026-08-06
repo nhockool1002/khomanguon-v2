@@ -176,8 +176,7 @@ export class CloudFilesService {
   }
 
   // Không tái dùng slugify() (bỏ hết dấu chấm — mất luôn phần đuôi file ".zip"/".apk"). Giữ nguyên
-  // ký tự an toàn, thay phần còn lại bằng "-", chèn thêm timestamp+random để 2 lần tải cùng tên file
-  // không đè lên nhau (khác quy ước danh mục/slug bài viết vốn cố tình trùng thì báo lỗi ngay).
+  // ký tự an toàn, thay phần còn lại bằng "-".
   private sanitizeSegment(input: string): string {
     return input
       .normalize('NFD')
@@ -190,9 +189,14 @@ export class CloudFilesService {
       .replace(/^[.-]+|[.-]+$/g, '');
   }
 
+  // Bỏ trống "Thư mục con" -> upload thẳng gốc bucket (theo đúng uploadPrefix đã cấu hình ở Storage
+  // Provider — R2ClientService tự cộng thêm uploadPrefix khi ghép key thật, xem toBucketKey()),
+  // KHÔNG tự chèn thêm "cloud-uploads/yyyy/mm/dd/" như trước. Tên file cũng giữ nguyên (chỉ sanitize
+  // ký tự không an toàn), KHÔNG tự chèn timestamp+random — đổi theo yêu cầu thực tế 2026-08-06: 2 lần
+  // upload trùng tên sẽ ghi đè nhau (PUT lên S3/R2 vốn overwrite-by-key), đây là đánh đổi có chủ đích
+  // để giữ tên file sạch, người dùng tự chịu trách nhiệm đặt tên/thư mục không trùng nếu cần giữ cả 2.
   private buildUploadKey(filename: string, folder?: string): string {
     const safeName = this.sanitizeSegment(filename) || 'file';
-    const unique = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}-${safeName}`;
 
     if (folder?.trim()) {
       const safeFolder = folder
@@ -200,14 +204,10 @@ export class CloudFilesService {
         .map((seg) => this.sanitizeSegment(seg))
         .filter(Boolean)
         .join('/');
-      if (safeFolder) return `${safeFolder}/${unique}`;
+      if (safeFolder) return `${safeFolder}/${safeName}`;
     }
 
-    const now = new Date();
-    const yyyy = String(now.getFullYear());
-    const mm = String(now.getMonth() + 1).padStart(2, '0');
-    const dd = String(now.getDate()).padStart(2, '0');
-    return `cloud-uploads/${yyyy}/${mm}/${dd}/${unique}`;
+    return safeName;
   }
 
   // Chặn xoá nếu file đang gắn với 1 DownloadLink nào đó — tránh xoá nhầm file đang bán, buộc
