@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import Script from "next/script";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
@@ -19,6 +19,12 @@ const geistMono = Geist_Mono({
   variable: "--font-geist-mono",
   subsets: ["latin"],
 });
+
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  themeColor: "#1d3557",
+};
 
 // generateMetadata thay vì export const metadata tĩnh — cần đọc googleSiteVerification từ
 // Cài đặt chung (PLAN.md 2.6), giá trị này chỉ biết được lúc request-time.

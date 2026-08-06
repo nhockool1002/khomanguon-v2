@@ -406,12 +406,11 @@ function CommentItem({
           )}
           {isModerator && (
             <>
-              <span className="text-zinc-300">|</span>
               {node.status === "PUBLISHED" ? (
                 <button
                   type="button"
                   onClick={() => onHide(node.id)}
-                  className="font-medium text-amber-600 hover:underline"
+                  className="rounded px-2 py-1 font-medium text-amber-600 hover:bg-amber-50 hover:underline"
                 >
                   Ẩn
                 </button>
@@ -419,7 +418,7 @@ function CommentItem({
                 <button
                   type="button"
                   onClick={() => onShow(node.id)}
-                  className="font-medium text-emerald-600 hover:underline"
+                  className="rounded px-2 py-1 font-medium text-emerald-600 hover:bg-emerald-50 hover:underline"
                 >
                   Hiện
                 </button>
@@ -427,21 +426,21 @@ function CommentItem({
               <button
                 type="button"
                 onClick={() => onPin(node.id, !node.pinned)}
-                className="font-medium text-[#1d3557] hover:underline"
+                className="rounded px-2 py-1 font-medium text-[#1d3557] hover:bg-zinc-100 hover:underline"
               >
                 {node.pinned ? "Bỏ ghim" : "Ghim"}
               </button>
               <button
                 type="button"
                 onClick={() => onDelete(node.id)}
-                className="font-medium text-red-600 hover:underline"
+                className="rounded px-2 py-1 font-medium text-red-600 hover:bg-red-50 hover:underline"
               >
                 Xoá
               </button>
               <button
                 type="button"
                 onClick={() => onBlockUser(node.user.id, node.user.displayName)}
-                className="font-medium text-red-600 hover:underline"
+                className="rounded px-2 py-1 font-medium text-red-600 hover:bg-red-50 hover:underline"
               >
                 Chặn user
               </button>

@@ -20,6 +20,7 @@ import { Permissions } from '../roles/decorators/permissions.decorator';
 import { PERMISSIONS } from '../roles/permissions.constant';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { datedUploadDestination } from '../common/dated-upload.util';
+import { processUploadedImage } from '../common/image-pipeline.util';
 
 interface AuthUser {
   id: string;
@@ -85,6 +86,7 @@ export class MediaController {
     @CurrentUser() user: AuthUser,
   ) {
     if (!file) throw new BadRequestException('Thiếu file');
+    await processUploadedImage(file);
     await this.mediaService.record(file, user.id);
     return { ok: true };
   }

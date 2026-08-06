@@ -43,6 +43,10 @@ export class RateLimitSettingsDto {
 
   @ValidateNested()
   @Type(() => RateLimitRuleDto)
+  resetPassword: RateLimitRuleDto;
+
+  @ValidateNested()
+  @Type(() => RateLimitRuleDto)
   search: RateLimitRuleDto;
 
   @ValidateNested()

@@ -136,7 +136,7 @@ export default function AdminStorageProvidersPage() {
   }
 
   return (
-    <div className="flex w-full max-w-3xl flex-col gap-4 px-8 py-8">
+    <div className="flex w-full max-w-3xl flex-col gap-4 px-4 py-6 sm:px-8 sm:py-8">
       <div className="flex items-center justify-between">
         <h1 className="text-xl font-semibold text-zinc-900">Cài đặt Provider</h1>
         <button

@@ -122,7 +122,7 @@ export default function AdminCommentsPage() {
   const totalPages = Math.max(Math.ceil(total / PAGE_SIZE), 1);
 
   return (
-    <div className="flex w-full flex-col gap-4 px-8 py-8">
+    <div className="flex w-full flex-col gap-4 px-4 py-6 sm:px-8 sm:py-8">
       <h1 className="text-xl font-semibold text-zinc-900">Quản lý bình luận</h1>
       <p className="text-sm text-zinc-500">
         Kiểm duyệt bình luận trên toàn bộ bài viết — duyệt/ẩn, ghim, hoặc xoá.

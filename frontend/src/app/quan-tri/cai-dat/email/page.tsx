@@ -154,7 +154,7 @@ export default function MailTemplatesPage() {
   }
 
   return (
-    <div className="flex w-full max-w-3xl flex-col gap-4 px-8 py-8">
+    <div className="flex w-full max-w-3xl flex-col gap-4 px-4 py-6 sm:px-8 sm:py-8">
       <h1 className="text-xl font-semibold text-zinc-900">Cài đặt Email thông báo</h1>
       <p className="text-sm text-zinc-500">
         Gửi email nội bộ cho Admin qua provider MailJet (cấu hình ở Cài đặt Storage) mỗi khi user

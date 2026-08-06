@@ -3,6 +3,7 @@ import {
   ArrowLeft,
   Cloud,
   CreditCard,
+  FileClock,
   FileText,
   FolderTree,
   Tag as TagIcon,
@@ -217,6 +218,14 @@ export const ADMIN_NAV: NavEntry[] = [
         icon: DatabaseBackup,
         match: "prefix",
         permission: PERMISSIONS.SETTINGS_BACKUP,
+      },
+      {
+        href: "/quan-tri/audit-log",
+        label: "Nhật ký hệ thống",
+        icon: FileClock,
+        match: "prefix",
+        // Khớp @Permissions() ở audit-log.controller.ts GET /audit-log.
+        permission: PERMISSIONS.AUDIT_VIEW,
       },
     ],
   },

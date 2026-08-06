@@ -143,7 +143,7 @@ export default function AdminBackupDbPage() {
   const totalPages = Math.max(Math.ceil(total / PAGE_SIZE), 1);
 
   return (
-    <div className="flex w-full max-w-3xl flex-col gap-4 px-8 py-8">
+    <div className="flex w-full max-w-3xl flex-col gap-4 px-4 py-6 sm:px-8 sm:py-8">
       <h1 className="text-xl font-semibold text-zinc-900">Backup DB</h1>
       <p className="text-sm text-zinc-500">
         Backup toàn bộ database (pg_dump, nén gzip) lên Storage Provider đã chọn, tự động chạy mỗi
@@ -178,7 +178,7 @@ export default function AdminBackupDbPage() {
           </select>
         </label>
 
-        <div className="grid grid-cols-3 gap-2">
+        <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
           <label className="flex flex-col gap-1 text-xs text-zinc-500">
             Giờ (0-23)
             <input

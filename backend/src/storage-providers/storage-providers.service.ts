@@ -3,8 +3,10 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
+import { AuditAction } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { encryptSecret } from '../common/secret-crypto.util';
+import { AuditLogService } from '../audit-log/audit-log.service';
 import { CreateStorageProviderDto } from './dto/create-storage-provider.dto';
 import { UpdateStorageProviderDto } from './dto/update-storage-provider.dto';
 
@@ -24,7 +26,10 @@ const publicSelect = {
 
 @Injectable()
 export class StorageProvidersService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly auditLog: AuditLogService,
+  ) {}
 
   list() {
     return this.prisma.storageProvider.findMany({
@@ -55,11 +60,11 @@ export class StorageProvidersService {
     });
   }
 
-  async update(id: string, dto: UpdateStorageProviderDto) {
+  async update(id: string, dto: UpdateStorageProviderDto, actorUserId: string) {
     await this.getOrThrow(id);
     if (dto.isDefault) await this.clearExistingDefault(id);
 
-    return this.prisma.storageProvider.update({
+    const result = await this.prisma.storageProvider.update({
       where: { id },
       data: {
         ...(dto.type !== undefined && { type: dto.type }),
@@ -78,6 +83,22 @@ export class StorageProvidersService {
       },
       select: publicSelect,
     });
+
+    // Chỉ log khi thật sự đổi key (accessKeyId/secretAccessKey) — đổi label/bucket/mặc định... không
+    // phải thao tác nhạy cảm cần audit.
+    if (dto.accessKeyId !== undefined || dto.secretAccessKey !== undefined) {
+      void this.auditLog.log(
+        actorUserId,
+        AuditAction.STORAGE_PROVIDER_KEY_CHANGED,
+        {
+          targetType: 'storage_provider',
+          targetId: id,
+          metadata: { label: result.label },
+        },
+      );
+    }
+
+    return result;
   }
 
   async remove(id: string): Promise<void> {

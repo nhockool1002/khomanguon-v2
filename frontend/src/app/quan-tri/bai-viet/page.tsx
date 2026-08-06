@@ -65,7 +65,7 @@ export default function AdminPostsPage() {
   }
 
   return (
-    <div className="flex w-full flex-col gap-4 px-8 py-8">
+    <div className="flex w-full flex-col gap-4 px-4 py-6 sm:px-8 sm:py-8">
       <div className="flex items-center justify-between">
         <h1 className="text-xl font-semibold text-zinc-900">Quản lý bài viết</h1>
         <Link
@@ -85,7 +85,7 @@ export default function AdminPostsPage() {
       )}
 
       {data && data.items.length > 0 && (
-        <div className="overflow-hidden rounded-lg border border-zinc-200">
+        <div className="overflow-x-auto rounded-lg border border-zinc-200">
           <table className="w-full text-left text-sm">
             <thead className="bg-zinc-50 text-xs uppercase text-zinc-500">
               <tr>

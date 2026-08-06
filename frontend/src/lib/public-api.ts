@@ -124,6 +124,7 @@ export const DEFAULT_GENERAL_SETTINGS: GeneralSettings = {
     login: { windowSec: 600, max: 5 },
     register: { windowSec: 3600, max: 5 },
     forgotPassword: { windowSec: 900, max: 3 },
+    resetPassword: { windowSec: 900, max: 5 },
     search: { windowSec: 60, max: 30 },
     commentCreate: { windowSec: 60, max: 10 },
   },

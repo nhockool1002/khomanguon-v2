@@ -25,6 +25,7 @@ const RATE_LIMIT_LABEL: Record<keyof Omit<RateLimitSettings, "enabled">, string>
   login: "Đăng nhập",
   register: "Đăng ký",
   forgotPassword: "Quên mật khẩu",
+  resetPassword: "Đặt lại mật khẩu",
   search: "Tìm kiếm / duyệt bài viết",
   commentCreate: "Đăng bình luận",
 };
@@ -34,6 +35,7 @@ const DEFAULT_RATE_LIMITS: RateLimitSettings = {
   login: { windowSec: 600, max: 5 },
   register: { windowSec: 3600, max: 5 },
   forgotPassword: { windowSec: 900, max: 3 },
+  resetPassword: { windowSec: 900, max: 5 },
   search: { windowSec: 60, max: 30 },
   commentCreate: { windowSec: 60, max: 10 },
 };
@@ -243,7 +245,7 @@ export default function GeneralSettingsPage() {
   }
 
   return (
-    <div className="flex w-full max-w-3xl flex-col gap-4 px-8 py-8">
+    <div className="flex w-full max-w-3xl flex-col gap-4 px-4 py-6 sm:px-8 sm:py-8">
       <h1 className="text-xl font-semibold text-zinc-900">Cài đặt chung</h1>
       <p className="text-sm text-zinc-500">
         Cấu hình chung cho toàn site: số bài viết/trang ở trang chủ, tiêu đề/slogan và nền của khối

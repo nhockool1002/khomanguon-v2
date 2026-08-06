@@ -13,7 +13,6 @@ import { UserActivityType } from '@prisma/client';
 import { UsersService } from './users.service';
 import type { UserSortBy, SortDir } from './users.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
-import { OptionalJwtAuthGuard } from '../auth/guards/optional-jwt-auth.guard';
 import { PermissionsGuard } from '../roles/guards/permissions.guard';
 import { Permissions } from '../roles/decorators/permissions.decorator';
 import { PERMISSIONS } from '../roles/permissions.constant';
@@ -135,34 +134,50 @@ export class UsersController {
   @UseGuards(JwtAuthGuard, PermissionsGuard)
   @Permissions(PERMISSIONS.USER_ASSIGN_ROLE)
   @Post(':id/roles')
-  assignRole(@Param('id') id: string, @Body() dto: AssignRoleDto) {
-    return this.usersService.assignRole(id, dto.roleSlug);
+  assignRole(
+    @Param('id') id: string,
+    @Body() dto: AssignRoleDto,
+    @CurrentUser() actor: AuthUser,
+  ) {
+    return this.usersService.assignRole(id, dto.roleSlug, actor.id);
   }
 
   @UseGuards(JwtAuthGuard, PermissionsGuard)
   @Permissions(PERMISSIONS.USER_ASSIGN_ROLE)
   @Delete(':id/roles/:roleSlug')
-  removeRole(@Param('id') id: string, @Param('roleSlug') roleSlug: string) {
-    return this.usersService.removeRole(id, roleSlug);
+  removeRole(
+    @Param('id') id: string,
+    @Param('roleSlug') roleSlug: string,
+    @CurrentUser() actor: AuthUser,
+  ) {
+    return this.usersService.removeRole(id, roleSlug, actor.id);
   }
 
-  // Trang profile công khai — bất kỳ ai cũng xem được, kể cả khách vãng lai chưa đăng nhập.
-  // OptionalJwtAuthGuard: biết ai đang xem nếu đăng nhập, để ghi UserActivity VISIT_PROFILE cho
-  // NGƯỜI XEM (không log khi tự xem chính mình).
-  @UseGuards(OptionalJwtAuthGuard)
+  // Trang profile công khai — bất kỳ ai cũng xem được, kể cả khách vãng lai chưa đăng nhập. Fetch
+  // qua publicFetch() (server-side lẫn client) không gửi Authorization/credentials nên trước đây
+  // dùng OptionalJwtAuthGuard ở đây không bao giờ nhận diện được viewer — VISIT_PROFILE log chết,
+  // xem endpoint POST :id/visit bên dưới (gọi riêng từ client, có Bearer token) mới thật sự ghi log.
   @Get(':id/public-profile')
-  async getPublicProfile(
+  getPublicProfile(@Param('id') id: string) {
+    return this.usersService.getPublicProfile(id);
+  }
+
+  // Ghi UserActivity VISIT_PROFILE cho NGƯỜI XEM — tách riêng khỏi public-profile (endpoint trên)
+  // vì đó được gọi qua publicFetch() không token; gọi từ profile-page.tsx (client, có Bearer token
+  // qua apiFetch) ngay khi mount trang, không log khi tự xem chính mình.
+  @UseGuards(JwtAuthGuard)
+  @Post(':id/visit')
+  async logProfileVisit(
     @Param('id') id: string,
-    @CurrentUser() viewer: AuthUser | undefined,
+    @CurrentUser() viewer: AuthUser,
   ) {
-    const profile = await this.usersService.getPublicProfile(id);
-    if (viewer && viewer.id !== id) {
-      void this.userActivity.log(viewer.id, UserActivityType.VISIT_PROFILE, {
+    if (viewer.id !== id) {
+      const profile = await this.usersService.getPublicProfile(id);
+      await this.userActivity.log(viewer.id, UserActivityType.VISIT_PROFILE, {
         profileUserId: id,
         profileDisplayName: profile.displayName,
       });
     }
-    return profile;
   }
 
   // Dữ liệu cho card xem nhanh khi hover tên user (StyledUserName) — CÙNG dữ liệu với

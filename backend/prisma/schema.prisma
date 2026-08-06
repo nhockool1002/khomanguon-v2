@@ -62,6 +62,7 @@ model User {
   linkReportsSubmitted   LinkReport[]    @relation("LinkReportReporter")
   linkReportsResolved    LinkReport[]    @relation("LinkReportResolvedBy")
   activities             UserActivity[]
+  auditLogs              AuditLog[]
   refreshTokens          RefreshToken[]
   emailVerificationTokens EmailVerificationToken[]
   passwordResetTokens    PasswordResetToken[]
@@ -529,6 +530,31 @@ model UserActivity {
 
   @@index([userId, createdAt])
   @@map("user_activities")
+}
+
+enum AuditAction {
+  ROLE_ASSIGNED
+  ROLE_REMOVED
+  WALLET_ADJUSTED
+  STORAGE_PROVIDER_KEY_CHANGED
+}
+
+// Audit log thao tác nhạy cảm (PLAN.md 4.3) — đổi quyền, chỉnh ví tay, đổi key R2/S3. Khác
+// UserActivity (nhật ký hành vi công khai của user): AuditLog chỉ Admin xem được, ghi actor (người
+// thực hiện) + target (đối tượng bị tác động, vd userId được đổi role/tài khoản được cộng $P).
+model AuditLog {
+  id          String      @id @default(cuid())
+  actorUserId String
+  actor       User        @relation(fields: [actorUserId], references: [id], onDelete: Cascade)
+  action      AuditAction
+  targetType  String?
+  targetId    String?
+  metadata    Json?
+  ipAddress   String?
+  createdAt   DateTime    @default(now())
+
+  @@index([actorUserId, createdAt])
+  @@map("audit_logs")
 }
 
 // ───────────────────────── Ví $P & SePay (Phase 3) ─────────────────────────
