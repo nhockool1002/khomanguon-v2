@@ -95,17 +95,20 @@ export default function RichTextEditorCK({
     editor.editing.view.focus();
   }, []);
 
-  // Bug thực tế đã gặp: bấm vào vùng nội dung soạn thảo (nhất là ngay đầu dòng đầu tiên) đôi khi
-  // không chuyển focus trình duyệt vào đúng vùng contenteditable — focus bị kẹt lại ở nút "Hoàn
-  // tác" trên toolbar (dù con trỏ soạn thảo/định dạng vẫn cập nhật đúng vị trí), khiến phím bấm tiếp
-  // theo (đặc biệt Space/Enter) vô tình "bấm" nút đó thay vì gõ chữ. Bắt mousedown ngay trên vùng
-  // editable (không bắt trên toolbar — .closest kiểm tra đúng target) rồi ép focus lại vào editor
-  // sau khi trình duyệt xử lý xong sự kiện gốc; gọi focus() khi đã đúng chỗ sẵn là no-op, an toàn.
+  // Nguyên nhân THẬT đã xác nhận trực tiếp bằng devtools (click thật qua computer tool, không phải
+  // sự kiện giả lập): bấm vào NÚT TOOLBAR (kể cả nút đang "disabled" như Hoàn tác lúc chưa có gì để
+  // undo) khiến chính nút đó trở thành document.activeElement — cơ chế preventDefault(mousedown) mà
+  // CKEditor tự dùng để tránh nút toolbar cướp focus khỏi vùng soạn thảo KHÔNG hoạt động trong tích
+  // hợp React này. Hệ quả: người dùng thao tác gần toolbar/đầu nội dung, tiêu điểm bàn phím rơi vào
+  // 1 nút toolbar (thường là Hoàn tác, nút đầu tiên) thay vì vùng nhập liệu — phím gõ tiếp theo
+  // (Space/Enter) vô tình "bấm" nút đó thay vì gõ chữ, đúng triệu chứng "click vào editor bị Hoàn
+  // tác/redo". Fix: tự chặn hành vi focus mặc định của trình duyệt khi mousedown xảy ra trên bất kỳ
+  // nút toolbar nào (không chặn mousedown trong vùng nội dung) — đã verify trực tiếp: click nút vẫn
+  // thực thi lệnh bình thường (vd Bold vẫn bật), chỉ khác là KHÔNG còn giữ lại focus bàn phím.
   const handleWrapperMouseDown = useCallback((e: React.MouseEvent) => {
-    const editor = editorRef.current;
-    if (!editor) return;
-    if (!(e.target as HTMLElement).closest(".ck-editor__editable")) return;
-    requestAnimationFrame(() => editor.editing.view.focus());
+    if ((e.target as HTMLElement).closest(".ck-button")) {
+      e.preventDefault();
+    }
   }, []);
 
   return (
