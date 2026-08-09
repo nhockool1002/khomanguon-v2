@@ -57,6 +57,8 @@ export function PostForm({
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const [tagInput, setTagInput] = useState("");
+  const [creatingTag, setCreatingTag] = useState(false);
 
   useEffect(() => {
     apiFetch<Category[]>("/categories").then(setCategories).catch(() => setCategories([]));
@@ -67,6 +69,35 @@ export function PostForm({
     setTagIds((prev) =>
       prev.includes(tagId) ? prev.filter((id) => id !== tagId) : [...prev, tagId],
     );
+  }
+
+  // Nhập tên tag rồi Enter — nếu trùng tag có sẵn (không phân biệt hoa/thường) thì chọn luôn,
+  // nếu chưa có thì tạo mới qua POST /tags (yêu cầu quyền post.publish, giống categories — tránh
+  // spam taxonomy từ tài khoản chỉ có quyền post.create).
+  async function handleAddTag() {
+    const name = tagInput.trim();
+    if (!name) return;
+    const existing = tags.find((t) => t.name.toLowerCase() === name.toLowerCase());
+    if (existing) {
+      if (!tagIds.includes(existing.id)) setTagIds((prev) => [...prev, existing.id]);
+      setTagInput("");
+      return;
+    }
+    setCreatingTag(true);
+    setError(null);
+    try {
+      const created = await apiFetch<Tag>("/tags", {
+        method: "POST",
+        body: JSON.stringify({ name }),
+      });
+      setTags((prev) => [...prev, created]);
+      setTagIds((prev) => [...prev, created.id]);
+      setTagInput("");
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : "Không thể tạo tag mới");
+    } finally {
+      setCreatingTag(false);
+    }
   }
 
   async function submitWithStatus(targetStatus: PostStatus) {
@@ -181,6 +212,24 @@ export function PostForm({
             <p className="text-xs text-zinc-400">
               Chỉ Admin/Super Moderator mới xuất bản được (quyền post.publish).
             </p>
+            {initial?.slug &&
+              (status === "PUBLISHED" ? (
+                <a
+                  href={`/bai-viet/${initial.slug}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-xs font-medium text-[#1d3557] hover:underline"
+                >
+                  Xem bài viết →
+                </a>
+              ) : (
+                <span
+                  title="Chỉ xem được sau khi bài viết đã Xuất bản"
+                  className="text-xs text-zinc-400"
+                >
+                  Xem bài viết (cần Xuất bản trước)
+                </span>
+              ))}
           </div>
 
           <label className="flex flex-col gap-1.5 text-sm text-zinc-700">
@@ -199,9 +248,9 @@ export function PostForm({
             </select>
           </label>
 
-          {tags.length > 0 && (
-            <div className="flex flex-col gap-1.5 text-sm text-zinc-700">
-              Tag
+          <div className="flex flex-col gap-1.5 text-sm text-zinc-700">
+            Tag
+            {tags.length > 0 && (
               <div className="flex flex-wrap gap-1.5">
                 {tags.map((t) => {
                   const active = tagIds.includes(t.id);
@@ -221,8 +270,31 @@ export function PostForm({
                   );
                 })}
               </div>
+            )}
+            <div className="flex gap-1.5">
+              <input
+                value={tagInput}
+                onChange={(e) => setTagInput(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    e.preventDefault();
+                    handleAddTag();
+                  }
+                }}
+                placeholder="Nhập tên tag mới rồi Enter..."
+                disabled={creatingTag}
+                className="flex-1 rounded-md border border-zinc-300 px-3 py-1.5 text-xs text-zinc-900 outline-none focus:border-[#1d3557] focus:ring-1 focus:ring-[#1d3557] disabled:opacity-50"
+              />
+              <button
+                type="button"
+                onClick={handleAddTag}
+                disabled={creatingTag || !tagInput.trim()}
+                className="rounded-md border border-zinc-300 px-3 py-1.5 text-xs font-medium text-zinc-700 hover:bg-zinc-50 disabled:opacity-50"
+              >
+                {creatingTag ? "..." : "Thêm"}
+              </button>
             </div>
-          )}
+          </div>
 
           <ImageUploadField
             label="Ảnh đại diện"
