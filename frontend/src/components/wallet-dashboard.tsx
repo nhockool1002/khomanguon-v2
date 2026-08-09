@@ -8,6 +8,7 @@ import {
   Download,
   RotateCcw,
   ShieldCheck,
+  Sparkles,
   Wallet as WalletIcon,
 } from "lucide-react";
 import { useAuth } from "@/context/auth-context";
@@ -196,9 +197,14 @@ export function WalletDashboard() {
 
   return (
     <div className="flex flex-1 flex-col gap-6 pb-10">
-      <div className="rounded-lg border border-zinc-200 bg-white p-5">
-        <p className="text-xs uppercase tracking-wide text-zinc-400">Số dư hiện tại</p>
-        <p className="font-mono text-3xl font-bold text-[#1d3557]">{wallet?.balance ?? "—"} $P</p>
+      <div className="flex items-center gap-4 overflow-hidden rounded-lg border border-zinc-200 bg-gradient-to-br from-[#1d3557] to-[#16294a] p-5 text-white">
+        <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-white/10">
+          <WalletIcon size={22} strokeWidth={2} aria-hidden />
+        </span>
+        <div className="min-w-0">
+          <p className="text-xs uppercase tracking-wide text-white/60">Số dư hiện tại</p>
+          <p className="truncate font-mono text-3xl font-bold">{wallet?.balance ?? "—"} $P</p>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
@@ -208,9 +214,12 @@ export function WalletDashboard() {
             <TopupOrderCard order={pending} onReset={() => setPending(null)} />
           ) : (
             <div className="flex flex-col gap-4 rounded-lg border border-zinc-200 bg-white p-5">
-              <p className="text-sm font-semibold text-zinc-800">Nạp nhanh</p>
+              <p className="flex items-center gap-1.5 text-sm font-semibold text-zinc-800">
+                <Sparkles size={15} className="text-[#ffcf3f]" aria-hidden />
+                Nạp nhanh
+              </p>
               {presets.length > 0 && (
-                <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+                <div className="grid grid-cols-2 gap-3">
                   {presets.map((preset) => {
                     const isBestValue =
                       presets.length > 1 &&
@@ -224,23 +233,25 @@ export function WalletDashboard() {
                           setAmountVnd(preset.vnd);
                           setCustomAmount("");
                         }}
-                        className={`flex flex-col items-center gap-1 rounded-lg border px-3 py-3 text-center transition-colors ${
+                        className={`relative flex min-h-[92px] flex-col items-center justify-center gap-1 rounded-lg border px-2 py-3 text-center transition-colors ${
                           selected
                             ? "border-[#1d3557] bg-[#1d3557]/5"
-                            : "border-zinc-200 hover:border-[#1d3557]/40"
+                            : isBestValue
+                              ? "border-[#ffcf3f] bg-[#fffaf0] hover:border-[#ff5da2]"
+                              : "border-zinc-200 hover:border-[#1d3557]/40"
                         }`}
                       >
-                        <span className="font-mono text-base font-bold text-[#1d3557]">
-                          {formatVnd(preset.vnd)}
-                        </span>
-                        <span className="font-mono text-sm font-semibold text-emerald-600">
-                          +{preset.p} $P
-                        </span>
                         {isBestValue && (
-                          <span className="mt-0.5 whitespace-nowrap rounded-full bg-[#1d3557]/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-[#1d3557]">
+                          <span className="absolute -top-2.5 right-1/2 translate-x-1/2 whitespace-nowrap rounded-full bg-gradient-to-r from-[#ff5da2] to-[#ffcf3f] px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-white shadow-sm">
                             Tốt nhất
                           </span>
                         )}
+                        <span className="whitespace-nowrap font-mono text-base font-bold text-[#1d3557]">
+                          {formatVnd(preset.vnd)}
+                        </span>
+                        <span className="whitespace-nowrap font-mono text-sm font-semibold text-emerald-600">
+                          +{preset.p} $P
+                        </span>
                       </button>
                     );
                   })}

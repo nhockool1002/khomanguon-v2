@@ -114,6 +114,23 @@ export default function AdminPostsPage() {
                   </td>
                   <td className="px-3 py-2 text-zinc-500">{formatDate(post.createdAt)}</td>
                   <td className="px-3 py-2 text-right">
+                    {post.status === "PUBLISHED" ? (
+                      <Link
+                        href={`/bai-viet/${post.slug}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="mr-3 text-xs font-medium text-zinc-500 hover:underline"
+                      >
+                        Xem
+                      </Link>
+                    ) : (
+                      <span
+                        title="Chỉ xem được sau khi bài viết đã Xuất bản"
+                        className="mr-3 text-xs font-medium text-zinc-300"
+                      >
+                        Xem
+                      </span>
+                    )}
                     <Link
                       href={`/admin/posts/${post.id}`}
                       className="mr-3 text-xs font-medium text-[#1d3557] hover:underline"
