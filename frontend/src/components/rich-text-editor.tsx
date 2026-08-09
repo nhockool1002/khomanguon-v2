@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { type Editor, EditorContent, useEditor } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import Subscript from "@tiptap/extension-subscript";
@@ -54,6 +54,23 @@ const HEADING_OPTIONS = [
   { value: "3", label: "Tiêu đề 3" },
   { value: "4", label: "Tiêu đề 4" },
 ] as const;
+
+// Khai báo ở module scope (không phải inline trong useEditor()) — CỐ Ý, đây chính là fix cho bug
+// "nội dung tự lùi lại vài ký tự khi đang gõ" đã xác nhận qua video (tách frame thấy rõ "Test 13"
+// tự lùi về "Test" dù không bấm gì). Nguyên nhân: @tiptap/react's useEditor() gọi lại
+// EditorInstanceManager.compareOptions() ở MỖI lần re-render (post-form.tsx re-render mỗi keystroke
+// vì contentHtml là controlled state), so sánh options mới với options cũ bằng "===" cho từng field
+// — nếu "editorProps" là 1 object literal viết TRỰC TIẾP trong useEditor({...}) thì nó là 1 REFERENCE
+// MỚI mỗi lần render dù nội dung y hệt, compareOptions() luôn thấy "khác" → gọi editor.setOptions()
+// liên tục ngay cả khi không có gì thay đổi thật — mỗi lần gõ 1 ký tự lại kích hoạt lại toàn bộ
+// pipeline này, dồn dập đủ nhanh (gõ nhanh) sẽ đụng độ với ProseMirror đang xử lý transaction gõ chữ
+// dở dang, gây rớt ký tự/lùi nội dung. Hoist ra module scope để editorProps LUÔN cùng 1 reference,
+// compareOptions() không bao giờ thấy khác nữa (xem thêm useMemo cho "extensions" bên dưới cùng lý do).
+const EDITOR_PROPS = {
+  attributes: {
+    class: "prose prose-sm max-w-none min-h-[320px] px-3 py-2 focus:outline-none",
+  },
+};
 
 function ToolbarButton({
   onClick,
@@ -264,18 +281,20 @@ export function RichTextEditor({
   onChange: (html: string) => void;
 }) {
   const [mediaModalOpen, setMediaModalOpen] = useState(false);
+  // Chỉ lấy "value" làm nội dung KHỞI TẠO — không tiếp tục đồng bộ mỗi lần "value" đổi (value đổi
+  // mỗi keystroke vì onUpdate bắn ngược lên PostForm.contentHtml). Cùng lý do với EDITOR_PROPS ở
+  // trên: nếu content bám theo "value" sống, mỗi keystroke lại khiến compareOptions() thấy field
+  // "content" khác (dù thực ra editor đã có đúng nội dung mới nhất rồi) — dư thừa và là 1 phần
+  // nguyên nhân gây setOptions() dồn dập.
+  const [initialContent] = useState(value);
 
-  const editor = useEditor({
-    // Tránh render trên server (App Router SSR) — Tiptap/ProseMirror cần document/window, và render
-    // khác nhau giữa server/client sẽ gây lệch hydrate; false = chỉ render thật sau khi mount ở client.
-    immediatelyRender: false,
-    content: value,
-    editorProps: {
-      attributes: {
-        class: "prose prose-sm max-w-none min-h-[320px] px-3 py-2 focus:outline-none",
-      },
-    },
-    extensions: [
+  // .configure(...) tạo RA MỘT INSTANCE MỚI mỗi lần gọi — nếu viết trực tiếp trong mảng "extensions"
+  // của useEditor({...}) thì mỗi lần component re-render (mỗi keystroke) lại sinh instance mới cho
+  // TextAlign/Highlight/TaskItem, khiến compareOptions() so extension theo "===" luôn thấy khác. Bọc
+  // useMemo (deps rỗng — cấu hình các extension này cố định, không phụ thuộc props nào) để chỉ gọi
+  // .configure() đúng 1 lần lúc mount, giữ nguyên reference cho mọi lần so sánh sau đó.
+  const extensions = useMemo(
+    () => [
       StarterKit,
       Subscript,
       Superscript,
@@ -290,6 +309,16 @@ export function RichTextEditor({
       TiptapImage,
       Placeholder.configure({ placeholder: "Viết nội dung bài viết..." }),
     ],
+    [],
+  );
+
+  const editor = useEditor({
+    // Tránh render trên server (App Router SSR) — Tiptap/ProseMirror cần document/window, và render
+    // khác nhau giữa server/client sẽ gây lệch hydrate; false = chỉ render thật sau khi mount ở client.
+    immediatelyRender: false,
+    content: initialContent,
+    editorProps: EDITOR_PROPS,
+    extensions,
     onUpdate: ({ editor }) => onChange(editor.getHTML()),
   });
 
