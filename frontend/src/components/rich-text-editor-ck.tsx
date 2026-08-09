@@ -95,8 +95,24 @@ export default function RichTextEditorCK({
     editor.editing.view.focus();
   }, []);
 
+  // Bug thực tế đã gặp: bấm vào vùng nội dung soạn thảo (nhất là ngay đầu dòng đầu tiên) đôi khi
+  // không chuyển focus trình duyệt vào đúng vùng contenteditable — focus bị kẹt lại ở nút "Hoàn
+  // tác" trên toolbar (dù con trỏ soạn thảo/định dạng vẫn cập nhật đúng vị trí), khiến phím bấm tiếp
+  // theo (đặc biệt Space/Enter) vô tình "bấm" nút đó thay vì gõ chữ. Bắt mousedown ngay trên vùng
+  // editable (không bắt trên toolbar — .closest kiểm tra đúng target) rồi ép focus lại vào editor
+  // sau khi trình duyệt xử lý xong sự kiện gốc; gọi focus() khi đã đúng chỗ sẵn là no-op, an toàn.
+  const handleWrapperMouseDown = useCallback((e: React.MouseEvent) => {
+    const editor = editorRef.current;
+    if (!editor) return;
+    if (!(e.target as HTMLElement).closest(".ck-editor__editable")) return;
+    requestAnimationFrame(() => editor.editing.view.focus());
+  }, []);
+
   return (
-    <div className="ck-content-wrapper rounded-md border border-zinc-300 focus-within:border-[#1d3557] focus-within:ring-1 focus-within:ring-[#1d3557]">
+    <div
+      className="ck-content-wrapper rounded-md border border-zinc-300 focus-within:border-[#1d3557] focus-within:ring-1 focus-within:ring-[#1d3557]"
+      onMouseDown={handleWrapperMouseDown}
+    >
       {/* prose prose-sm max-w-none: bọc riêng vùng CKEditor (không bọc MediaPickerModal bên dưới,
           tránh .prose img đè lên layout lưới thumbnail trong modal) — dùng chung class .prose với
           trang bài viết công khai (bai-viet/[slug]/page.tsx) để khung soạn thảo hiển thị giống hệt
