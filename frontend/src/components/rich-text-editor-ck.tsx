@@ -78,6 +78,15 @@ export default function RichTextEditorCK({
 }) {
   const editorRef = useRef<Editor | null>(null);
   const [mediaModalOpen, setMediaModalOpen] = useState(false);
+  // Chỉ lấy "value" làm nội dung KHỞI TẠO — không tiếp tục đồng bộ mỗi lần "value" đổi. PostForm chỉ
+  // mount CKEditor sau khi đã có dữ liệu bài viết thật (xem admin/posts/[id]/page.tsx: "{post &&
+  // <PostForm .../>}") nên không cần cập nhật lại data sau mount. Nếu để prop "data" của <CKEditor>
+  // đổi theo "value" sống (value đổi mỗi khi onChange bắn ngược lên PostForm.contentHtml), thư viện
+  // @ckeditor/ckeditor5-react sẽ gọi editor.data.set() bất cứ khi nào editor.data.get() !==
+  // nextProps.data (dist/index.js shouldUpdateEditorData) — chỉ cần lệch nhịp 1 chút giữa lúc gõ và
+  // lúc React re-render kịp truyền prop xuống là data.set() chạy, XOÁ SẠCH lịch sử Undo/Redo và nhảy
+  // con trỏ về đầu văn bản — đúng triệu chứng "focus/gõ vào editor bị kích hoạt Hoàn tác" đã gặp.
+  const [initialData] = useState(value);
 
   const handleMediaSelect = useCallback((urls: string[]) => {
     const editor = editorRef.current;
@@ -97,7 +106,7 @@ export default function RichTextEditorCK({
       <div className="prose prose-sm max-w-none">
         <CKEditor
           editor={ClassicEditor}
-          data={value}
+          data={initialData}
           onReady={(editor) => {
             editorRef.current = editor;
           }}
