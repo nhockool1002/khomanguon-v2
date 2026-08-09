@@ -88,97 +88,105 @@ export default function RichTextEditorCK({
 
   return (
     <div className="ck-content-wrapper rounded-md border border-zinc-300 focus-within:border-[#1d3557] focus-within:ring-1 focus-within:ring-[#1d3557]">
-      <CKEditor
-        editor={ClassicEditor}
-        data={value}
-        onReady={(editor) => {
-          editorRef.current = editor;
-        }}
-        onChange={(_event, editor) => onChange(editor.getData())}
-        // "as EditorConfig": EditorConfig (kiểu chuẩn CKEditor) không khai báo field "mediaLibrary"
-        // — đây là field tự thêm, đọc lại trong InsertImageViaMediaLibrary qua editor.config.get().
-        config={{
-          licenseKey: "GPL",
-          translations: [coreTranslations],
-          language: "vi",
-          placeholder: "Viết nội dung bài viết...",
-          // setMediaModalOpen là setState — identity ổn định giữa các lần render nên closure này
-          // luôn hoạt động đúng dù CKEditor chỉ đọc config 1 lần lúc khởi tạo (xem InsertImageViaMediaLibrary).
-          mediaLibrary: { open: () => setMediaModalOpen(true) },
-          plugins: [
-            Essentials,
-            Paragraph,
-            Heading,
-            Bold,
-            Italic,
-            Underline,
-            Strikethrough,
-            Code,
-            Subscript,
-            Superscript,
-            RemoveFormat,
-            Alignment,
-            FontColor,
-            FontBackgroundColor,
-            List,
-            TodoList,
-            BlockQuote,
-            CodeBlock,
-            HorizontalLine,
-            Link,
-            AutoLink,
-            Image,
-            ImageToolbar,
-            ImageCaption,
-            ImageTextAlternative,
-            Table,
-            TableToolbar,
-            Autoformat,
-            InsertImageViaMediaLibrary,
-          ],
-          toolbar: {
-            items: [
-              "undo",
-              "redo",
-              "|",
-              "heading",
-              "|",
-              "bold",
-              "italic",
-              "underline",
-              "strikethrough",
-              "code",
-              "|",
-              "subscript",
-              "superscript",
-              "removeFormat",
-              "|",
-              "alignment",
-              "fontColor",
-              "fontBackgroundColor",
-              "|",
-              "bulletedList",
-              "numberedList",
-              "todoList",
-              "|",
-              "blockQuote",
-              "codeBlock",
-              "horizontalLine",
-              "|",
-              "link",
-              "insertImageViaMediaLibrary",
-              "insertTable",
+      {/* prose prose-sm max-w-none: bọc riêng vùng CKEditor (không bọc MediaPickerModal bên dưới,
+          tránh .prose img đè lên layout lưới thumbnail trong modal) — dùng chung class .prose với
+          trang bài viết công khai (bai-viet/[slug]/page.tsx) để khung soạn thảo hiển thị giống hệt
+          lúc xuất bản (heading, blockquote, list, ảnh...), thay vì lệch theo style mặc định của
+          CKEditor. Các rule màu thương hiệu riêng cho heading/blockquote xem globals.css
+          (selector .ck-content-wrapper .ck-content, cùng cặp với .prose). */}
+      <div className="prose prose-sm max-w-none">
+        <CKEditor
+          editor={ClassicEditor}
+          data={value}
+          onReady={(editor) => {
+            editorRef.current = editor;
+          }}
+          onChange={(_event, editor) => onChange(editor.getData())}
+          // "as EditorConfig": EditorConfig (kiểu chuẩn CKEditor) không khai báo field "mediaLibrary"
+          // — đây là field tự thêm, đọc lại trong InsertImageViaMediaLibrary qua editor.config.get().
+          config={{
+            licenseKey: "GPL",
+            translations: [coreTranslations],
+            language: "vi",
+            placeholder: "Viết nội dung bài viết...",
+            // setMediaModalOpen là setState — identity ổn định giữa các lần render nên closure này
+            // luôn hoạt động đúng dù CKEditor chỉ đọc config 1 lần lúc khởi tạo (xem InsertImageViaMediaLibrary).
+            mediaLibrary: { open: () => setMediaModalOpen(true) },
+            plugins: [
+              Essentials,
+              Paragraph,
+              Heading,
+              Bold,
+              Italic,
+              Underline,
+              Strikethrough,
+              Code,
+              Subscript,
+              Superscript,
+              RemoveFormat,
+              Alignment,
+              FontColor,
+              FontBackgroundColor,
+              List,
+              TodoList,
+              BlockQuote,
+              CodeBlock,
+              HorizontalLine,
+              Link,
+              AutoLink,
+              Image,
+              ImageToolbar,
+              ImageCaption,
+              ImageTextAlternative,
+              Table,
+              TableToolbar,
+              Autoformat,
+              InsertImageViaMediaLibrary,
             ],
-            shouldNotGroupWhenFull: true,
-          },
-          image: {
-            toolbar: ["toggleImageCaption", "imageTextAlternative"],
-          },
-          table: {
-            contentToolbar: ["tableColumn", "tableRow", "mergeTableCells"],
-          },
-        } as EditorConfig}
-      />
+            toolbar: {
+              items: [
+                "undo",
+                "redo",
+                "|",
+                "heading",
+                "|",
+                "bold",
+                "italic",
+                "underline",
+                "strikethrough",
+                "code",
+                "|",
+                "subscript",
+                "superscript",
+                "removeFormat",
+                "|",
+                "alignment",
+                "fontColor",
+                "fontBackgroundColor",
+                "|",
+                "bulletedList",
+                "numberedList",
+                "todoList",
+                "|",
+                "blockQuote",
+                "codeBlock",
+                "horizontalLine",
+                "|",
+                "link",
+                "insertImageViaMediaLibrary",
+                "insertTable",
+              ],
+              shouldNotGroupWhenFull: true,
+            },
+            image: {
+              toolbar: ["toggleImageCaption", "imageTextAlternative"],
+            },
+            table: {
+              contentToolbar: ["tableColumn", "tableRow", "mergeTableCells"],
+            },
+          } as EditorConfig}
+        />
+      </div>
       <MediaPickerModal
         open={mediaModalOpen}
         multiple
