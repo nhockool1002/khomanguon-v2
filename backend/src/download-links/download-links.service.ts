@@ -5,11 +5,12 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
-import { WalletTxStatus, WalletTxType } from '@prisma/client';
+import { AuditAction, WalletTxStatus, WalletTxType } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { R2ClientService } from '../storage/r2-client.service';
 import { WalletGateway } from '../realtime/wallet.gateway';
 import { MailService } from '../mail/mail.service';
+import { AuditLogService } from '../audit-log/audit-log.service';
 import { EXCLUDE_ADMIN_USER_WHERE } from '../common/exclude-admin-user.filter';
 import { resolveStyleRoleSlug } from '../roles/style-role.util';
 import { CreateDownloadLinkDto } from './dto/create-download-link.dto';
@@ -43,6 +44,7 @@ export class DownloadLinksService {
     private readonly r2Client: R2ClientService,
     private readonly walletGateway: WalletGateway,
     private readonly mailService: MailService,
+    private readonly auditLog: AuditLogService,
   ) {}
 
   async createForPost(postId: string, dto: CreateDownloadLinkDto) {
@@ -257,6 +259,31 @@ export class DownloadLinksService {
       link.storageProviderId,
       link.objectKey,
     );
+    return { url };
+  }
+
+  // Nút ẩn "Admin Get Presigned Link" — chỉ user có quyền download.bypass mới gọi được (kiểm tra ở
+  // DownloadLinkController). Cố ý KHÔNG đụng tới Wallet/WalletTransaction/DownloadGrant/DownloadEvent
+  // (không trừ $P, không hiện trong "Member đã tải" hay lịch sử giao dịch của bất kỳ ai) và không gửi
+  // mail thông báo tải — chỉ ghi AuditLog (chỉ Admin xem được qua quyền audit.view riêng) vì đây là
+  // năng lực nhạy cảm, dễ bị lạm dụng nếu gán nhầm quyền.
+  async adminBypassUnlock(actorUserId: string, linkId: string) {
+    const link = await this.prisma.downloadLink.findUnique({
+      where: { id: linkId },
+    });
+    if (!link) throw new NotFoundException('Không tìm thấy link tải');
+
+    const url = await this.r2Client.getPresignedDownloadUrl(
+      link.storageProviderId,
+      link.objectKey,
+    );
+
+    void this.auditLog.log(actorUserId, AuditAction.DOWNLOAD_BYPASSED, {
+      targetType: 'download_link',
+      targetId: link.id,
+      metadata: { postId: link.postId, objectKey: link.objectKey },
+    });
+
     return { url };
   }
 

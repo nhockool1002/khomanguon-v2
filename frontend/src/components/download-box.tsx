@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { apiFetch, ApiError } from "@/lib/api";
 import { useAuth } from "@/context/auth-context";
+import { PERMISSIONS } from "@/lib/permissions";
 import type { DownloadLinkPublic } from "@/lib/types";
 import { formatFileSize } from "@/lib/format";
 import { StyledUserName } from "@/components/styled-user-name";
@@ -77,6 +78,7 @@ function DownloadLinkRow({ link }: { link: DownloadLinkPublic }) {
   const { user } = useAuth();
   const router = useRouter();
   const [unlocking, setUnlocking] = useState(false);
+  const [bypassing, setBypassing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [reportOpen, setReportOpen] = useState(false);
   const [reportNote, setReportNote] = useState("");
@@ -103,6 +105,24 @@ function DownloadLinkRow({ link }: { link: DownloadLinkPublic }) {
       setError(err instanceof ApiError ? err.message : "Có lỗi xảy ra");
     } finally {
       setUnlocking(false);
+    }
+  }
+
+  // Nút ẩn "Admin Get Presigned Link" — chỉ render khi user có quyền download.bypass (xem điều kiện
+  // hiện nút bên dưới). Gọi endpoint riêng /admin-bypass thay vì /unlock, không trừ $P/không ghi
+  // lịch sử (xem download-links.service.ts adminBypassUnlock).
+  async function handleAdminBypass() {
+    setError(null);
+    setBypassing(true);
+    try {
+      const res = await apiFetch<{ url: string }>(`/download-links/${link.id}/admin-bypass`, {
+        method: "POST",
+      });
+      window.open(res.url, "_blank", "noopener,noreferrer");
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : "Có lỗi xảy ra");
+    } finally {
+      setBypassing(false);
     }
   }
 
@@ -186,6 +206,21 @@ function DownloadLinkRow({ link }: { link: DownloadLinkPublic }) {
             : link.priceP > 0
               ? `🔒 Mở khoá & tải xuống — ${link.priceP} $P`
               : "⬇ Tải xuống miễn phí"}
+        </button>
+      )}
+
+      {/* Nút ẩn "Admin Get Presigned Link" — chỉ user có quyền download.bypass mới thấy (Admin mặc
+          định, role khác phải được cấp riêng qua trang Phân quyền). Không trừ $P, không ghi lịch
+          sử, cố tình để nhỏ/không nổi bật để tránh nhầm với nút tải công khai bên trên. */}
+      {user?.permissionKeys?.includes(PERMISSIONS.DOWNLOAD_BYPASS) && (
+        <button
+          type="button"
+          onClick={handleAdminBypass}
+          disabled={bypassing}
+          title="Admin: tạo link tải không trừ $P, không ghi lịch sử"
+          className="w-fit text-[11px] font-medium text-zinc-300 hover:text-zinc-500 hover:underline disabled:opacity-50"
+        >
+          {bypassing ? "Đang tạo link..." : "🔑 Admin Get Presigned Link"}
         </button>
       )}
 

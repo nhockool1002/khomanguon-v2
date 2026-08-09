@@ -54,4 +54,14 @@ export class DownloadLinkController {
   ) {
     return this.downloadLinksService.unlock(user.id, linkId, ip);
   }
+
+  // Nút ẩn "Admin Get Presigned Link" (chỉ hiện trên FE với user có quyền download.bypass) — không
+  // qua DownloadRateLimitGuard, đây là công cụ nội bộ cho Admin/role được cấp quyền, không phải luồng
+  // mua hàng công khai cần chặn spam.
+  @UseGuards(JwtAuthGuard, PermissionsGuard)
+  @Permissions(PERMISSIONS.DOWNLOAD_BYPASS)
+  @Post(':linkId/admin-bypass')
+  adminBypass(@Param('linkId') linkId: string, @CurrentUser() user: AuthUser) {
+    return this.downloadLinksService.adminBypassUnlock(user.id, linkId);
+  }
 }

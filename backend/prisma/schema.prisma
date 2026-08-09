@@ -537,6 +537,10 @@ enum AuditAction {
   ROLE_REMOVED
   WALLET_ADJUSTED
   STORAGE_PROVIDER_KEY_CHANGED
+  // Admin/role có quyền download.bypass tạo link tải không trừ $P, không ghi WalletTransaction/
+  // DownloadGrant/DownloadEvent (xem download-links.service.ts adminBypassUnlock) — vẫn audit log
+  // lại vì đây là năng lực nhạy cảm dễ bị lạm dụng, dù không hiện trong lịch sử người dùng thấy được.
+  DOWNLOAD_BYPASSED
 }
 
 // Audit log thao tác nhạy cảm (PLAN.md 4.3) — đổi quyền, chỉnh ví tay, đổi key R2/S3. Khác

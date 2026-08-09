@@ -16,6 +16,7 @@ const ACTION_LABEL: Record<AuditAction, string> = {
   ROLE_REMOVED: "Gỡ vai trò",
   WALLET_ADJUSTED: "Điều chỉnh ví tay",
   STORAGE_PROVIDER_KEY_CHANGED: "Đổi key R2/S3",
+  DOWNLOAD_BYPASSED: "Admin lấy link tải (bỏ qua $P)",
 };
 
 export default function AuditLogPage() {
