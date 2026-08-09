@@ -433,8 +433,14 @@ model StorageProvider {
   secretAccessKeyEncrypted String
   isDefault                Boolean             @default(false)
   createdAt                DateTime            @default(now())
+  // Domain public của bucket (R2 custom domain/r2.dev, S3 static hosting/CloudFront) — chỉ cần khi
+  // dùng Provider này làm nguồn Thư viện Media (media.service.ts), vì ảnh nhúng trong bài viết cần
+  // URL vĩnh viễn, không thể dùng presigned URL (hết hạn sau vài phút). Provider chưa cấu hình field
+  // này vẫn dùng bình thường cho "Quản lý File Cloud"/download link (luôn presigned) như cũ.
+  publicBaseUrl String?
 
   downloadLinks DownloadLink[]
+  mediaFiles    MediaFile[]
 
   @@map("storage_providers")
 }
@@ -671,6 +677,10 @@ model MediaFile {
   uploadedById String?
   uploadedBy   User?    @relation(fields: [uploadedById], references: [id], onDelete: SetNull)
   createdAt    DateTime @default(now())
+  // null = Local (uploads/posts/... trên đĩa, hành vi gốc). Có giá trị = tải lên StorageProvider
+  // R2/S3 tương ứng (media.service.ts) — key vẫn theo convention posts/yyyy/mm/dd/... như local.
+  storageProviderId String?
+  storageProvider   StorageProvider? @relation(fields: [storageProviderId], references: [id], onDelete: SetNull)
 
   @@map("media_files")
 }

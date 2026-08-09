@@ -244,9 +244,18 @@ export interface StorageProvider {
   region: string | null;
   bucket: string | null;
   uploadPrefix: string | null;
+  publicBaseUrl: string | null;
   accessKeyId: string;
   isDefault: boolean;
   createdAt: string;
+}
+
+// Nguồn khả dụng cho Thư viện Media (tab Local/R2/S3) — GET /media/storage-targets, rút gọn từ
+// StorageProvider (chỉ Provider đang isDefault + đã cấu hình publicBaseUrl mới xuất hiện ở đây).
+export interface MediaStorageTarget {
+  id: string;
+  type: "R2" | "S3";
+  label: string;
 }
 
 export interface BackupConfig {

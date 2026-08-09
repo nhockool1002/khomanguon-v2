@@ -38,6 +38,14 @@ export class CreateStorageProviderDto {
   @MaxLength(255)
   uploadPrefix?: string;
 
+  // Domain public của bucket (R2 custom domain/r2.dev, S3 static hosting/CloudFront) — chỉ cần khi
+  // dùng Provider này làm nguồn Thư viện Media (không bắt buộc cho "Quản lý File Cloud"/download
+  // link, vốn luôn dùng presigned URL). Không áp dụng cho MAILJET.
+  @IsOptional()
+  @IsString()
+  @MaxLength(500)
+  publicBaseUrl?: string;
+
   // R2/S3: Access Key ID. MAILJET: API Key.
   @IsString()
   @MinLength(1)

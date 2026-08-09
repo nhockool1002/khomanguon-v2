@@ -19,6 +19,7 @@ const publicSelect = {
   region: true,
   bucket: true,
   uploadPrefix: true,
+  publicBaseUrl: true,
   accessKeyId: true,
   isDefault: true,
   createdAt: true,
@@ -52,6 +53,7 @@ export class StorageProvidersService {
         region: dto.region,
         bucket: dto.bucket,
         uploadPrefix: dto.uploadPrefix,
+        publicBaseUrl: dto.publicBaseUrl,
         accessKeyId: dto.accessKeyId,
         secretAccessKeyEncrypted: encryptSecret(dto.secretAccessKey),
         isDefault: dto.isDefault ?? false,
@@ -74,6 +76,9 @@ export class StorageProvidersService {
         ...(dto.bucket !== undefined && { bucket: dto.bucket }),
         ...(dto.uploadPrefix !== undefined && {
           uploadPrefix: dto.uploadPrefix,
+        }),
+        ...(dto.publicBaseUrl !== undefined && {
+          publicBaseUrl: dto.publicBaseUrl,
         }),
         ...(dto.accessKeyId !== undefined && { accessKeyId: dto.accessKeyId }),
         ...(dto.secretAccessKey !== undefined && {
@@ -109,6 +114,14 @@ export class StorageProvidersService {
     if (inUse > 0) {
       throw new BadRequestException(
         `Không thể xoá — đang có ${inUse} link tải sử dụng storage provider này`,
+      );
+    }
+    const mediaInUse = await this.prisma.mediaFile.count({
+      where: { storageProviderId: id },
+    });
+    if (mediaInUse > 0) {
+      throw new BadRequestException(
+        `Không thể xoá — đang có ${mediaInUse} ảnh trong Thư viện Media dùng storage provider này`,
       );
     }
     await this.prisma.storageProvider.delete({ where: { id } });
