@@ -30,27 +30,23 @@ body {
  * @tailwindcss/typography. Selector dùng :is() để có specificity cao hơn rule :where() (specificity 0)
  * mà plugin dùng, không cần !important.
  *
- * Áp dụng thêm cho ".ck-content-wrapper .ck-content" (vùng soạn thảo CKEditor, xem
- * rich-text-editor-ck.tsx) để khung soạn thảo hiển thị giống hệt trang công khai, không lệch theo
- * mặc định của CKEditor (không có style h1-h4, blockquote chỉ viền xám trơn "border-left: 5px solid
- * #ccc" — xem node_modules/ckeditor5/dist/ckeditor5.css). Selector này 2 lớp class
- * (.ck-content-wrapper .ck-content) nên specificity cao hơn rule blockquote gốc của CKEditor
- * (.ck-content blockquote, 1 lớp), thắng bất kể thứ tự nạp CSS.
+ * Trình soạn thảo Tiptap (rich-text-editor.tsx) gắn class "prose prose-sm" TRỰC TIẾP lên vùng
+ * contenteditable (editorProps.attributes.class) nên chỉ cần đúng 1 selector .prose là style áp
+ * dụng đồng nhất cho cả khung soạn thảo lẫn trang bài viết công khai — không cần cặp selector riêng
+ * như hồi dùng CKEditor 5 (đã gỡ, xem lịch sử PR #55/#56/#57 — CKEditor cướp focus toolbar không sửa
+ * được nên đổi hẳn sang Tiptap).
  */
-.prose :is(h1, h2, h3, h4),
-.ck-content-wrapper .ck-content :is(h1, h2, h3, h4) {
+.prose :is(h1, h2, h3, h4) {
   color: #1d3557;
   font-weight: 700;
 }
 
-.prose :is(h1, h2),
-.ck-content-wrapper .ck-content :is(h1, h2) {
+.prose :is(h1, h2) {
   padding-bottom: 0.35em;
   border-bottom: 1px solid #e4e4e7;
 }
 
-.prose h2::before,
-.ck-content-wrapper .ck-content h2::before {
+.prose h2::before {
   content: "";
   display: inline-block;
   width: 4px;
@@ -61,21 +57,18 @@ body {
   background: linear-gradient(180deg, #ff5da2, #ffcf3f);
 }
 
-.prose h3,
-.ck-content-wrapper .ck-content h3 {
+.prose h3 {
   color: #2b3f5c;
 }
 
-.prose h4,
-.ck-content-wrapper .ck-content h4 {
+.prose h4 {
   font-size: 0.95em;
   text-transform: uppercase;
   letter-spacing: 0.03em;
   color: #5c6370;
 }
 
-.prose blockquote,
-.ck-content-wrapper .ck-content blockquote {
+.prose blockquote {
   position: relative;
   border-left: none;
   border-radius: 0 0.5rem 0.5rem 0;
@@ -86,8 +79,7 @@ body {
   box-shadow: inset 3px 0 0 0 #ff5da2;
 }
 
-.prose blockquote::before,
-.ck-content-wrapper .ck-content blockquote::before {
+.prose blockquote::before {
   content: "\201C";
   position: absolute;
   top: 0.05em;
@@ -103,9 +95,7 @@ body {
 }
 
 .prose blockquote p:first-of-type::before,
-.prose blockquote p:last-of-type::after,
-.ck-content-wrapper .ck-content blockquote p:first-of-type::before,
-.ck-content-wrapper .ck-content blockquote p:last-of-type::after {
+.prose blockquote p:last-of-type::after {
   content: none;
 }
 
@@ -122,6 +112,17 @@ body {
   display: block;
   max-width: 100%;
   overflow-x: auto;
+  border-collapse: collapse;
+}
+
+/* Viền bảng rõ ràng hơn mặc định của @tailwindcss/typography (quá mờ, khó thấy khi soạn/đọc bài). */
+.prose :is(th, td) {
+  border: 1px solid #d4d4d8;
+  padding: 0.5em 0.75em;
+}
+
+.prose th {
+  background: #f4f4f5;
 }
 
 .prose :is(iframe, video) {
