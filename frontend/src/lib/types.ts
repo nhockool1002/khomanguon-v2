@@ -325,7 +325,8 @@ export type AuditAction =
   | "ROLE_ASSIGNED"
   | "ROLE_REMOVED"
   | "WALLET_ADJUSTED"
-  | "STORAGE_PROVIDER_KEY_CHANGED";
+  | "STORAGE_PROVIDER_KEY_CHANGED"
+  | "DOWNLOAD_BYPASSED";
 
 export interface AuditLogEntry {
   id: string;

@@ -19,6 +19,12 @@ export const PERMISSIONS = {
   WALLET_ADJUST: 'wallet.adjust',
   DOWNLOAD_MANAGE_LINKS: 'download.manage_links',
   DOWNLOAD_PURCHASE: 'download.purchase',
+  // Nút ẩn "Admin Get Presigned Link" trên trang bài viết — tạo link tải cho bất kỳ bài nào mà
+  // KHÔNG trừ $P, KHÔNG ghi WalletTransaction/DownloadGrant/DownloadEvent (xem
+  // download-links.service.ts adminBypassUnlock). Không gán mặc định cho Super Moderator (xem
+  // DEFAULT_ROLE_PERMISSIONS bên dưới) — chỉ Admin có qua ALL_PERMISSION_KEYS, role khác muốn dùng
+  // phải được cấp riêng qua trang Phân quyền.
+  DOWNLOAD_BYPASS: 'download.bypass',
   SETTINGS_SEO: 'settings.seo',
   SETTINGS_STORAGE_KEYS: 'settings.storage_keys',
   SETTINGS_PAYMENT: 'settings.payment',
