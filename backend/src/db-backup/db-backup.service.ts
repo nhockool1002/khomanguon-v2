@@ -8,6 +8,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { R2ClientService } from '../storage/r2-client.service';
 import { UpdateBackupConfigDto } from './dto/update-backup-config.dto';
 import {
+  BACKUP_OBJECT_KEY_PREFIX,
   BACKUP_SETTING_KEY,
   DEFAULT_BACKUP_CONFIG,
   type BackupConfig,
@@ -135,7 +136,7 @@ export class DbBackupService {
     try {
       const dump = await this.dumpDatabase();
       const compressed = await gzipAsync(dump);
-      const objectKey = `backups/db-${new Date().toISOString().replace(/[:.]/g, '-')}.sql.gz`;
+      const objectKey = `${BACKUP_OBJECT_KEY_PREFIX}db-${new Date().toISOString().replace(/[:.]/g, '-')}.sql.gz`;
       await this.r2Client.putObject(
         config.storageProviderId,
         objectKey,
