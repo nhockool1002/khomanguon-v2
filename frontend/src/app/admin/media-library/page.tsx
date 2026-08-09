@@ -7,6 +7,7 @@ import { apiFetch, ApiError } from "@/lib/api";
 import { PERMISSIONS } from "@/lib/permissions";
 import { formatFileSize } from "@/lib/format";
 import { toAbsoluteUploadUrl as absoluteUrl } from "@/lib/upload";
+import { LOCAL_SOURCE, useMediaStorageTargets } from "@/lib/use-media-storage-targets";
 import type { MediaFile, MediaFileListResponse } from "@/lib/types";
 import { ErrorBanner, SuccessBanner } from "@/components/ui";
 import { ForbiddenPage } from "@/components/forbidden-page";
@@ -27,6 +28,7 @@ export default function MediaLibraryPage() {
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [selected, setSelected] = useState<MediaFile | null>(null);
+  const { targets, activeSource, setActiveSource } = useMediaStorageTargets();
 
   useEffect(() => {
     if (!loading && !user) router.replace("/dang-nhap");
@@ -37,6 +39,7 @@ export default function MediaLibraryPage() {
     setError(null);
     const query = new URLSearchParams({ page: String(page), limit: String(PAGE_SIZE) });
     if (q) query.set("q", q);
+    if (activeSource !== LOCAL_SOURCE) query.set("storageProviderId", activeSource);
     apiFetch<MediaFileListResponse>(`/media?${query.toString()}`)
       .then((res) => {
         setItems(res.items);
@@ -44,13 +47,19 @@ export default function MediaLibraryPage() {
       })
       .catch((err) => setError(err instanceof ApiError ? err.message : "Có lỗi xảy ra"))
       .finally(() => setFetching(false));
-  }, [page, q]);
+  }, [page, q, activeSource]);
 
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect -- loadFiles đặt cờ loading đồng bộ trước khi gọi API, đúng chủ đích (giống tep-cloud/page.tsx)
     if (user) loadFiles();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user, page, q]);
+  }, [user, page, q, activeSource]);
+
+  function handleTabChange(source: string) {
+    setActiveSource(source);
+    setPage(1);
+    setSelected(null);
+  }
 
   // Đóng modal xem chi tiết bằng phím Esc.
   useEffect(() => {
@@ -79,6 +88,7 @@ export default function MediaLibraryPage() {
       for (const file of files) {
         const formData = new FormData();
         formData.append("file", file);
+        if (activeSource !== LOCAL_SOURCE) formData.append("storageProviderId", activeSource);
         await apiFetch("/media", { method: "POST", body: formData });
       }
       setMessage(`Đã tải lên ${files.length} tệp.`);
@@ -97,7 +107,9 @@ export default function MediaLibraryPage() {
     if (!confirm(`Xoá "${file.fileName}"? Không thể hoàn tác.`)) return;
     setError(null);
     try {
-      await apiFetch(`/media?path=${encodeURIComponent(file.path)}`, { method: "DELETE" });
+      const query = new URLSearchParams({ path: file.path });
+      if (activeSource !== LOCAL_SOURCE) query.set("storageProviderId", activeSource);
+      await apiFetch(`/media?${query.toString()}`, { method: "DELETE" });
       if (selected?.path === file.path) setSelected(null);
       loadFiles();
     } catch (err) {
@@ -144,6 +156,34 @@ export default function MediaLibraryPage() {
 
       <ErrorBanner message={error} />
       <SuccessBanner message={message} />
+
+      <div className="flex gap-1 border-b border-zinc-200">
+        <button
+          type="button"
+          onClick={() => handleTabChange(LOCAL_SOURCE)}
+          className={`px-3 py-1.5 text-sm font-medium ${
+            activeSource === LOCAL_SOURCE
+              ? "border-b-2 border-[#1d3557] text-[#1d3557]"
+              : "text-zinc-500 hover:text-zinc-700"
+          }`}
+        >
+          Local
+        </button>
+        {targets.map((t) => (
+          <button
+            key={t.id}
+            type="button"
+            onClick={() => handleTabChange(t.id)}
+            className={`px-3 py-1.5 text-sm font-medium ${
+              activeSource === t.id
+                ? "border-b-2 border-[#1d3557] text-[#1d3557]"
+                : "text-zinc-500 hover:text-zinc-700"
+            }`}
+          >
+            {t.type}
+          </button>
+        ))}
+      </div>
 
       <form onSubmit={handleSearch} className="flex gap-2">
         <input

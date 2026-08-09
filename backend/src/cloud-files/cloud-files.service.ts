@@ -3,6 +3,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { R2ClientService } from '../storage/r2-client.service';
 import { EXCLUDE_ADMIN_USER_WHERE } from '../common/exclude-admin-user.filter';
 import { BACKUP_OBJECT_KEY_PREFIX } from '../db-backup/backup-config.types';
+import { MEDIA_KEY_PREFIX } from '../common/dated-upload.util';
 
 export interface CloudFileRow {
   key: string;
@@ -27,12 +28,17 @@ export class CloudFilesService {
     providerId: string,
     subPrefix?: string,
   ): Promise<CloudFileRow[]> {
-    // Bỏ qua file backup DB (backups/db-*.sql.gz, xem db-backup.service.ts runBackup()) — trang này
-    // dành cho file NGƯỜI DÙNG tải (đối chiếu lượt tải/doanh thu), không phải nơi quản lý backup hệ
-    // thống (đã có trang riêng Cài đặt > Backup DB).
+    // Bỏ qua file backup DB (backups/db-*.sql.gz, xem db-backup.service.ts runBackup()) và ảnh Thư
+    // viện Media (posts/yyyy/mm/dd/..., xem media.service.ts) — trang này dành cho file NGƯỜI DÙNG
+    // tải (đối chiếu lượt tải/doanh thu), 2 loại file trên đã có trang quản lý riêng của chúng
+    // (Cài đặt > Backup DB, Thư viện Media).
     const objects = (
       await this.r2Client.listObjects(providerId, subPrefix)
-    ).filter((o) => !o.key.startsWith(BACKUP_OBJECT_KEY_PREFIX));
+    ).filter(
+      (o) =>
+        !o.key.startsWith(BACKUP_OBJECT_KEY_PREFIX) &&
+        !o.key.startsWith(MEDIA_KEY_PREFIX),
+    );
     if (objects.length === 0) return [];
 
     const keys = objects.map((o) => o.key);

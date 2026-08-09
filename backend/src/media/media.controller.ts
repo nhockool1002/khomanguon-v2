@@ -1,7 +1,8 @@
-import { randomUUID } from 'crypto';
-import { extname } from 'path';
+import { mkdir, writeFile } from 'fs/promises';
+import { dirname, join } from 'path';
 import {
   BadRequestException,
+  Body,
   Controller,
   Delete,
   Get,
@@ -12,15 +13,16 @@ import {
   UseInterceptors,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
-import { diskStorage } from 'multer';
+import { memoryStorage } from 'multer';
 import { MediaService } from './media.service';
+import { PrismaService } from '../prisma/prisma.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { PermissionsGuard } from '../roles/guards/permissions.guard';
 import { Permissions } from '../roles/decorators/permissions.decorator';
 import { PERMISSIONS } from '../roles/permissions.constant';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
-import { datedUploadDestination } from '../common/dated-upload.util';
-import { processUploadedImage } from '../common/image-pipeline.util';
+import { UPLOAD_ROOT, buildDatedKey } from '../common/dated-upload.util';
+import { resizeToWebpBuffer } from '../common/image-pipeline.util';
 
 interface AuthUser {
   id: string;
@@ -37,7 +39,10 @@ const MAX_FILE_SIZE = 5 * 1024 * 1024;
 
 @Controller('media')
 export class MediaController {
-  constructor(private readonly mediaService: MediaService) {}
+  constructor(
+    private readonly mediaService: MediaService,
+    private readonly prisma: PrismaService,
+  ) {}
 
   // POST_CREATE (không phải MEDIA_MANAGE) — endpoint này còn được gọi từ MediaPickerModal trong
   // trình soạn bài viết (chèn ảnh nội dung/chọn Ảnh đại diện/Ảnh OG), ai viết được bài (post.create)
@@ -51,12 +56,34 @@ export class MediaController {
     @Query('q') q?: string,
     @Query('page') page?: string,
     @Query('limit') limit?: string,
+    @Query('storageProviderId') storageProviderId?: string,
   ) {
     return this.mediaService.list({
       q,
       page: Number(page) || 1,
       limit: Number(limit) || 24,
+      storageProviderId: storageProviderId || undefined,
     });
+  }
+
+  // Danh sách nguồn khả dụng cho tab Local/R2/S3 (media-picker-modal.tsx, admin/media-library) —
+  // cùng bar quyền post.create với list()/upload() ở trên vì mọi tác giả bài viết cần biết tab nào
+  // dùng được. Chỉ trả Provider đang isDefault + đã cấu hình publicBaseUrl (Provider thiếu domain
+  // public thì không dùng được cho Media — ảnh sẽ không có URL vĩnh viễn để hiển thị), và chỉ 3
+  // field cần cho UI tab, không lộ endpoint/accessKeyId như GET /storage-providers (quyền cao hơn).
+  @UseGuards(JwtAuthGuard, PermissionsGuard)
+  @Permissions(PERMISSIONS.POST_CREATE)
+  @Get('storage-targets')
+  async storageTargets() {
+    const providers = await this.prisma.storageProvider.findMany({
+      where: {
+        isDefault: true,
+        publicBaseUrl: { not: null },
+        type: { in: ['R2', 'S3'] },
+      },
+      select: { id: true, type: true, label: true },
+    });
+    return providers;
   }
 
   @UseGuards(JwtAuthGuard, PermissionsGuard)
@@ -64,15 +91,7 @@ export class MediaController {
   @Post()
   @UseInterceptors(
     FileInterceptor('file', {
-      storage: diskStorage({
-        destination: datedUploadDestination,
-        filename: (_req, file, callback) => {
-          callback(
-            null,
-            `${randomUUID()}${extname(file.originalname).toLowerCase()}`,
-          );
-        },
-      }),
+      storage: memoryStorage(),
       limits: { fileSize: MAX_FILE_SIZE },
       fileFilter: (_req, file, callback) => {
         if (!ALLOWED_MIME_TYPES.includes(file.mimetype)) {
@@ -88,21 +107,52 @@ export class MediaController {
   )
   async upload(
     @UploadedFile() file: Express.Multer.File,
+    @Body('storageProviderId') storageProviderId: string | undefined,
     @CurrentUser() user: AuthUser,
   ) {
     if (!file) throw new BadRequestException('Thiếu file');
-    await processUploadedImage(file);
-    await this.mediaService.record(file, user.id);
+
+    const { buffer, mimetype, ext } = await resizeToWebpBuffer(
+      file.buffer,
+      file.mimetype,
+    );
+    const key = buildDatedKey(ext || '.bin');
+
+    if (storageProviderId) {
+      await this.mediaService.putCloudObject(
+        storageProviderId,
+        key,
+        buffer,
+        mimetype,
+      );
+    } else {
+      const dest = join(UPLOAD_ROOT, key);
+      await mkdir(dirname(dest), { recursive: true });
+      await writeFile(dest, buffer);
+    }
+
+    await this.mediaService.record({
+      key,
+      originalName: file.originalname,
+      mimeType: mimetype,
+      sizeBytes: buffer.length,
+      uploadedById: user.id,
+      storageProviderId: storageProviderId || undefined,
+    });
     return { ok: true };
   }
 
-  // path (không phải id DB) — Thư viện Media liệt kê trực tiếp từ đĩa nên định danh 1 file là
-  // đường dẫn tương đối của nó, giống cách cloud-files dùng ?key= (xem cloud-files.controller.ts).
+  // path (không phải id DB) — Thư viện Media liệt kê trực tiếp từ nơi lưu trữ thật (đĩa hoặc bucket)
+  // nên định danh 1 file là key/đường dẫn tương đối của nó, giống cách cloud-files dùng ?key= (xem
+  // cloud-files.controller.ts).
   @UseGuards(JwtAuthGuard, PermissionsGuard)
   @Permissions(PERMISSIONS.MEDIA_MANAGE)
   @Delete()
-  remove(@Query('path') path: string) {
+  remove(
+    @Query('path') path: string,
+    @Query('storageProviderId') storageProviderId?: string,
+  ) {
     if (!path) throw new BadRequestException('Thiếu path');
-    return this.mediaService.remove(path);
+    return this.mediaService.remove(path, storageProviderId || undefined);
   }
 }

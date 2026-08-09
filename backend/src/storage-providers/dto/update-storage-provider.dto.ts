@@ -39,6 +39,11 @@ export class UpdateStorageProviderDto {
 
   @IsOptional()
   @IsString()
+  @MaxLength(500)
+  publicBaseUrl?: string;
+
+  @IsOptional()
+  @IsString()
   @MinLength(1)
   accessKeyId?: string;
 

@@ -16,6 +16,7 @@ interface FormValues {
   region: string;
   bucket: string;
   uploadPrefix: string;
+  publicBaseUrl: string;
   accessKeyId: string;
   secretAccessKey: string;
   isDefault: boolean;
@@ -31,6 +32,7 @@ const EMPTY_FORM: FormValues = {
   region: "",
   bucket: "",
   uploadPrefix: "",
+  publicBaseUrl: "",
   accessKeyId: "",
   secretAccessKey: "",
   isDefault: false,
@@ -109,6 +111,7 @@ export default function AdminStorageProvidersPage() {
       region: values.region || undefined,
       bucket: values.type === "MAILJET" ? undefined : values.bucket,
       uploadPrefix: values.uploadPrefix || undefined,
+      publicBaseUrl: values.type === "MAILJET" ? undefined : values.publicBaseUrl || undefined,
       accessKeyId: values.accessKeyId,
       isDefault: values.isDefault,
     };
@@ -269,6 +272,7 @@ function StorageProviderEditPanel({
           region: provider.region ?? "",
           bucket: provider.bucket ?? "",
           uploadPrefix: provider.uploadPrefix ?? "",
+          publicBaseUrl: provider.publicBaseUrl ?? "",
           accessKeyId: provider.accessKeyId,
           secretAccessKey: "",
           isDefault: provider.isDefault,
@@ -337,6 +341,20 @@ function StorageProviderEditPanel({
             <label className="flex flex-col gap-1 text-sm text-zinc-700">
               Upload prefix (tuỳ chọn)
               <input value={values.uploadPrefix} onChange={(e) => set("uploadPrefix", e.target.value)} className={inputClass} />
+            </label>
+            <label className="flex flex-col gap-1 text-sm text-zinc-700 sm:col-span-2">
+              Public Base URL (tuỳ chọn)
+              <input
+                value={values.publicBaseUrl}
+                onChange={(e) => set("publicBaseUrl", e.target.value)}
+                placeholder="vd: https://cdn.khomanguon.org hoặc https://pub-xxx.r2.dev"
+                className={inputClass}
+              />
+              <span className="text-xs text-zinc-400">
+                Domain public của bucket — chỉ cần điền nếu muốn dùng provider này làm nguồn Thư viện
+                Media (ảnh nhúng bài viết cần URL tồn tại vĩnh viễn, không dùng được presigned URL).
+                Bỏ trống nếu chỉ dùng cho Quản lý File Cloud/link tải.
+              </span>
             </label>
           </>
         )}

@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { apiFetch, ApiError } from "@/lib/api";
 import { toAbsoluteUploadUrl } from "@/lib/upload";
+import { LOCAL_SOURCE, useMediaStorageTargets } from "@/lib/use-media-storage-targets";
 import type { MediaFile, MediaFileListResponse } from "@/lib/types";
 import { ErrorBanner } from "@/components/ui";
 
@@ -34,12 +35,14 @@ export function MediaPickerModal({
   const [error, setError] = useState<string | null>(null);
   const [selectedPaths, setSelectedPaths] = useState<Set<string>>(new Set());
   const [syncedOpen, setSyncedOpen] = useState(open);
+  const { targets, activeSource, setActiveSource } = useMediaStorageTargets();
 
   const loadFiles = useCallback(() => {
     setFetching(true);
     setError(null);
     const query = new URLSearchParams({ page: String(page), limit: String(PAGE_SIZE) });
     if (q) query.set("q", q);
+    if (activeSource !== LOCAL_SOURCE) query.set("storageProviderId", activeSource);
     apiFetch<MediaFileListResponse>(`/media?${query.toString()}`)
       .then((res) => {
         setItems(res.items);
@@ -47,14 +50,20 @@ export function MediaPickerModal({
       })
       .catch((err) => setError(err instanceof ApiError ? err.message : "Có lỗi xảy ra"))
       .finally(() => setFetching(false));
-  }, [page, q]);
+  }, [page, q, activeSource]);
 
   useEffect(() => {
     if (!open) return;
     // eslint-disable-next-line react-hooks/set-state-in-effect -- loadFiles đặt cờ loading đồng bộ trước khi gọi API, đúng chủ đích (giống media-library/page.tsx)
     loadFiles();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open, page, q]);
+  }, [open, page, q, activeSource]);
+
+  function handleTabChange(source: string) {
+    setActiveSource(source);
+    setPage(1);
+    setSelectedPaths(new Set());
+  }
 
   // Mỗi lần mở modal reset về trạng thái sạch — không giữ lại lựa chọn/tìm kiếm của lần mở trước.
   // Cập nhật ngay trong lúc render (theo khuyến nghị React thay vì setState trong useEffect, tránh
@@ -88,6 +97,7 @@ export function MediaPickerModal({
       for (const file of files) {
         const formData = new FormData();
         formData.append("file", file);
+        if (activeSource !== LOCAL_SOURCE) formData.append("storageProviderId", activeSource);
         await apiFetch("/media", { method: "POST", body: formData });
       }
       setPage(1);
@@ -167,6 +177,34 @@ export function MediaPickerModal({
               ✕
             </button>
           </div>
+        </div>
+
+        <div className="flex gap-1 border-b border-zinc-200">
+          <button
+            type="button"
+            onClick={() => handleTabChange(LOCAL_SOURCE)}
+            className={`px-3 py-1.5 text-sm font-medium ${
+              activeSource === LOCAL_SOURCE
+                ? "border-b-2 border-[#1d3557] text-[#1d3557]"
+                : "text-zinc-500 hover:text-zinc-700"
+            }`}
+          >
+            Local
+          </button>
+          {targets.map((t) => (
+            <button
+              key={t.id}
+              type="button"
+              onClick={() => handleTabChange(t.id)}
+              className={`px-3 py-1.5 text-sm font-medium ${
+                activeSource === t.id
+                  ? "border-b-2 border-[#1d3557] text-[#1d3557]"
+                  : "text-zinc-500 hover:text-zinc-700"
+              }`}
+            >
+              {t.type}
+            </button>
+          ))}
         </div>
 
         <ErrorBanner message={error} />
