@@ -131,12 +131,22 @@ jobs:
             cd /www/wwwroot/khomanguon-v2
             git fetch origin main
             git reset --hard origin/main
+            # Dọn container mồ côi "khomanguon-v2-backend-1" nếu có, TRƯỚC khi up --force-recreate —
+            # 1 lần deploy trước bị ngắt giữa chừng (runner timeout/kill) có thể để lại container
+            # giữ đúng tên đích mà compose không biết tới, khiến bước rename lúc recreate luôn báo
+            # "Conflict: name already in use" ở MỌI lần chạy sau đó, dù build image thành công 100%
+            # (đã gặp thật 2026-08-09 — PR #52/#53 build/lint/test pass nhưng deploy-backend fail liên
+            # tục vì lỗi này, backend production bị kẹt lại code cũ). Không throw nếu container không
+            # tồn tại (idempotent, an toàn chạy lại nhiều lần).
+            docker rm -f khomanguon-v2-backend-1 2>/dev/null || true
             # --force-recreate: "up -d --build" build ra image mới nhưng Docker Compose quyết định
             # có tạo lại container hay không dựa trên hash cấu hình YAML, không phải digest image
             # thực tế — service này không khai báo "image:" cố định nên đã có ít nhất 2 lần compose
             # kết luận "không đổi gì" và để nguyên container CŨ chạy dù image build lại hoàn toàn
             # (routes/module mới của code mới không lên, phải phát hiện qua log ứng dụng).
-            docker compose --env-file .env.production -f docker-compose.prod.yml up -d --build --force-recreate backend
+            # --remove-orphans: dọn luôn container của service đã xoá khỏi compose file (từng thấy
+            # cảnh báo "orphan containers ([khomanguon-v2-mysql-migrate-1])" trong log deploy).
+            docker compose --env-file .env.production -f docker-compose.prod.yml up -d --build --force-recreate --remove-orphans backend
             sleep 5
             echo "===== backend container logs (debug) ====="
             docker compose --env-file .env.production -f docker-compose.prod.yml logs backend --tail=200 || true
