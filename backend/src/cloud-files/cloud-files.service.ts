@@ -2,6 +2,7 @@ import { BadRequestException, Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { R2ClientService } from '../storage/r2-client.service';
 import { EXCLUDE_ADMIN_USER_WHERE } from '../common/exclude-admin-user.filter';
+import { BACKUP_OBJECT_KEY_PREFIX } from '../db-backup/backup-config.types';
 
 export interface CloudFileRow {
   key: string;
@@ -26,7 +27,12 @@ export class CloudFilesService {
     providerId: string,
     subPrefix?: string,
   ): Promise<CloudFileRow[]> {
-    const objects = await this.r2Client.listObjects(providerId, subPrefix);
+    // Bỏ qua file backup DB (backups/db-*.sql.gz, xem db-backup.service.ts runBackup()) — trang này
+    // dành cho file NGƯỜI DÙNG tải (đối chiếu lượt tải/doanh thu), không phải nơi quản lý backup hệ
+    // thống (đã có trang riêng Cài đặt > Backup DB).
+    const objects = (
+      await this.r2Client.listObjects(providerId, subPrefix)
+    ).filter((o) => !o.key.startsWith(BACKUP_OBJECT_KEY_PREFIX));
     if (objects.length === 0) return [];
 
     const keys = objects.map((o) => o.key);
@@ -176,7 +182,11 @@ export class CloudFilesService {
   }
 
   // Không tái dùng slugify() (bỏ hết dấu chấm — mất luôn phần đuôi file ".zip"/".apk"). Giữ nguyên
-  // ký tự an toàn, thay phần còn lại bằng "-".
+  // ký tự an toàn, thay phần còn lại bằng "-". Trước đó regex cuối chỉ cho [a-zA-Z0-9._-] (thuần
+  // ASCII) nên xoá mất mọi chữ Hán/CJK trong tên file gốc (yêu cầu thực tế: phải giữ nguyên đoạn
+  // tiếng Hoa) — đổi sang \p{L}/\p{N} (Unicode letter/number) để giữ chữ Hán, Nhật, Hàn... Vẫn xoá
+  // dấu tiếng Việt như cũ (NFD + bỏ combining marks + đ/Đ chạy TRƯỚC bước này) vì bản thân bước
+  // NFD không tách được dấu ra khỏi ký tự CJK (không có gì để tách), nên không ảnh hưởng CJK.
   private sanitizeSegment(input: string): string {
     return input
       .normalize('NFD')
@@ -184,7 +194,7 @@ export class CloudFilesService {
       .replace(/đ/g, 'd')
       .replace(/Đ/g, 'D')
       .trim()
-      .replace(/[^a-zA-Z0-9._-]+/g, '-')
+      .replace(/[^\p{L}\p{N}._-]+/gu, '-')
       .replace(/-+/g, '-')
       .replace(/^[.-]+|[.-]+$/g, '');
   }
