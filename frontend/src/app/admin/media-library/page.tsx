@@ -3,18 +3,15 @@
 import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/auth-context";
-import { apiFetch, ApiError, API_URL } from "@/lib/api";
+import { apiFetch, ApiError } from "@/lib/api";
 import { PERMISSIONS } from "@/lib/permissions";
 import { formatFileSize } from "@/lib/format";
+import { toAbsoluteUploadUrl as absoluteUrl } from "@/lib/upload";
 import type { MediaFile, MediaFileListResponse } from "@/lib/types";
 import { ErrorBanner, SuccessBanner } from "@/components/ui";
 import { ForbiddenPage } from "@/components/forbidden-page";
 
 const PAGE_SIZE = 24;
-
-function absoluteUrl(url: string): string {
-  return url.startsWith("http") ? url : `${API_URL}${url}`;
-}
 
 export default function MediaLibraryPage() {
   const { user, loading } = useAuth();

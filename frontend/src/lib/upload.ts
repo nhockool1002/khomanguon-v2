@@ -3,7 +3,12 @@ import { apiFetch, API_URL } from "./api";
 // Backend trả về path tương đối (/uploads/xxx) — ghép NEXT_PUBLIC_API_URL ngay tại đây
 // để mọi nơi lưu contentHtml/thumbnailUrl/ogImageUrl đều là URL tuyệt đối, không cần
 // resolve lại lúc render (đơn giản hoá việc backend không tự biết public origin của mình
-// khi đứng sau reverse proxy).
+// khi đứng sau reverse proxy). Dùng chung cho mọi nơi cần hiển thị/lưu URL ảnh từ backend
+// (media-library/page.tsx, media-picker-modal.tsx).
+export function toAbsoluteUploadUrl(url: string): string {
+  return url.startsWith("http") ? url : `${API_URL}${url}`;
+}
+
 export async function uploadImage(file: File): Promise<string> {
   const formData = new FormData();
   formData.append("file", file);
@@ -11,5 +16,5 @@ export async function uploadImage(file: File): Promise<string> {
     method: "POST",
     body: formData,
   });
-  return url.startsWith("http") ? url : `${API_URL}${url}`;
+  return toAbsoluteUploadUrl(url);
 }

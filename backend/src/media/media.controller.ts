@@ -39,8 +39,13 @@ const MAX_FILE_SIZE = 5 * 1024 * 1024;
 export class MediaController {
   constructor(private readonly mediaService: MediaService) {}
 
+  // POST_CREATE (không phải MEDIA_MANAGE) — endpoint này còn được gọi từ MediaPickerModal trong
+  // trình soạn bài viết (chèn ảnh nội dung/chọn Ảnh đại diện/Ảnh OG), ai viết được bài (post.create)
+  // cũng cần duyệt/tải lên thư viện, đúng bar quyền /uploads đã dùng cho upload ảnh nội dung. Trang
+  // quản trị "Thư viện Media" (toàn quyền, gồm cả xoá) vẫn chỉ Admin/role có media.manage vào được
+  // (chặn ở frontend admin-nav.ts + media-library/page.tsx) — DELETE bên dưới vẫn giữ MEDIA_MANAGE.
   @UseGuards(JwtAuthGuard, PermissionsGuard)
-  @Permissions(PERMISSIONS.MEDIA_MANAGE)
+  @Permissions(PERMISSIONS.POST_CREATE)
   @Get()
   list(
     @Query('q') q?: string,
@@ -55,7 +60,7 @@ export class MediaController {
   }
 
   @UseGuards(JwtAuthGuard, PermissionsGuard)
-  @Permissions(PERMISSIONS.MEDIA_MANAGE)
+  @Permissions(PERMISSIONS.POST_CREATE)
   @Post()
   @UseInterceptors(
     FileInterceptor('file', {
