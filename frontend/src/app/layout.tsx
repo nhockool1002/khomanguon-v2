@@ -55,9 +55,13 @@ export default async function RootLayout({
   return (
     <html
       lang="vi"
-      className={`${geistSans.variable} ${geistMono.variable} ${ROLE_FONT_VARS} h-full antialiased`}
+      className={`${geistSans.variable} ${geistMono.variable} ${ROLE_FONT_VARS} h-full overflow-x-hidden antialiased`}
     >
-      <body className="flex min-h-full flex-col">
+      {/* overflow-x-hidden trên cả html lẫn body — chặn cả trang bị cuộn ngang trên mobile nếu có
+          phần tử nào lỡ tràn viewport (vd Tooltip position:absolute width:max-content ở ui.tsx khi
+          nội dung dài), thay vì để cả layout (kể cả navbar) bị lệch sang trái. Không có phần tử
+          position:sticky nào trong site nên an toàn, không phá layout gì. */}
+      <body className="flex min-h-full flex-col overflow-x-hidden">
         <GlobalLoadingBar />
         {settings.gaTrackingId && (
           <>
