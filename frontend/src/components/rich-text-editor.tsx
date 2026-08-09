@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useState } from "react";
 import { useEditor, EditorContent } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import TiptapImage from "@tiptap/extension-image";
@@ -16,7 +16,7 @@ import Subscript from "@tiptap/extension-subscript";
 import Superscript from "@tiptap/extension-superscript";
 import Placeholder from "@tiptap/extension-placeholder";
 import { Table, TableRow, TableCell, TableHeader } from "@tiptap/extension-table";
-import { uploadImage } from "@/lib/upload";
+import { MediaPickerModal } from "@/components/media-picker-modal";
 
 const HEADING_LEVELS = [1, 2, 3, 4] as const;
 
@@ -29,8 +29,7 @@ export function RichTextEditor({
   value: string;
   onChange: (html: string) => void;
 }) {
-  const [uploading, setUploading] = useState(false);
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [mediaModalOpen, setMediaModalOpen] = useState(false);
 
   const editor = useEditor({
     extensions: [
@@ -63,20 +62,20 @@ export function RichTextEditor({
     },
   });
 
-  const handleImageButtonClick = useCallback(() => fileInputRef.current?.click(), []);
-
-  async function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0];
-    e.target.value = "";
-    if (!file || !editor) return;
-    setUploading(true);
-    try {
-      const url = await uploadImage(file);
-      editor.chain().focus().setImage({ src: url }).run();
-    } finally {
-      setUploading(false);
-    }
-  }
+  // Chèn nhiều ảnh cùng lúc qua insertContent (mảng node ảnh) thay vì gọi setImage() lặp lại nhiều
+  // lần — insertContent chèn đúng thứ tự trong 1 transaction, setImage lặp có thể chèn sai vị trí
+  // do mỗi lần gọi tự dịch chuyển con trỏ.
+  const handleMediaSelect = useCallback(
+    (urls: string[]) => {
+      if (!editor || urls.length === 0) return;
+      editor
+        .chain()
+        .focus()
+        .insertContent(urls.map((src) => ({ type: "image", attrs: { src } })))
+        .run();
+    },
+    [editor],
+  );
 
   const setLink = useCallback(() => {
     if (!editor) return;
@@ -280,16 +279,7 @@ export function RichTextEditor({
           <ToolbarButton active={editor.isActive("link")} onClick={setLink}>
             🔗
           </ToolbarButton>
-          <ToolbarButton onClick={handleImageButtonClick} disabled={uploading}>
-            {uploading ? "Đang tải..." : "🖼 Ảnh"}
-          </ToolbarButton>
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept="image/*"
-            className="hidden"
-            onChange={handleFileChange}
-          />
+          <ToolbarButton onClick={() => setMediaModalOpen(true)}>🖼 Ảnh</ToolbarButton>
           <Divider />
           <ToolbarButton
             title="Chèn bảng"
@@ -336,6 +326,12 @@ export function RichTextEditor({
         </div>
       </div>
       <EditorContent editor={editor} />
+      <MediaPickerModal
+        open={mediaModalOpen}
+        multiple
+        onClose={() => setMediaModalOpen(false)}
+        onSelect={handleMediaSelect}
+      />
     </div>
   );
 }
