@@ -4,12 +4,8 @@ import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { AuthProvider } from "@/context/auth-context";
 import { RoleBadgesProvider } from "@/context/role-badges-context";
-import { Navbar } from "@/components/navbar";
-import { PostPopup } from "@/components/post-popup";
 import { GlobalLoadingBar } from "@/components/global-loading-bar";
-import { Footer } from "@/components/footer";
-import { NewsletterSignup } from "@/components/newsletter-signup";
-import { MaintenanceGate } from "@/components/maintenance-gate";
+import { SiteShell } from "@/components/site-shell";
 import { fetchGeneralSettings, fetchMenus, fetchRoleBadges } from "@/lib/public-api";
 import { ROLE_FONT_VARS } from "@/lib/fonts";
 
@@ -84,13 +80,13 @@ gtag('config', '${settings.gaTrackingId}');`}
         )}
         <AuthProvider>
           <RoleBadgesProvider badges={roleBadges}>
-            <MaintenanceGate maintenance={settings.maintenanceMode}>
-              <Navbar menus={menus} />
+            <SiteShell
+              menus={menus}
+              footerText={settings.footerText}
+              maintenance={settings.maintenanceMode}
+            >
               {children}
-              <NewsletterSignup />
-              <Footer text={settings.footerText} />
-              <PostPopup />
-            </MaintenanceGate>
+            </SiteShell>
           </RoleBadgesProvider>
         </AuthProvider>
       </body>
