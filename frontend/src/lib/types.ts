@@ -485,6 +485,11 @@ export interface RateLimitSettings {
   newsletterSubscribe: RateLimitRule;
 }
 
+export interface MaintenanceModeSettings {
+  enabled: boolean;
+  message: string;
+}
+
 export interface GeneralSettings {
   postsPerPage: number;
   siteTitle: string;
@@ -508,6 +513,7 @@ export interface GeneralSettings {
   googleSiteVerification: string;
   footerText: string;
   rateLimits: RateLimitSettings;
+  maintenanceMode: MaintenanceModeSettings;
 }
 
 export interface RecaptchaAdminConfig {

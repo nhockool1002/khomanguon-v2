@@ -9,6 +9,7 @@ import { PostPopup } from "@/components/post-popup";
 import { GlobalLoadingBar } from "@/components/global-loading-bar";
 import { Footer } from "@/components/footer";
 import { NewsletterSignup } from "@/components/newsletter-signup";
+import { MaintenanceGate } from "@/components/maintenance-gate";
 import { fetchGeneralSettings, fetchMenus, fetchRoleBadges } from "@/lib/public-api";
 import { ROLE_FONT_VARS } from "@/lib/fonts";
 
@@ -83,11 +84,13 @@ gtag('config', '${settings.gaTrackingId}');`}
         )}
         <AuthProvider>
           <RoleBadgesProvider badges={roleBadges}>
-            <Navbar menus={menus} />
-            {children}
-            <NewsletterSignup />
-            <Footer text={settings.footerText} />
-            <PostPopup />
+            <MaintenanceGate maintenance={settings.maintenanceMode}>
+              <Navbar menus={menus} />
+              {children}
+              <NewsletterSignup />
+              <Footer text={settings.footerText} />
+              <PostPopup />
+            </MaintenanceGate>
           </RoleBadgesProvider>
         </AuthProvider>
       </body>

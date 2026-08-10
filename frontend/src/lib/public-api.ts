@@ -142,6 +142,11 @@ export const DEFAULT_GENERAL_SETTINGS: GeneralSettings = {
     feedbackCreate: { windowSec: 3600, max: 5 },
     newsletterSubscribe: { windowSec: 3600, max: 5 },
   },
+  maintenanceMode: {
+    enabled: false,
+    message:
+      "Website đang được bảo trì để nâng cấp trải nghiệm tốt hơn. Vui lòng quay lại sau ít phút!",
+  },
 };
 
 export async function fetchGeneralSettings(): Promise<GeneralSettings> {

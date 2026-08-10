@@ -21,6 +21,7 @@ export const PERMISSIONS = {
   DOWNLOAD_PURCHASE: "download.purchase",
   FEEDBACK_MANAGE: "feedback.manage",
   NEWSLETTER_MANAGE: "newsletter.manage",
+  MAINTENANCE_BYPASS: "maintenance.bypass",
   DOWNLOAD_BYPASS: "download.bypass",
   SETTINGS_SEO: "settings.seo",
   SETTINGS_STORAGE_KEYS: "settings.storage_keys",

@@ -6,6 +6,7 @@ import {
   IsOptional,
   IsString,
   Max,
+  MaxLength,
   Min,
   MinLength,
   ValidateNested,
@@ -60,6 +61,15 @@ export class RateLimitSettingsDto {
   @ValidateNested()
   @Type(() => RateLimitRuleDto)
   newsletterSubscribe: RateLimitRuleDto;
+}
+
+export class MaintenanceModeDto {
+  @IsBoolean()
+  enabled: boolean;
+
+  @IsString()
+  @MaxLength(2000)
+  message: string;
 }
 
 export class UpdateGeneralSettingsDto {
@@ -163,4 +173,9 @@ export class UpdateGeneralSettingsDto {
   @ValidateNested()
   @Type(() => RateLimitSettingsDto)
   rateLimits?: RateLimitSettingsDto;
+
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => MaintenanceModeDto)
+  maintenanceMode?: MaintenanceModeDto;
 }

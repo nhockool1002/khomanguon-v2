@@ -24,6 +24,10 @@ export const PERMISSIONS = {
   // Super Moderator, xem DEFAULT_ROLE_PERMISSIONS bên dưới).
   FEEDBACK_MANAGE: 'feedback.manage',
   NEWSLETTER_MANAGE: 'newsletter.manage',
+  // Truy cập được toàn site khi Chế độ Bảo trì đang bật (GeneralSettings.maintenanceMode, xem
+  // maintenance-gate.tsx) — gán cho role nào tuỳ Admin qua trang Quản lý Permission, không có danh
+  // sách roleSlugs riêng. Admin luôn có quyền này qua ALL_PERMISSION_KEYS.
+  MAINTENANCE_BYPASS: 'maintenance.bypass',
   // Nút ẩn "Admin Get Presigned Link" trên trang bài viết — tạo link tải cho bất kỳ bài nào mà
   // KHÔNG trừ $P, KHÔNG ghi WalletTransaction/DownloadGrant/DownloadEvent (xem
   // download-links.service.ts adminBypassUnlock). Không gán mặc định cho Super Moderator (xem
