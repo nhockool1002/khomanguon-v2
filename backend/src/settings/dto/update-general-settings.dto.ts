@@ -56,6 +56,10 @@ export class RateLimitSettingsDto {
   @ValidateNested()
   @Type(() => RateLimitRuleDto)
   feedbackCreate: RateLimitRuleDto;
+
+  @ValidateNested()
+  @Type(() => RateLimitRuleDto)
+  newsletterSubscribe: RateLimitRuleDto;
 }
 
 export class UpdateGeneralSettingsDto {

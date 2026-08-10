@@ -23,6 +23,7 @@ export const PERMISSIONS = {
   // link tải cụ thể, đây là góp ý chung chung, mức nhạy cảm tương đương nên cũng gán mặc định cho
   // Super Moderator, xem DEFAULT_ROLE_PERMISSIONS bên dưới).
   FEEDBACK_MANAGE: 'feedback.manage',
+  NEWSLETTER_MANAGE: 'newsletter.manage',
   // Nút ẩn "Admin Get Presigned Link" trên trang bài viết — tạo link tải cho bất kỳ bài nào mà
   // KHÔNG trừ $P, KHÔNG ghi WalletTransaction/DownloadGrant/DownloadEvent (xem
   // download-links.service.ts adminBypassUnlock). Không gán mặc định cho Super Moderator (xem

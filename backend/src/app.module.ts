@@ -19,6 +19,8 @@ import { WalletModule } from './wallet/wallet.module';
 import { DownloadLinksModule } from './download-links/download-links.module';
 import { LinkReportsModule } from './link-reports/link-reports.module';
 import { FeedbackModule } from './feedback/feedback.module';
+import { BookmarksModule } from './bookmarks/bookmarks.module';
+import { NewsletterModule } from './newsletter/newsletter.module';
 import { SepayModule } from './sepay/sepay.module';
 import { RealtimeModule } from './realtime/realtime.module';
 import { CloudFilesModule } from './cloud-files/cloud-files.module';
@@ -59,6 +61,8 @@ import { DbBackupModule } from './db-backup/db-backup.module';
     DownloadLinksModule,
     LinkReportsModule,
     FeedbackModule,
+    BookmarksModule,
+    NewsletterModule,
     SepayModule,
     RealtimeModule,
     CloudFilesModule,

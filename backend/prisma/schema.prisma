@@ -63,6 +63,7 @@ model User {
   linkReportsResolved    LinkReport[]    @relation("LinkReportResolvedBy")
   feedbacksSubmitted     Feedback[]      @relation("FeedbackAuthor")
   feedbacksResolved      Feedback[]      @relation("FeedbackResolvedBy")
+  bookmarks              PostBookmark[]
   activities             UserActivity[]
   auditLogs              AuditLog[]
   refreshTokens          RefreshToken[]
@@ -243,6 +244,11 @@ model Post {
   metaDescription String?
   ogImageUrl      String?
   canonicalUrl    String?
+  // JSON-LD (schema.org Article) tuỳ chỉnh — để trống thì FE tự sinh từ title/excerpt/thumbnailUrl/
+  // author/publishedAt (xem frontend bai-viet/[slug]/page.tsx buildJsonLd()); có giá trị thì FE dùng
+  // thẳng chuỗi JSON này (validate parse được, fallback về tự sinh nếu hỏng — không có gì đảm bảo
+  // Admin nhập JSON hợp lệ 100%).
+  jsonLd String?
 
   authorId   String
   author     User      @relation(fields: [authorId], references: [id])
@@ -253,6 +259,7 @@ model Post {
   comments      Comment[]
   downloadLinks DownloadLink[]
   notifications Notification[]
+  bookmarks     PostBookmark[]
 
   publishedAt DateTime?
   createdAt   DateTime  @default(now())
@@ -269,6 +276,20 @@ model PostTag {
 
   @@id([postId, tagId])
   @@map("post_tags")
+}
+
+// "Lưu bài viết" (UC bổ sung 2026-08-10) — unique theo user+post để không lưu trùng, cùng pattern
+// CommentLike (toggle qua tồn tại/không tồn tại record, không có cột riêng nào khác).
+model PostBookmark {
+  id        String   @id @default(cuid())
+  postId    String
+  post      Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@unique([postId, userId])
+  @@map("post_bookmarks")
 }
 
 // Menu đa cấp — cây tự tham chiếu, thứ tự/cấp độ cập nhật qua kéo-thả (UC16)
@@ -309,6 +330,9 @@ enum WidgetType {
   COMMENTS
   // Top bài viết xem nhiều nhất — dùng chung config {limit} với RECENT_POSTS, sort theo viewCount.
   TOP_VIEWED
+  // Bài viết liên quan (cùng danh mục/tag với bài đang xem) — cùng nhóm "cần postId" với COMMENTS,
+  // dùng chung config {limit} với RECENT_POSTS/TOP_VIEWED.
+  RELATED_POSTS
 }
 
 // Widget sidebar kiểu WordPress — danh sách phẳng (không cây như Menu), thứ tự cập nhật qua kéo-thả.
@@ -759,4 +783,19 @@ model CloudUploadRecord {
   createdAt         DateTime          @default(now())
 
   @@map("cloud_upload_records")
+}
+
+// Đăng ký nhận bản tin (UC bổ sung 2026-08-10) — độc lập với User (cho phép khách chưa có tài
+// khoản đăng ký bằng email bất kỳ, giống Feedback ẩn danh). KHÔNG lưu token huỷ đăng ký trong DB —
+// link "Huỷ đăng ký" trong mỗi email digest ký bằng HMAC-SHA256(JWT_ACCESS_SECRET, id), verify bằng
+// cách tính lại chứ không so khớp với giá trị đã lưu (xem newsletter.service.ts signUnsubscribeToken/
+// verifyUnsubscribeToken) — khác EmailVerificationToken/PasswordResetToken vì token ở đây cần DÙNG
+// LẠI được nhiều lần (mỗi kỳ digest), không phải one-time.
+model NewsletterSubscriber {
+  id             String    @id @default(cuid())
+  email          String    @unique
+  subscribedAt   DateTime  @default(now())
+  unsubscribedAt DateTime?
+
+  @@map("newsletter_subscribers")
 }

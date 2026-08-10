@@ -15,7 +15,9 @@ import { FrontendRevalidateService } from '../cache/frontend-revalidate.service'
 import { CreatePostDto } from './dto/create-post.dto';
 import { UpdatePostDto } from './dto/update-post.dto';
 
-const listSelect = {
+// Export cho bookmarks.service.ts dùng lại đúng shape (danh sách "Bài viết đã lưu" trả về post
+// summary giống hệt danh sách công khai) — tránh định nghĩa lại select trùng lặp dễ lệch field.
+export const listSelect = {
   id: true,
   title: true,
   slug: true,
@@ -48,6 +50,7 @@ const detailSelect = {
   metaDescription: true,
   ogImageUrl: true,
   canonicalUrl: true,
+  jsonLd: true,
   categoryId: true,
   authorId: true,
   updatedAt: true,
@@ -69,7 +72,7 @@ function toPagination({ page = 1, limit = 12 }: PageQuery) {
 // Resolve author.roles + primaryRoleId -> author.styleRoleSlug cho FE style tên tác giả theo
 // đúng 1 role (xem components/styled-user-name.tsx). Đồng thời làm phẳng post.tags (mảng
 // {tag:{id,name,slug}} do đi qua join PostTag) thành tags:{id,name,slug}[] cho FE dùng thẳng.
-function mapPost<
+export function mapPost<
   T extends { author: PostListRow['author']; tags: PostListRow['tags'] },
 >(post: T) {
   const { primaryRoleId, roles, ...authorRest } = post.author;
@@ -167,6 +170,56 @@ export class PostsService {
     });
   }
 
+  // Widget "Bài viết liên quan" (WidgetType.RELATED_POSTS) — cùng danh mục HOẶC chung ít nhất 1 tag
+  // với bài đang xem, loại trừ chính nó. Ưu tiên cùng danh mục trước (categoryId match tính điểm
+  // cao hơn) rồi mới tới publishedAt mới nhất — không dùng full-text/embedding vì quy mô hiện tại
+  // chưa cần (xem PLAN.md 2.4 lý do tương tự cho tìm kiếm).
+  async getRelatedPosts(postId: string, limit: number) {
+    const source = await this.prisma.post.findUnique({
+      where: { id: postId },
+      select: {
+        categoryId: true,
+        tags: { select: { tagId: true } },
+      },
+    });
+    if (!source) return [];
+
+    const tagIds = source.tags.map((t) => t.tagId);
+    if (!source.categoryId && tagIds.length === 0) return [];
+
+    const where: Prisma.PostWhereInput = {
+      id: { not: postId },
+      status: PostStatus.PUBLISHED,
+      OR: [
+        ...(source.categoryId ? [{ categoryId: source.categoryId }] : []),
+        ...(tagIds.length > 0
+          ? [{ tags: { some: { tagId: { in: tagIds } } } }]
+          : []),
+      ],
+    };
+
+    const rows = await this.prisma.post.findMany({
+      where,
+      take: Math.min(Math.max(limit, 1), 20),
+      orderBy: [{ publishedAt: 'desc' }],
+      select: listSelect,
+    });
+
+    // Sắp lại: bài cùng danh mục lên trước (điểm liên quan cao hơn chỉ chung tag), giữ nguyên thứ
+    // tự publishedAt desc trong từng nhóm — không query riêng 2 lượt vì 1 bài có thể vừa cùng danh
+    // mục vừa chung tag, dễ trùng/lệch limit nếu tách 2 query rồi gộp. listSelect đã có sẵn
+    // category.id nên không cần select categoryId riêng.
+    const sorted = source.categoryId
+      ? [...rows].sort((a, b) => {
+          const aMatch = a.category?.id === source.categoryId ? 1 : 0;
+          const bMatch = b.category?.id === source.categoryId ? 1 : 0;
+          return bMatch - aMatch;
+        })
+      : rows;
+
+    return sorted.map(mapPost);
+  }
+
   async listAdmin(
     query: PageQuery & { status?: PostStatus; categorySlug?: string },
   ) {
@@ -222,6 +275,7 @@ export class PostsService {
         metaDescription: dto.metaDescription,
         ogImageUrl: dto.ogImageUrl,
         canonicalUrl: dto.canonicalUrl,
+        jsonLd: dto.jsonLd,
         ...(dto.tagIds && {
           tags: { create: dto.tagIds.map((tagId) => ({ tagId })) },
         }),
@@ -276,6 +330,7 @@ export class PostsService {
         ...(dto.canonicalUrl !== undefined && {
           canonicalUrl: dto.canonicalUrl,
         }),
+        ...(dto.jsonLd !== undefined && { jsonLd: dto.jsonLd }),
         ...(nextStatus !== undefined && {
           status: nextStatus,
           publishedAt:

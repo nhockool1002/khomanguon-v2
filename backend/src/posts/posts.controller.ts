@@ -14,6 +14,7 @@ import {
 import { PostStatus, UserActivityType } from '@prisma/client';
 import { PostsService } from './posts.service';
 import { PostViewTrackerService } from './post-view-tracker.service';
+import { BookmarksService } from '../bookmarks/bookmarks.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { OptionalJwtAuthGuard } from '../auth/guards/optional-jwt-auth.guard';
 import { PermissionsGuard } from '../roles/guards/permissions.guard';
@@ -43,6 +44,7 @@ export class PostsController {
     private readonly postsService: PostsService,
     private readonly postViewTracker: PostViewTrackerService,
     private readonly userActivity: UserActivityService,
+    private readonly bookmarksService: BookmarksService,
   ) {}
 
   // Danh sách công khai — chỉ bài PUBLISHED (wireframe #01/#02), hỗ trợ tìm kiếm + sắp xếp (UC05).
@@ -101,6 +103,29 @@ export class PostsController {
   @Get(':slug')
   getBySlug(@Param('slug') slug: string) {
     return this.postsService.getBySlugPublic(slug);
+  }
+
+  // Widget "Bài viết liên quan" — công khai, cache như GET :slug (không phụ thuộc user).
+  @UseInterceptors(HttpCacheInterceptor)
+  @Cacheable('posts', 120)
+  @Get(':id/related')
+  getRelated(@Param('id') id: string, @Query('limit') limit?: string) {
+    return this.postsService.getRelatedPosts(id, Number(limit) || 5);
+  }
+
+  // Trạng thái "đã lưu" của bài này với user hiện tại — KHÔNG @Cacheable (theo từng user, khác
+  // GET :id/related ở trên). Trả false thẳng nếu chưa đăng nhập thay vì 401, để nút Bookmark ở FE
+  // luôn render được (chỉ đổi hành vi khi bấm — điều hướng đăng nhập lúc đó).
+  @UseGuards(OptionalJwtAuthGuard)
+  @Get(':id/bookmark-status')
+  getBookmarkStatus(@Param('id') id: string, @CurrentUser() user?: AuthUser) {
+    return this.bookmarksService.getStatus(user?.id, id);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Post(':id/bookmark')
+  toggleBookmark(@Param('id') id: string, @CurrentUser() user: AuthUser) {
+    return this.bookmarksService.toggle(user.id, id);
   }
 
   // Đếm lượt xem — endpoint riêng do TRÌNH DUYỆT gọi sau khi trang bài viết tải xong (xem

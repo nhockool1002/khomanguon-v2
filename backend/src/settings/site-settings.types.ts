@@ -17,6 +17,7 @@ export interface RateLimitSettings {
   search: RateLimitRule;
   commentCreate: RateLimitRule;
   feedbackCreate: RateLimitRule;
+  newsletterSubscribe: RateLimitRule;
 }
 
 // Lưu trong SiteSetting.value (key = GENERAL_SETTINGS_KEY) — không có model riêng, theo đúng
@@ -89,5 +90,6 @@ export const DEFAULT_GENERAL_SETTINGS: GeneralSettings = {
     search: { windowSec: 60, max: 30 },
     commentCreate: { windowSec: 60, max: 10 },
     feedbackCreate: { windowSec: 3600, max: 5 },
+    newsletterSubscribe: { windowSec: 3600, max: 5 },
   },
 };

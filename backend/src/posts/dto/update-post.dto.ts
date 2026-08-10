@@ -74,4 +74,10 @@ export class UpdatePostDto {
     { message: 'canonicalUrl phải là một URL hợp lệ' },
   )
   canonicalUrl?: string;
+
+  // JSON-LD tuỳ chỉnh — để trống thì FE tự sinh (xem Post.jsonLd trong schema.prisma).
+  @IsOptional()
+  @IsString()
+  @MaxLength(5000)
+  jsonLd?: string;
 }

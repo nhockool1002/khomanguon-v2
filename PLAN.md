@@ -300,6 +300,12 @@ Quy ước: mỗi phase có **Definition of Done (DoD)** rõ ràng — không sa
 ## Phase 5 — Hậu launch: vận hành & cải tiến liên tục
 **Môi trường:** Production
 
+- [x] **Bổ sung 2026-08-10 (ngoài kế hoạch ban đầu):** 5 tính năng tăng trưởng/SEO/giữ chân người dùng:
+  - **RSS feed** — `frontend/src/app/rss.xml/route.ts` (30 bài mới nhất, cùng nguồn dữ liệu `fetchPosts` với sitemap.ts), autodiscovery link trong `layout.tsx` metadata.
+  - **JSON-LD (schema.org/Article)** — `Post.jsonLd` (field mới, migration `20260810020000`) cho phép Admin tự nhập JSON tuỳ chỉnh trong `post-form.tsx` (validate parse được lúc lưu); để trống thì `bai-viet/[slug]/page.tsx` tự sinh từ title/excerpt/thumbnailUrl/author/publishedAt, fallback về tự sinh nếu JSON tuỳ chỉnh cũ bị hỏng.
+  - **Newsletter** — module `backend/src/newsletter/` mới: đăng ký công khai (ẩn danh, không cần tài khoản, giống Feedback), cron gửi digest bài mới hàng tuần (lịch cấu hình được ở `/admin/newsletter`, quyền `newsletter.manage` — mặc định CHỈ Admin, không gán Super Moderator vì gửi mail hàng loạt), link "Huỷ đăng ký" ký bằng HMAC (không lưu token trong DB, dùng lại được nhiều kỳ). Form đăng ký đặt cạnh Footer toàn site.
+  - **Bookmark** — model `PostBookmark`, toggle qua `POST /posts/:id/bookmark` (JwtAuthGuard) + trạng thái qua `GET /posts/:id/bookmark-status` (OptionalJwtAuthGuard, KHÔNG cache — tránh lộ trạng thái theo user vào cache chung), trang "Bài viết đã lưu" (`/bai-viet-da-luu`), nút Bookmark trên trang chi tiết bài viết.
+  - **Widget "Bài viết liên quan"** — `WidgetType.RELATED_POSTS` mới, endpoint `GET /posts/:id/related` (cùng danh mục/tag, có cache — công khai, không theo user), chỉ hiện được ở trang chi tiết bài viết (cần postId, cùng nhóm với widget Bình luận).
 - [ ] Theo dõi sát lỗi/giao dịch trong tuần đầu (daily check dashboard + Sentry)
 - [ ] Backup: kiểm tra hàng ngày tự động chạy, restore thử lại hàng tuần
 - [ ] Vá bảo mật OS/aaPanel hàng tháng, xoay vòng JWT secret / key R2/S3 định kỳ
