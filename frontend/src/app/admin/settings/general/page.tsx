@@ -28,6 +28,7 @@ const RATE_LIMIT_LABEL: Record<keyof Omit<RateLimitSettings, "enabled">, string>
   resetPassword: "Đặt lại mật khẩu",
   search: "Tìm kiếm / duyệt bài viết",
   commentCreate: "Đăng bình luận",
+  feedbackCreate: "Gửi góp ý",
 };
 
 const DEFAULT_RATE_LIMITS: RateLimitSettings = {
@@ -38,6 +39,7 @@ const DEFAULT_RATE_LIMITS: RateLimitSettings = {
   resetPassword: { windowSec: 900, max: 5 },
   search: { windowSec: 60, max: 30 },
   commentCreate: { windowSec: 60, max: 10 },
+  feedbackCreate: { windowSec: 3600, max: 5 },
 };
 
 export default function GeneralSettingsPage() {

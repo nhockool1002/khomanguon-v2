@@ -51,4 +51,9 @@ export class UpdateMailTemplatesDto {
   @ValidateNested()
   @Type(() => MailTemplateConfigDto)
   verifyEmail?: MailTemplateConfigDto;
+
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => MailTemplateConfigDto)
+  feedbackAdmin?: MailTemplateConfigDto;
 }

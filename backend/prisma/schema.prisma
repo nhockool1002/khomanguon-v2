@@ -61,6 +61,8 @@ model User {
   downloadEvents         DownloadEvent[]
   linkReportsSubmitted   LinkReport[]    @relation("LinkReportReporter")
   linkReportsResolved    LinkReport[]    @relation("LinkReportResolvedBy")
+  feedbacksSubmitted     Feedback[]      @relation("FeedbackAuthor")
+  feedbacksResolved      Feedback[]      @relation("FeedbackResolvedBy")
   activities             UserActivity[]
   auditLogs              AuditLog[]
   refreshTokens          RefreshToken[]
@@ -511,6 +513,31 @@ model LinkReport {
   createdAt      DateTime         @default(now())
 
   @@map("link_reports")
+}
+
+enum FeedbackStatus {
+  PENDING
+  RESOLVED
+}
+
+// Góp ý chung từ người dùng (modal Feedback toàn site, khác LinkReport chỉ báo lỗi 1 link tải cụ
+// thể) — cho gửi ẩn danh (authorId null) nên có thêm name/email tự nhập để Admin còn cách liên hệ
+// lại khi cần. Dùng chung permission feedback.manage cho hàng chờ xử lý (Moderator+), không tách
+// permission riêng theo module vì khối lượng dự kiến thấp.
+model Feedback {
+  id           String         @id @default(cuid())
+  authorId     String?
+  author       User?          @relation("FeedbackAuthor", fields: [authorId], references: [id], onDelete: SetNull)
+  name         String?
+  email        String?
+  message      String
+  status       FeedbackStatus @default(PENDING)
+  resolvedById String?
+  resolvedBy   User?          @relation("FeedbackResolvedBy", fields: [resolvedById], references: [id], onDelete: SetNull)
+  resolvedAt   DateTime?
+  createdAt    DateTime       @default(now())
+
+  @@map("feedbacks")
 }
 
 enum UserActivityType {

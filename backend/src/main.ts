@@ -17,7 +17,14 @@ async function bootstrap() {
 
   const uploadsDir = join(process.cwd(), 'uploads');
   mkdirSync(uploadsDir, { recursive: true });
-  app.useStaticAssets(uploadsDir, { prefix: '/uploads/' });
+  // maxAge/immutable: an toàn vì mọi file trong đây đặt tên theo randomUUID (uploads.controller.ts)
+  // hoặc key theo ngày (dated-upload.util.ts) — không bao giờ ghi đè cùng tên, nên cache dài hạn ở
+  // CDN/Cloudflare edge (PLAN.md 4.2) không bao giờ trả nhầm file cũ.
+  app.useStaticAssets(uploadsDir, {
+    prefix: '/uploads/',
+    maxAge: '1y',
+    immutable: true,
+  });
 
   // ALLOWED_ORIGINS: danh sách phân cách bởi dấu phẩy — cho phép thêm URL Preview
   // Deployment của Vercel (subdomain đổi mỗi lần) mà không phải mở CORS cho mọi domain.

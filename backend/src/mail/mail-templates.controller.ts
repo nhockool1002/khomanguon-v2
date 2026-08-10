@@ -28,6 +28,7 @@ const VALID_KINDS = [
   'linkReportAdmin',
   'linkReportResolved',
   'verifyEmail',
+  'feedbackAdmin',
 ] as const;
 type NotificationKind = (typeof VALID_KINDS)[number];
 

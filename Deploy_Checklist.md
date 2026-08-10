@@ -69,6 +69,12 @@ Bắt buộc làm thủ công 1 lần trước — auto-deploy ở mục 3 chỉ
    ```
 8. **Bật SSL:** tab SSL của site → Let's Encrypt → Apply → bật Force HTTPS.
 9. **DNS:** thêm bản ghi `A` cho `kmn2api.nhutnm.id.vn` trỏ về IP VPS. Nếu quản lý DNS ở Cloudflare, có thể bật proxy (mây cam) cho riêng subdomain này.
+9b. **Cache Rule Cloudflare cho API (PLAN.md 4.2 — Cache Cloudflare Edge):** chỉ làm được khi đã bật mây cam ở bước 9. Backend đã tự set header `Cache-Control: public, s-maxage=..., stale-while-revalidate=...` cho mọi route GET công khai (`backend/src/cache/http-cache.interceptor.ts`) và `Cache-Control: public, max-age=31536000, immutable` cho `/uploads/*`. Vào Cloudflare dashboard → domain → **Caching → Cache Rules** → tạo rule mới cho zone `kmn2api.nhutnm.id.vn`:
+    - Điều kiện: `Hostname equals kmn2api.nhutnm.id.vn`
+    - Action: **Eligible for cache**, "Edge TTL" chọn **Respect origin TTL** (không override — để header từ backend quyết định, tránh cache lố khi admin sửa nội dung)
+    - Bật thêm **Cache Reserve** (gói trả phí) hoặc để mặc định đều được, không bắt buộc
+    - Sau khi bật, test bằng `curl -I https://kmn2api.nhutnm.id.vn/posts` — kỳ vọng thấy header `cf-cache-status: HIT` ở lần gọi thứ 2
+    - **Không** áp Cache Rule này cho domain frontend (`khomanguon.vn`) — domain đó phải giữ DNS only (mây xám) theo bước 5 mục 4, Vercel tự lo edge cache cho Next.js.
 10. **Khoá firewall:** aaPanel → Security — chỉ mở 80/443 + cổng panel đã đổi.
 11. **Test nhanh** (từ máy bất kỳ):
     ```bash

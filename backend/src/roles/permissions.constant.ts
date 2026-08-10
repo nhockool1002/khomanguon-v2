@@ -19,6 +19,10 @@ export const PERMISSIONS = {
   WALLET_ADJUST: 'wallet.adjust',
   DOWNLOAD_MANAGE_LINKS: 'download.manage_links',
   DOWNLOAD_PURCHASE: 'download.purchase',
+  // Hàng chờ xử lý góp ý từ modal Feedback toàn site (khác DOWNLOAD_MANAGE_LINKS — đó là báo lỗi
+  // link tải cụ thể, đây là góp ý chung chung, mức nhạy cảm tương đương nên cũng gán mặc định cho
+  // Super Moderator, xem DEFAULT_ROLE_PERMISSIONS bên dưới).
+  FEEDBACK_MANAGE: 'feedback.manage',
   // Nút ẩn "Admin Get Presigned Link" trên trang bài viết — tạo link tải cho bất kỳ bài nào mà
   // KHÔNG trừ $P, KHÔNG ghi WalletTransaction/DownloadGrant/DownloadEvent (xem
   // download-links.service.ts adminBypassUnlock). Không gán mặc định cho Super Moderator (xem
@@ -74,6 +78,7 @@ export const DEFAULT_ROLE_PERMISSIONS: Record<string, PermissionKey[]> = {
     PERMISSIONS.WALLET_VIEW_ANY,
     PERMISSIONS.DOWNLOAD_MANAGE_LINKS,
     PERMISSIONS.MEDIA_MANAGE,
+    PERMISSIONS.FEEDBACK_MANAGE,
   ],
   [DEFAULT_ROLES.MODERATOR.slug]: [
     PERMISSIONS.POST_CREATE,

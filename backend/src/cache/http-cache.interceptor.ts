@@ -16,6 +16,13 @@ import { CacheService } from './cache.service';
 // Key cache = "<namespace>:<path>?<query>" nên các biến thể query (category, page, sort...) của
 // cùng 1 route không đụng cache của nhau; xoá cả namespace khi nội dung liên quan thay đổi (xem
 // CacheService.invalidatePrefix, gọi từ service tương ứng sau mỗi lần ghi).
+//
+// Cache-Control (PLAN.md 4.2, Cloudflare Edge cache): mọi route đánh dấu @Cacheable đều là GET công
+// khai, response giống hệt nhau cho mọi người xem (không có dữ liệu riêng theo user — xem chỗ dùng
+// @Cacheable trong posts/categories/tags/menus/widgets/roles/site-settings controller, không route
+// nào đọc @CurrentUser). Nên an toàn set "public, s-maxage" bằng đúng ttlSeconds đã cấu hình — CDN
+// đứng trước domain api. (Cloudflare bật proxy theo Deploy_Checklist.md) hoặc bất kỳ proxy/browser
+// nào tôn trọng Cache-Control đều có thể phục vụ thẳng từ edge, khỏi phải vào tới Node/Redis.
 @Injectable()
 export class HttpCacheInterceptor implements NestInterceptor {
   constructor(
@@ -36,10 +43,17 @@ export class HttpCacheInterceptor implements NestInterceptor {
     const request = context.switchToHttp().getRequest<Request>();
     if (request.method !== 'GET') return next.handle();
 
+    const response = context.switchToHttp().getResponse<Response>();
+    // stale-while-revalidate gấp đôi ttl — cho phép CDN trả bản cũ ngay lập tức trong lúc âm thầm
+    // lấy bản mới, tránh 1 request "xui" phải chờ origin ngay lúc cache vừa hết hạn.
+    response.setHeader(
+      'Cache-Control',
+      `public, s-maxage=${options.ttlSeconds}, stale-while-revalidate=${options.ttlSeconds * 2}`,
+    );
+
     const key = `${options.namespace}:${request.originalUrl}`;
     const cached = await this.cache.get(key);
     if (cached !== null) {
-      const response = context.switchToHttp().getResponse<Response>();
       response.setHeader('X-Cache', 'HIT');
       return of(cached);
     }

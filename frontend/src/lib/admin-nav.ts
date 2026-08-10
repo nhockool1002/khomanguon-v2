@@ -13,6 +13,7 @@ import {
   DatabaseBackup,
   Mail,
   MessageSquare,
+  MessageSquareText,
   Menu as MenuIcon,
   Server,
   Settings,
@@ -178,6 +179,15 @@ export const ADMIN_NAV: NavEntry[] = [
     match: "prefix",
     // Khớp @Permissions() ở link-reports.controller.ts GET /link-reports.
     permission: PERMISSIONS.DOWNLOAD_MANAGE_LINKS,
+  },
+  {
+    kind: "leaf",
+    href: "/admin/feedback",
+    label: "Góp ý người dùng",
+    icon: MessageSquareText,
+    match: "prefix",
+    // Khớp @Permissions() ở feedback.controller.ts GET /feedback.
+    permission: PERMISSIONS.FEEDBACK_MANAGE,
   },
   {
     kind: "group",

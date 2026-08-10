@@ -27,9 +27,19 @@ export class SiteSettingsService {
       where: { key: GENERAL_SETTINGS_KEY },
     });
     if (!row) return DEFAULT_GENERAL_SETTINGS;
+    const stored = row.value as Partial<GeneralSettings>;
     return {
       ...DEFAULT_GENERAL_SETTINGS,
-      ...(row.value as Partial<GeneralSettings>),
+      ...stored,
+      // Merge riêng rateLimits (không phải top-level spread) — dữ liệu production lưu TRƯỚC khi
+      // thêm 1 rule mới (vd feedbackCreate) sẽ thiếu key đó trong object đã lưu; top-level spread sẽ
+      // thay NGUYÊN object rateLimits cũ (thiếu key mới) đè lên default, làm FE (trang Cài đặt
+      // chung) đọc `rateLimits[key].max` trên `undefined` -> crash. Cùng vấn đề/cách sửa như
+      // PublicRateLimitService.getConfig().
+      rateLimits: {
+        ...DEFAULT_GENERAL_SETTINGS.rateLimits,
+        ...stored.rateLimits,
+      },
     };
   }
 
