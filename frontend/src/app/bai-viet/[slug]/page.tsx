@@ -8,7 +8,39 @@ import { WidgetArea } from "@/components/widget-area";
 import { PostViewTracker } from "@/components/post-view-tracker";
 import { StyledUserName } from "@/components/styled-user-name";
 import { ProseContent } from "@/components/prose-content";
+import { BookmarkButton } from "@/components/bookmark-button";
 import { formatDate, formatViewCount } from "@/lib/format";
+import { SITE_URL } from "@/lib/site-url";
+import type { PostDetail } from "@/lib/types";
+
+// Dữ liệu có cấu trúc cho Google (rich snippet) — Admin tự nhập JSON-LD tuỳ chỉnh ở post-form.tsx
+// thì dùng thẳng (đã validate parse được lúc lưu), không thì tự sinh Article schema từ field sẵn
+// có. parse lại + validate ở đây phòng trường hợp record cũ lưu trước khi có validate ở FE.
+function buildJsonLd(post: PostDetail): string {
+  if (post.jsonLd) {
+    try {
+      JSON.parse(post.jsonLd);
+      return post.jsonLd;
+    } catch {
+      // JSON hỏng — rơi xuống tự sinh bên dưới thay vì render script hỏng ra trang.
+    }
+  }
+  return JSON.stringify({
+    "@context": "https://schema.org",
+    "@type": "Article",
+    headline: post.title,
+    ...(post.excerpt && { description: post.excerpt }),
+    ...(post.thumbnailUrl && { image: [post.thumbnailUrl] }),
+    datePublished: post.publishedAt ?? post.createdAt,
+    dateModified: post.updatedAt,
+    author: { "@type": "Person", name: post.author.displayName },
+    publisher: { "@type": "Organization", name: "khomanguon.vn" },
+    mainEntityOfPage: {
+      "@type": "WebPage",
+      "@id": `${SITE_URL}/bai-viet/${post.slug}`,
+    },
+  });
+}
 
 type Props = {
   params: Promise<{ slug: string }>;
@@ -41,6 +73,10 @@ export default async function PostDetailPage({ params }: Props) {
 
   return (
     <main className="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-6 px-4 py-8">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: buildJsonLd(post) }}
+      />
       <PostViewTracker postId={post.id} />
       <div className="flex flex-col gap-6 lg:flex-row">
         <div className="flex flex-col gap-4 lg:flex-[3]">
@@ -59,7 +95,10 @@ export default async function PostDetailPage({ params }: Props) {
           </nav>
 
           <div className="flex flex-col gap-2">
-            <h1 className="text-2xl font-semibold text-zinc-900">{post.title}</h1>
+            <div className="flex items-start justify-between gap-3">
+              <h1 className="text-2xl font-semibold text-zinc-900">{post.title}</h1>
+              <BookmarkButton postId={post.id} />
+            </div>
             <GradientUnderline />
           </div>
 

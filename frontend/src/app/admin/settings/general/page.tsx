@@ -29,6 +29,7 @@ const RATE_LIMIT_LABEL: Record<keyof Omit<RateLimitSettings, "enabled">, string>
   search: "Tìm kiếm / duyệt bài viết",
   commentCreate: "Đăng bình luận",
   feedbackCreate: "Gửi góp ý",
+  newsletterSubscribe: "Đăng ký nhận bản tin",
 };
 
 const DEFAULT_RATE_LIMITS: RateLimitSettings = {
@@ -40,6 +41,7 @@ const DEFAULT_RATE_LIMITS: RateLimitSettings = {
   search: { windowSec: 60, max: 30 },
   commentCreate: { windowSec: 60, max: 10 },
   feedbackCreate: { windowSec: 3600, max: 5 },
+  newsletterSubscribe: { windowSec: 3600, max: 5 },
 };
 
 export default function GeneralSettingsPage() {
@@ -67,6 +69,8 @@ export default function GeneralSettingsPage() {
   const [headerSloganItalic, setHeaderSloganItalic] = useState(false);
   const [footerText, setFooterText] = useState("");
   const [rateLimits, setRateLimits] = useState<RateLimitSettings>(DEFAULT_RATE_LIMITS);
+  const [maintenanceEnabled, setMaintenanceEnabled] = useState(false);
+  const [maintenanceMessage, setMaintenanceMessage] = useState("");
 
   const [recaptchaEnabled, setRecaptchaEnabled] = useState(false);
   const [recaptchaSiteKey, setRecaptchaSiteKey] = useState("");
@@ -110,6 +114,8 @@ export default function GeneralSettingsPage() {
         setHeaderSloganItalic(res.headerSloganItalic);
         setFooterText(res.footerText);
         setRateLimits(res.rateLimits);
+        setMaintenanceEnabled(res.maintenanceMode.enabled);
+        setMaintenanceMessage(res.maintenanceMode.message);
       })
       .catch((err) => setError(err instanceof ApiError ? err.message : "Có lỗi xảy ra"));
   }, [user]);
@@ -176,6 +182,7 @@ export default function GeneralSettingsPage() {
           headerSloganItalic,
           footerText,
           rateLimits,
+          maintenanceMode: { enabled: maintenanceEnabled, message: maintenanceMessage },
         }),
       });
       setMessage("Đã lưu cấu hình chung.");
@@ -528,6 +535,43 @@ export default function GeneralSettingsPage() {
             value={footerText}
             onChange={(e) => setFooterText(e.target.value)}
             className={inputClass}
+          />
+        </label>
+      </div>
+
+      <div className="flex flex-col gap-3 rounded-md border border-zinc-200 p-4">
+        <div className="flex items-center justify-between">
+          <p className="text-xs font-semibold uppercase tracking-wide text-zinc-500">
+            Chế độ Bảo trì
+          </p>
+          <label className="flex items-center gap-2 text-xs text-zinc-600">
+            <input
+              type="checkbox"
+              checked={maintenanceEnabled}
+              onChange={(e) => setMaintenanceEnabled(e.target.checked)}
+            />
+            Bật chế độ bảo trì
+          </label>
+        </div>
+        <p className="text-xs text-zinc-400">
+          Khi bật, toàn bộ khách truy cập chỉ thấy trang bảo trì (hình minh hoạ dựng sẵn, không tự
+          đổi được) kèm nội dung bên dưới. Chỉ tài khoản có quyền{" "}
+          <span className="font-mono">maintenance.bypass</span> mới truy cập được site bình thường
+          (kèm banner cảnh báo) — gán quyền này cho role nào ở trang{" "}
+          <Link href="/admin/roles" className="font-medium text-[#1d3557] hover:underline">
+            Quản lý Permission
+          </Link>
+          . Admin luôn truy cập được kể cả không gán quyền này. Trang đăng nhập/đăng ký/quên mật
+          khẩu luôn mở, không bị chặn.
+        </p>
+        <label className="flex flex-col gap-1 text-sm text-zinc-700">
+          Nội dung hiển thị cho khách
+          <textarea
+            value={maintenanceMessage}
+            onChange={(e) => setMaintenanceMessage(e.target.value)}
+            rows={3}
+            maxLength={2000}
+            className={`${inputClass} resize-none`}
           />
         </label>
       </div>

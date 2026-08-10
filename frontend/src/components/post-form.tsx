@@ -28,6 +28,7 @@ export interface PostFormValues {
   metaDescription: string;
   ogImageUrl: string;
   canonicalUrl: string;
+  jsonLd: string;
 }
 
 // Form CRUD bài viết dùng chung cho trang tạo mới và chỉnh sửa — WYSIWYG Tiptap + SEO panel (Phase 2.1).
@@ -54,6 +55,7 @@ export function PostForm({
   const [metaDescription, setMetaDescription] = useState(initial?.metaDescription ?? "");
   const [ogImageUrl, setOgImageUrl] = useState(initial?.ogImageUrl ?? "");
   const [canonicalUrl, setCanonicalUrl] = useState(initial?.canonicalUrl ?? "");
+  const [jsonLd, setJsonLd] = useState(initial?.jsonLd ?? "");
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
@@ -112,6 +114,14 @@ export function PostForm({
       setError("Nội dung không được để trống");
       return;
     }
+    if (jsonLd.trim()) {
+      try {
+        JSON.parse(jsonLd);
+      } catch {
+        setError("JSON-LD tuỳ chỉnh không phải JSON hợp lệ — kiểm tra lại cú pháp.");
+        return;
+      }
+    }
 
     setSaving(true);
     try {
@@ -128,6 +138,7 @@ export function PostForm({
         metaDescription,
         ogImageUrl,
         canonicalUrl,
+        jsonLd,
       });
       setStatus(targetStatus);
       setMessage("Đã lưu bài viết.");
@@ -315,6 +326,21 @@ export function PostForm({
           />
 
           <ImageUploadField label="Ảnh OG (chia sẻ mạng xã hội)" value={ogImageUrl} onChange={setOgImageUrl} />
+
+          <label className="flex flex-col gap-1.5 text-sm text-zinc-700">
+            JSON-LD tuỳ chỉnh (nâng cao)
+            <textarea
+              value={jsonLd}
+              onChange={(e) => setJsonLd(e.target.value)}
+              rows={4}
+              placeholder='Để trống = tự sinh (schema.org/Article). Nhập JSON hợp lệ để ghi đè, vd: {"@context":"https://schema.org",...}'
+              className="rounded-md border border-zinc-300 px-3 py-2 font-mono text-xs text-zinc-900 outline-none focus:border-[#1d3557] focus:ring-1 focus:ring-[#1d3557]"
+            />
+            <span className="text-xs text-zinc-400">
+              Dữ liệu có cấu trúc cho Google (rich snippet) — để trống thì hệ thống tự tạo từ tiêu
+              đề/tóm tắt/ảnh đại diện/tác giả.
+            </span>
+          </label>
 
           <DownloadConfigPanel postId={initial?.id} />
         </div>

@@ -103,10 +103,21 @@ export interface PostDetail extends PostSummary {
   metaDescription: string | null;
   ogImageUrl: string | null;
   canonicalUrl: string | null;
+  jsonLd: string | null;
 }
 
 export interface PostListResponse {
   items: PostSummary[];
+  total: number;
+}
+
+export interface BookmarkStatus {
+  postId: string;
+  bookmarked: boolean;
+}
+
+export interface BookmarkListResponse {
+  items: (PostSummary & { bookmarkedAt: string })[];
   total: number;
 }
 
@@ -127,7 +138,8 @@ export type WidgetType =
   | "RECENT_POSTS"
   | "HTML"
   | "COMMENTS"
-  | "TOP_VIEWED";
+  | "TOP_VIEWED"
+  | "RELATED_POSTS";
 
 export interface Widget {
   id: string;
@@ -344,6 +356,25 @@ export interface Feedback {
   resolvedBy: { id: string; displayName: string } | null;
 }
 
+export interface NewsletterConfig {
+  enabled: boolean;
+  dayOfWeek: number;
+  hour: number;
+  minute: number;
+  lastSentAt: string | null;
+}
+
+export interface NewsletterSubscriberCount {
+  active: number;
+  total: number;
+}
+
+export interface NewsletterSendResult {
+  sent: number;
+  postCount: number;
+  skippedReason?: string;
+}
+
 export type AuditAction =
   | "ROLE_ASSIGNED"
   | "ROLE_REMOVED"
@@ -451,6 +482,12 @@ export interface RateLimitSettings {
   search: RateLimitRule;
   commentCreate: RateLimitRule;
   feedbackCreate: RateLimitRule;
+  newsletterSubscribe: RateLimitRule;
+}
+
+export interface MaintenanceModeSettings {
+  enabled: boolean;
+  message: string;
 }
 
 export interface GeneralSettings {
@@ -476,6 +513,7 @@ export interface GeneralSettings {
   googleSiteVerification: string;
   footerText: string;
   rateLimits: RateLimitSettings;
+  maintenanceMode: MaintenanceModeSettings;
 }
 
 export interface RecaptchaAdminConfig {

@@ -15,6 +15,7 @@ import {
   MessageSquare,
   MessageSquareText,
   Menu as MenuIcon,
+  Send,
   Server,
   Settings,
   ShieldCheck,
@@ -214,6 +215,15 @@ export const ADMIN_NAV: NavEntry[] = [
         icon: Mail,
         match: "prefix",
         permission: PERMISSIONS.SETTINGS_MAIL,
+      },
+      {
+        href: "/admin/newsletter",
+        label: "Bản tin (Newsletter)",
+        icon: Send,
+        match: "prefix",
+        // Khớp @Permissions() ở newsletter.controller.ts GET /newsletter/config — gửi mail hàng loạt
+        // nên mặc định chỉ Admin (không gán Super Moderator, xem permissions.constant.ts backend).
+        permission: PERMISSIONS.NEWSLETTER_MANAGE,
       },
       {
         href: "/admin/settings/general",

@@ -40,6 +40,7 @@ export default function NewPostPage() {
         metaDescription: values.metaDescription || undefined,
         ogImageUrl: values.ogImageUrl || undefined,
         canonicalUrl: values.canonicalUrl || undefined,
+        jsonLd: values.jsonLd || undefined,
       }),
     });
     router.push(`/admin/posts/${created.id}`);

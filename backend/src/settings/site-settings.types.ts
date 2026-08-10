@@ -17,6 +17,18 @@ export interface RateLimitSettings {
   search: RateLimitRule;
   commentCreate: RateLimitRule;
   feedbackCreate: RateLimitRule;
+  newsletterSubscribe: RateLimitRule;
+}
+
+// Chế độ Bảo trì (bổ sung 2026-08-10) — bật thì FE (maintenance-gate.tsx) chặn toàn site, chỉ hiện
+// trang bảo trì với message này cho user KHÔNG có quyền PERMISSIONS.MAINTENANCE_BYPASS (gán qua
+// trang Quản lý Permission như mọi quyền khác — không có danh sách roleSlugs riêng ở đây, tái dùng
+// thẳng RBAC sẵn có). Admin luôn có quyền này qua ALL_PERMISSION_KEYS nên không cần cờ riêng.
+// Không có field ảnh — trang bảo trì dùng hình minh hoạ dựng sẵn (maintenance-page.tsx), không phải
+// ảnh upload được.
+export interface MaintenanceModeSettings {
+  enabled: boolean;
+  message: string;
 }
 
 // Lưu trong SiteSetting.value (key = GENERAL_SETTINGS_KEY) — không có model riêng, theo đúng
@@ -53,6 +65,7 @@ export interface GeneralSettings {
   // Text chân trang toàn site (footer.tsx) — Admin tự đổi ở Cài đặt chung.
   footerText: string;
   rateLimits: RateLimitSettings;
+  maintenanceMode: MaintenanceModeSettings;
 }
 
 export const GENERAL_SETTINGS_KEY = 'general_settings';
@@ -89,5 +102,11 @@ export const DEFAULT_GENERAL_SETTINGS: GeneralSettings = {
     search: { windowSec: 60, max: 30 },
     commentCreate: { windowSec: 60, max: 10 },
     feedbackCreate: { windowSec: 3600, max: 5 },
+    newsletterSubscribe: { windowSec: 3600, max: 5 },
+  },
+  maintenanceMode: {
+    enabled: false,
+    message:
+      'Website đang được bảo trì để nâng cấp trải nghiệm tốt hơn. Vui lòng quay lại sau ít phút!',
   },
 };

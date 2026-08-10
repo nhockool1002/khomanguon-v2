@@ -25,6 +25,7 @@ export const WIDGET_TYPE_LABEL: Record<WidgetType, string> = {
   HTML: "HTML tự do",
   COMMENTS: "Bình luận",
   TOP_VIEWED: "Bài viết xem nhiều",
+  RELATED_POSTS: "Bài viết liên quan",
 };
 
 // Danh sách phẳng kéo-thả sắp xếp — cùng pattern @dnd-kit với menu-tree-editor.tsx, bỏ phần

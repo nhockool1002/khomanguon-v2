@@ -4,6 +4,7 @@ import type {
   MenuItem,
   PostDetail,
   PostListResponse,
+  PostSummary,
   PublicProfile,
   RoleBadgeInfo,
   Tag,
@@ -50,6 +51,17 @@ export async function fetchPosts(params: {
 
 export async function fetchPostBySlug(slug: string): Promise<PostDetail | null> {
   return publicFetch<PostDetail>(`/posts/${slug}`);
+}
+
+// Widget "Bài viết liên quan" (widget-area.tsx) — cùng danh mục/tag với bài đang xem.
+export async function fetchRelatedPosts(
+  postId: string,
+  limit: number,
+): Promise<PostSummary[]> {
+  const result = await publicFetch<PostSummary[]>(
+    `/posts/${postId}/related?limit=${limit}`,
+  );
+  return result ?? [];
 }
 
 export async function fetchPublicProfile(id: string): Promise<PublicProfile | null> {
@@ -128,10 +140,30 @@ export const DEFAULT_GENERAL_SETTINGS: GeneralSettings = {
     search: { windowSec: 60, max: 30 },
     commentCreate: { windowSec: 60, max: 10 },
     feedbackCreate: { windowSec: 3600, max: 5 },
+    newsletterSubscribe: { windowSec: 3600, max: 5 },
+  },
+  maintenanceMode: {
+    enabled: false,
+    message:
+      "Website đang được bảo trì để nâng cấp trải nghiệm tốt hơn. Vui lòng quay lại sau ít phút!",
   },
 };
 
 export async function fetchGeneralSettings(): Promise<GeneralSettings> {
-  const result = await publicFetch<GeneralSettings>("/settings/general");
-  return result ?? DEFAULT_GENERAL_SETTINGS;
+  const result = await publicFetch<Partial<GeneralSettings>>("/settings/general");
+  if (!result) return DEFAULT_GENERAL_SETTINGS;
+  // Merge riêng các field lồng nhau (không chỉ top-level spread) — backend PRODUCTION có thể đang
+  // chạy bản CŨ hơn code FE này (deploy backend/frontend không đồng bộ, vd Vercel build FE trước
+  // khi backend deploy migration mới), nên response thật thiếu hẳn sub-key mới thêm (rateLimits.
+  // newsletterSubscribe, maintenanceMode...). Top-level spread không đủ vì nó thay NGUYÊN object
+  // con cũ (thiếu key mới) đè lên default — đọc `settings.maintenanceMode.enabled` trên `undefined`
+  // sẽ crash ngay lúc build static page (lỗi thật đã gặp: Vercel build fail vì gọi thẳng API
+  // production chưa deploy field mới). Cùng cách sửa đã áp dụng ở PublicRateLimitService/
+  // SiteSettingsService bên backend.
+  return {
+    ...DEFAULT_GENERAL_SETTINGS,
+    ...result,
+    rateLimits: { ...DEFAULT_GENERAL_SETTINGS.rateLimits, ...result.rateLimits },
+    maintenanceMode: { ...DEFAULT_GENERAL_SETTINGS.maintenanceMode, ...result.maintenanceMode },
+  };
 }

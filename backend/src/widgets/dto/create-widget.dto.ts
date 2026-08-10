@@ -15,6 +15,7 @@ const WIDGET_TYPES = [
   'HTML',
   'COMMENTS',
   'TOP_VIEWED',
+  'RELATED_POSTS',
 ] as const;
 
 export class CreateWidgetDto {
