@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useState } from "react";
-import { LogOut, Menu, MessageSquareText, Wallet as WalletIcon, X } from "lucide-react";
+import { Bookmark, LogOut, Menu, MessageSquareText, Wallet as WalletIcon, X } from "lucide-react";
 import { useAuth } from "@/context/auth-context";
 import type { MenuItem } from "@/lib/types";
 import { LogoMark } from "./logo-mark";
@@ -58,6 +58,14 @@ export function Navbar({ menus = [] }: { menus?: MenuItem[] }) {
             {loading ? null : user ? (
               <>
                 <NotificationBell enabled={!!user} />
+                <Link
+                  href="/bai-viet-da-luu"
+                  title="Bài viết đã lưu"
+                  aria-label="Bài viết đã lưu"
+                  className="flex items-center rounded-md px-2.5 py-1.5 text-zinc-300 hover:bg-white/10"
+                >
+                  <Bookmark size={18} strokeWidth={1.75} aria-hidden />
+                </Link>
                 <Link
                   href="/tai-khoan/vi"
                   className="flex items-center gap-1.5 rounded-md bg-gradient-to-r from-[#ff5da2] to-[#ffcf3f] px-3 py-1.5 text-sm font-semibold text-[#1d3557] hover:opacity-90"
@@ -147,6 +155,14 @@ export function Navbar({ menus = [] }: { menus?: MenuItem[] }) {
                   </Link>
                   <NotificationBell enabled={!!user} />
                 </div>
+                <Link
+                  href="/bai-viet-da-luu"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="flex items-center justify-center gap-1.5 rounded-md px-3 py-2 text-sm text-zinc-300 hover:bg-white/10"
+                >
+                  <Bookmark size={16} strokeWidth={1.75} aria-hidden />
+                  Bài viết đã lưu
+                </Link>
                 <Link
                   href="/tai-khoan/vi"
                   onClick={() => setMobileMenuOpen(false)}

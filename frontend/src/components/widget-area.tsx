@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { fetchCategories, fetchPosts, fetchWidgets } from "@/lib/public-api";
+import { fetchCategories, fetchPosts, fetchRelatedPosts, fetchWidgets } from "@/lib/public-api";
 import { formatDate, formatViewCount } from "@/lib/format";
 import { CommentSection } from "@/components/comment-section";
 import { Tooltip } from "@/components/ui";
@@ -7,11 +7,12 @@ import type { Widget } from "@/lib/types";
 
 // Server Component — dùng chung cho trang chủ và trang bài viết (cả 2 đều là Server Component sẵn),
 // đọc danh sách widget đã cấu hình qua /admin/widget thay vì hard-code sidebar riêng từng trang.
-// postId chỉ có ở trang bài viết — widget loại COMMENTS cần nó để biết bình luận của bài nào, nên bị
-// lọc bỏ khi không có (vd trang chủ), dù admin đang để "Đang hiện".
+// postId chỉ có ở trang bài viết — widget loại COMMENTS/RELATED_POSTS cần nó (bình luận của bài
+// nào / liên quan tới bài nào), nên bị lọc bỏ khi không có (vd trang chủ), dù admin đang để "Đang hiện".
 export async function WidgetArea({ area, postId }: { area: string; postId?: string }) {
   const allWidgets = await fetchWidgets(area);
-  const widgets = allWidgets.filter((w) => w.type !== "COMMENTS" || !!postId);
+  const needsPostId = (type: string) => type === "COMMENTS" || type === "RELATED_POSTS";
+  const widgets = allWidgets.filter((w) => !needsPostId(w.type) || !!postId);
   if (widgets.length === 0) return null;
 
   // Không tự đặt lg:flex-1 ở đây nữa — sizing theo hàng (row) là việc của nơi gọi component này,
@@ -50,6 +51,17 @@ async function WidgetRenderer({ widget, postId }: { widget: Widget; postId?: str
           ? widget.config.filterUserId
           : undefined;
       return <CommentSection postId={postId} sortOrder={sortOrder} filterUserId={filterUserId} />;
+    }
+    case "RELATED_POSTS": {
+      // postId luôn có ở đây — cùng lý do đã ghi ở case COMMENTS.
+      if (!postId) return null;
+      return (
+        <RelatedPostsWidget
+          title={widget.title}
+          postId={postId}
+          limit={Number(widget.config.limit) || 5}
+        />
+      );
     }
     default:
       return null;
@@ -168,6 +180,53 @@ async function TopViewedWidget({ title, limit }: { title: string; limit: number 
           ))}
         </ul>
       )}
+    </div>
+  );
+}
+
+async function RelatedPostsWidget({
+  title,
+  postId,
+  limit,
+}: {
+  title: string;
+  postId: string;
+  limit: number;
+}) {
+  const posts = await fetchRelatedPosts(postId, limit);
+  if (posts.length === 0) return null;
+  return (
+    <div className="rounded-lg border border-zinc-200 bg-white p-5">
+      <h3 className="mb-3 text-lg font-bold text-zinc-900">{title || "Bài viết liên quan"}</h3>
+      <ul className="flex flex-col gap-3.5">
+        {posts.map((post) => (
+          <li key={post.id} className="flex items-start gap-2.5">
+            {post.thumbnailUrl ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={post.thumbnailUrl}
+                alt={post.title}
+                className="h-12 w-16 flex-none rounded object-cover"
+              />
+            ) : (
+              <span className="h-12 w-16 flex-none rounded bg-zinc-100" aria-hidden />
+            )}
+            <div className="min-w-0">
+              <Tooltip content={post.title}>
+                <Link
+                  href={`/bai-viet/${post.slug}`}
+                  className="line-clamp-2 text-sm font-semibold text-rose-600 hover:text-rose-700 hover:underline"
+                >
+                  {post.title}
+                </Link>
+              </Tooltip>
+              <p className="mt-0.5 font-mono text-xs text-zinc-400">
+                {formatDate(post.publishedAt ?? post.createdAt)}
+              </p>
+            </div>
+          </li>
+        ))}
+      </ul>
     </div>
   );
 }

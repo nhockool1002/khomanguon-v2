@@ -8,6 +8,7 @@ import { Navbar } from "@/components/navbar";
 import { PostPopup } from "@/components/post-popup";
 import { GlobalLoadingBar } from "@/components/global-loading-bar";
 import { Footer } from "@/components/footer";
+import { NewsletterSignup } from "@/components/newsletter-signup";
 import { fetchGeneralSettings, fetchMenus, fetchRoleBadges } from "@/lib/public-api";
 import { ROLE_FONT_VARS } from "@/lib/fonts";
 
@@ -38,6 +39,9 @@ export async function generateMetadata(): Promise<Metadata> {
     verification: settings.googleSiteVerification
       ? { google: settings.googleSiteVerification }
       : undefined,
+    alternates: {
+      types: { "application/rss+xml": "/rss.xml" },
+    },
   };
 }
 
@@ -81,6 +85,7 @@ gtag('config', '${settings.gaTrackingId}');`}
           <RoleBadgesProvider badges={roleBadges}>
             <Navbar menus={menus} />
             {children}
+            <NewsletterSignup />
             <Footer text={settings.footerText} />
             <PostPopup />
           </RoleBadgesProvider>

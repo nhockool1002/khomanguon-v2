@@ -4,6 +4,7 @@ import type {
   MenuItem,
   PostDetail,
   PostListResponse,
+  PostSummary,
   PublicProfile,
   RoleBadgeInfo,
   Tag,
@@ -50,6 +51,17 @@ export async function fetchPosts(params: {
 
 export async function fetchPostBySlug(slug: string): Promise<PostDetail | null> {
   return publicFetch<PostDetail>(`/posts/${slug}`);
+}
+
+// Widget "Bài viết liên quan" (widget-area.tsx) — cùng danh mục/tag với bài đang xem.
+export async function fetchRelatedPosts(
+  postId: string,
+  limit: number,
+): Promise<PostSummary[]> {
+  const result = await publicFetch<PostSummary[]>(
+    `/posts/${postId}/related?limit=${limit}`,
+  );
+  return result ?? [];
 }
 
 export async function fetchPublicProfile(id: string): Promise<PublicProfile | null> {
@@ -128,6 +140,7 @@ export const DEFAULT_GENERAL_SETTINGS: GeneralSettings = {
     search: { windowSec: 60, max: 30 },
     commentCreate: { windowSec: 60, max: 10 },
     feedbackCreate: { windowSec: 3600, max: 5 },
+    newsletterSubscribe: { windowSec: 3600, max: 5 },
   },
 };
 

@@ -18,6 +18,7 @@ const WIDGET_TYPES: WidgetType[] = [
   "HTML",
   "COMMENTS",
   "TOP_VIEWED",
+  "RELATED_POSTS",
 ];
 
 export default function AdminWidgetPage() {
@@ -217,7 +218,9 @@ function WidgetEditPanel({
     setSaving(true);
     try {
       const config: Record<string, unknown> =
-        widget.type === "RECENT_POSTS" || widget.type === "TOP_VIEWED"
+        widget.type === "RECENT_POSTS" ||
+        widget.type === "TOP_VIEWED" ||
+        widget.type === "RELATED_POSTS"
           ? { limit }
           : widget.type === "HTML"
             ? { html }
@@ -248,7 +251,9 @@ function WidgetEditPanel({
         />
       </label>
 
-      {(widget.type === "RECENT_POSTS" || widget.type === "TOP_VIEWED") && (
+      {(widget.type === "RECENT_POSTS" ||
+        widget.type === "TOP_VIEWED" ||
+        widget.type === "RELATED_POSTS") && (
         <label className="flex flex-col gap-1 text-sm text-zinc-700">
           Số bài viết hiển thị (khuyến nghị 5-10)
           <input
@@ -260,6 +265,12 @@ function WidgetEditPanel({
             className="w-32 rounded-md border border-zinc-300 px-3 py-2 text-sm outline-none focus:border-[#1d3557] focus:ring-1 focus:ring-[#1d3557]"
           />
         </label>
+      )}
+      {widget.type === "RELATED_POSTS" && (
+        <p className="text-xs text-zinc-400">
+          Chỉ hiển thị trên trang chi tiết bài viết (cần biết bài viết đang xem để tìm bài cùng
+          danh mục/tag) — sẽ không hiện ở trang chủ hay các trang khác dù đang bật.
+        </p>
       )}
 
       {widget.type === "HTML" && (

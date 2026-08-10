@@ -29,6 +29,7 @@ const RATE_LIMIT_LABEL: Record<keyof Omit<RateLimitSettings, "enabled">, string>
   search: "Tìm kiếm / duyệt bài viết",
   commentCreate: "Đăng bình luận",
   feedbackCreate: "Gửi góp ý",
+  newsletterSubscribe: "Đăng ký nhận bản tin",
 };
 
 const DEFAULT_RATE_LIMITS: RateLimitSettings = {
@@ -40,6 +41,7 @@ const DEFAULT_RATE_LIMITS: RateLimitSettings = {
   search: { windowSec: 60, max: 30 },
   commentCreate: { windowSec: 60, max: 10 },
   feedbackCreate: { windowSec: 3600, max: 5 },
+  newsletterSubscribe: { windowSec: 3600, max: 5 },
 };
 
 export default function GeneralSettingsPage() {
