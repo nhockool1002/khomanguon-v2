@@ -150,6 +150,20 @@ export const DEFAULT_GENERAL_SETTINGS: GeneralSettings = {
 };
 
 export async function fetchGeneralSettings(): Promise<GeneralSettings> {
-  const result = await publicFetch<GeneralSettings>("/settings/general");
-  return result ?? DEFAULT_GENERAL_SETTINGS;
+  const result = await publicFetch<Partial<GeneralSettings>>("/settings/general");
+  if (!result) return DEFAULT_GENERAL_SETTINGS;
+  // Merge riêng các field lồng nhau (không chỉ top-level spread) — backend PRODUCTION có thể đang
+  // chạy bản CŨ hơn code FE này (deploy backend/frontend không đồng bộ, vd Vercel build FE trước
+  // khi backend deploy migration mới), nên response thật thiếu hẳn sub-key mới thêm (rateLimits.
+  // newsletterSubscribe, maintenanceMode...). Top-level spread không đủ vì nó thay NGUYÊN object
+  // con cũ (thiếu key mới) đè lên default — đọc `settings.maintenanceMode.enabled` trên `undefined`
+  // sẽ crash ngay lúc build static page (lỗi thật đã gặp: Vercel build fail vì gọi thẳng API
+  // production chưa deploy field mới). Cùng cách sửa đã áp dụng ở PublicRateLimitService/
+  // SiteSettingsService bên backend.
+  return {
+    ...DEFAULT_GENERAL_SETTINGS,
+    ...result,
+    rateLimits: { ...DEFAULT_GENERAL_SETTINGS.rateLimits, ...result.rateLimits },
+    maintenanceMode: { ...DEFAULT_GENERAL_SETTINGS.maintenanceMode, ...result.maintenanceMode },
+  };
 }
