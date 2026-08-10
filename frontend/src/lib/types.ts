@@ -330,6 +330,20 @@ export interface LinkReport {
   resolvedBy: { id: string; displayName: string } | null;
 }
 
+export type FeedbackStatus = "PENDING" | "RESOLVED";
+
+export interface Feedback {
+  id: string;
+  name: string | null;
+  email: string | null;
+  message: string;
+  status: FeedbackStatus;
+  createdAt: string;
+  resolvedAt: string | null;
+  author: { id: string; displayName: string; email: string } | null;
+  resolvedBy: { id: string; displayName: string } | null;
+}
+
 export type AuditAction =
   | "ROLE_ASSIGNED"
   | "ROLE_REMOVED"
@@ -436,6 +450,7 @@ export interface RateLimitSettings {
   resetPassword: RateLimitRule;
   search: RateLimitRule;
   commentCreate: RateLimitRule;
+  feedbackCreate: RateLimitRule;
 }
 
 export interface GeneralSettings {
@@ -482,6 +497,7 @@ export interface MailTemplates {
   linkReportAdmin: MailTemplateConfig;
   linkReportResolved: MailTemplateConfig;
   verifyEmail: MailTemplateConfig;
+  feedbackAdmin: MailTemplateConfig;
 }
 
 export interface MediaFile {

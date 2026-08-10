@@ -34,7 +34,13 @@ export class PublicRateLimitService {
     });
     const stored = (row?.value as { rateLimits?: RateLimitSettings } | null)
       ?.rateLimits;
-    this.cachedConfig = stored ?? DEFAULT_GENERAL_SETTINGS.rateLimits;
+    // Merge nông với default thay vì dùng thẳng `stored` — dữ liệu production lưu TRƯỚC khi thêm 1
+    // key rateLimits mới (vd feedbackCreate) sẽ thiếu key đó cho tới khi Admin bấm Lưu lại ở trang
+    // Cài đặt chung; không merge thì check(key) bên dưới đọc `rule.windowSec` trên `undefined` -> lỗi
+    // 500 cho toàn bộ route dùng key mới đó.
+    this.cachedConfig = stored
+      ? { ...DEFAULT_GENERAL_SETTINGS.rateLimits, ...stored }
+      : DEFAULT_GENERAL_SETTINGS.rateLimits;
     this.cachedAt = now;
     return this.cachedConfig;
   }

@@ -155,6 +155,9 @@ export class MailService {
       ...(dto.verifyEmail !== undefined && {
         verifyEmail: dto.verifyEmail,
       }),
+      ...(dto.feedbackAdmin !== undefined && {
+        feedbackAdmin: dto.feedbackAdmin,
+      }),
     };
     await this.prisma.siteSetting.upsert({
       where: { key: MAIL_TEMPLATES_KEY },
@@ -263,6 +266,29 @@ export class MailService {
     }
   }
 
+  // Feedback mới (modal Feedback toàn site) — chỉ gửi Admin, cùng pattern linkReportAdmin (người
+  // gửi có thể ẩn danh nên KHÔNG dùng sendNotification(), tránh cộng nhầm email rỗng vào recipients).
+  async sendFeedbackAdminNotification(vars: {
+    displayName: string;
+    contactEmail: string;
+    message: string;
+  }): Promise<void> {
+    try {
+      const templates = await this.getTemplates();
+      const recipients = [templates.notifyEmail].filter(Boolean);
+      if (recipients.length === 0) return;
+      const { subject, html } = renderMailTemplate(templates.feedbackAdmin, {
+        timestamp: formatTimestamp(new Date()),
+        ...vars,
+      });
+      await this.send({ to: recipients, subject, html });
+    } catch (err) {
+      this.logger.warn(
+        `Gửi mail "feedbackAdmin" thất bại: ${err instanceof Error ? err.message : String(err)}`,
+      );
+    }
+  }
+
   // Nút "Gửi thử" ở trang Admin — dùng dữ liệu mẫu, gửi đúng cả 2 người nhận thật (notifyEmail +
   // email của chính admin đang bấm nút) để kiểm chứng đúng logic 2 người nhận của luồng thật. Trả
   // {success,message} thay vì throw (khớp pattern testApiConnection() của sepay.service.ts) để FE
@@ -276,7 +302,8 @@ export class MailService {
       | 'passwordReset'
       | 'linkReportAdmin'
       | 'linkReportResolved'
-      | 'verifyEmail',
+      | 'verifyEmail'
+      | 'feedbackAdmin',
     testerEmail: string,
   ): Promise<{ success: boolean; message: string }> {
     const templates = await this.getTemplates();
@@ -336,6 +363,13 @@ export class MailService {
         sampleVars = {
           displayName: 'demo_user',
           verifyUrl: `${this.config.get<string>('FRONTEND_URL')}/xac-minh-email?token=demo-token`,
+        };
+        break;
+      case 'feedbackAdmin':
+        sampleVars = {
+          displayName: 'demo_user (ẩn danh)',
+          contactEmail: 'demo@example.com',
+          message: 'Đây là nội dung góp ý mẫu để xem thử giao diện email.',
         };
         break;
     }

@@ -18,6 +18,7 @@ import { StorageProvidersModule } from './storage-providers/storage-providers.mo
 import { WalletModule } from './wallet/wallet.module';
 import { DownloadLinksModule } from './download-links/download-links.module';
 import { LinkReportsModule } from './link-reports/link-reports.module';
+import { FeedbackModule } from './feedback/feedback.module';
 import { SepayModule } from './sepay/sepay.module';
 import { RealtimeModule } from './realtime/realtime.module';
 import { CloudFilesModule } from './cloud-files/cloud-files.module';
@@ -57,6 +58,7 @@ import { DbBackupModule } from './db-backup/db-backup.module';
     WalletModule,
     DownloadLinksModule,
     LinkReportsModule,
+    FeedbackModule,
     SepayModule,
     RealtimeModule,
     CloudFilesModule,

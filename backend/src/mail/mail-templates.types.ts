@@ -22,6 +22,9 @@ export interface MailTemplates {
   // Gửi CHO USER lúc đăng ký/bấm "Gửi lại email xác minh" — trước đây hardcode trong
   // mail.service.ts, giờ admin-editable như passwordReset.
   verifyEmail: MailTemplateConfig;
+  // Góp ý mới từ modal Feedback — chỉ gửi CHO Admin (notifyEmail), không có chiều ngược lại như
+  // linkReportResolved vì người gửi có thể ẩn danh/không để lại email.
+  feedbackAdmin: MailTemplateConfig;
 }
 
 export const MAIL_TEMPLATES_KEY = 'mail_templates';
@@ -93,6 +96,22 @@ const VERIFY_EMAIL_HTML = `<p>Chào {{displayName}},</p>
 <p>Bấm vào link sau để xác minh email (hết hạn sau 24 giờ):</p>
 <p><a href="{{verifyUrl}}">{{verifyUrl}}</a></p>`;
 
+const FEEDBACK_ADMIN_HTML = `<p>Xin chào Admin,</p>
+<p>Có 1 góp ý mới gửi từ KHOMANGUON.ORG:</p>
+<table border="1" cellpadding="8" cellspacing="0" style="border-collapse:collapse;">
+  <tr style="background:#1d3557;color:#fff;">
+    <th>Người gửi</th>
+    <th>Email liên hệ</th>
+    <th>Nội dung</th>
+  </tr>
+  <tr>
+    <td>{{displayName}}</td>
+    <td>{{contactEmail}}</td>
+    <td>{{message}}</td>
+  </tr>
+</table>
+<p>Vui lòng truy cập trang quản trị để xem/xử lý.</p>`;
+
 export const DEFAULT_MAIL_TEMPLATES: MailTemplates = {
   // Mặc định email chủ dự án — Admin đổi lại qua /admin/settings/email nếu cần. Email này LUÔN
   // được cộng thêm vào danh sách nhận (cùng với chính email của user vừa nạp/tải) — xem
@@ -124,6 +143,10 @@ export const DEFAULT_MAIL_TEMPLATES: MailTemplates = {
   verifyEmail: {
     subject: 'Xác minh email khomanguon',
     html: VERIFY_EMAIL_HTML,
+  },
+  feedbackAdmin: {
+    subject: 'Góp ý mới từ KHOMANGUON.ORG [{{timestamp}}]',
+    html: FEEDBACK_ADMIN_HTML,
   },
 };
 
