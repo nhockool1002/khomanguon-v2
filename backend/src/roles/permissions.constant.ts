@@ -49,6 +49,8 @@ export const PERMISSIONS = {
   // Audit log (đổi quyền, chỉnh ví tay, đổi key R2/S3) — cùng mức nhạy cảm với SETTINGS_BACKUP,
   // KHÔNG gán cho Super Moderator mặc định (xem DEFAULT_ROLE_PERMISSIONS bên dưới).
   AUDIT_VIEW: 'audit.view',
+  // Quản lý gói Subscription/VIP (giá, thời hạn, giới hạn tải) — xem subscription-plans module.
+  SETTINGS_SUBSCRIPTION: 'settings.subscription',
 } as const;
 
 export type PermissionKey = (typeof PERMISSIONS)[keyof typeof PERMISSIONS];
@@ -64,6 +66,12 @@ export const DEFAULT_ROLES = {
   // cần permission riêng), không bình luận/không tải file được. Nâng cấp lên MEMBER tự động ngay
   // khi verifyEmail() thành công (xem roles.service.ts upgradeAfterVerification).
   UNVERIFIED: { slug: 'unverified', name: 'Chưa kích hoạt' },
+  // Gán/gỡ tự động khi mua/hết hạn gói Subscription (xem subscription.service.ts) — CHỈ để nhóm/
+  // hiển thị (badge, lọc danh sách user), quyền tải miễn phí/quota thật sự đọc thẳng
+  // SubscriptionMembership.status="ACTIVE" && endsAt>now (không phụ thuộc role này để tránh lệch
+  // nếu cron gỡ role trễ 1 nhịp — xem subscription.service.ts checkFreeDownloadEligibility).
+  // MEMBER vẫn giữ nguyên song song (đa role), không bị gỡ khi lên Subscription.
+  SUBSCRIPTION: { slug: 'subscription', name: 'Subscription' },
 } as const;
 
 // Mặc định khi khởi tạo hệ thống — Admin chỉnh lại tự do qua trang Phân quyền (UC17)
@@ -100,6 +108,9 @@ export const DEFAULT_ROLE_PERMISSIONS: Record<string, PermissionKey[]> = {
   // "nhưng không tải được": cũng chặn luôn bình luận/ví cho tới khi xác minh email, đúng nghĩa
   // "chưa kích hoạt". Admin có thể nới lỏng qua trang Phân quyền nếu muốn cho bình luận trước.
   [DEFAULT_ROLES.UNVERIFIED.slug]: [],
+  // Không có quyền RBAC riêng — quyền lợi Subscription (tải free theo quota) đọc thẳng
+  // SubscriptionMembership, không qua permission. Role này chỉ để nhóm/hiển thị badge.
+  [DEFAULT_ROLES.SUBSCRIPTION.slug]: [],
 };
 
 export interface RoleUserTitleConfig {

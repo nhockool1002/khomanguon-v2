@@ -70,6 +70,8 @@ model User {
   emailVerificationTokens EmailVerificationToken[]
   passwordResetTokens    PasswordResetToken[]
   topupOrders            TopupOrder[]
+  subscriptionOrders      SubscriptionOrder[]
+  subscriptionMemberships SubscriptionMembership[]
   notificationsReceived  Notification[] @relation("NotificationRecipient")
   notificationsCaused    Notification[] @relation("NotificationActor")
   uploadedMediaFiles     MediaFile[]
@@ -513,6 +515,15 @@ model DownloadEvent {
   ipAddress      String
   createdAt      DateTime     @default(now())
 
+  // Tải qua quota Subscription (miễn phí, không trừ $P) thay vì mua bằng $P — null = tải theo giá
+  // $P bình thường (download-links.service.ts unlock(), không đổi gì ở nhánh đó). Dùng để tính
+  // quota đã dùng theo từng kỳ Subscription (subscription.service.ts checkFreeDownloadEligibility)
+  // bằng COUNT/DISTINCT trực tiếp trên bảng này thay vì 1 cột đếm riêng dễ lệch dữ liệu.
+  subscriptionMembershipId String?
+  subscriptionMembership   SubscriptionMembership? @relation(fields: [subscriptionMembershipId], references: [id], onDelete: SetNull)
+
+  @@index([subscriptionMembershipId, downloadLinkId])
+  @@index([subscriptionMembershipId, createdAt])
   @@map("download_events")
 }
 
@@ -570,6 +581,7 @@ enum UserActivityType {
   DEPOSIT
   VISIT_PROFILE
   COMMENT
+  SUBSCRIPTION_PURCHASED
 }
 
 // User Activity — tab "Hoạt động" trong trang Hồ sơ, công khai (GET /users/:id/activity, ai cũng
@@ -701,6 +713,102 @@ model SepayTransaction {
   createdAt            DateTime           @default(now())
 
   @@map("sepay_transactions")
+}
+
+// ───────────────────────── Gói Subscription/VIP (bổ sung 2026-08-11) ─────────────────────────
+
+// Admin tự tạo/sửa ở /admin/settings/subscription. totalDownloadLimit/dailyDownloadLimit: null =
+// không giới hạn — 2 field độc lập nhau (dailyDownloadLimit là tuỳ chọn bổ sung, không bắt buộc đi
+// kèm totalDownloadLimit).
+model SubscriptionPlan {
+  id                 String   @id @default(cuid())
+  name               String
+  durationDays       Int
+  priceVnd           Int
+  totalDownloadLimit Int?
+  dailyDownloadLimit Int?
+  isActive           Boolean  @default(true)
+  order              Int      @default(0)
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  orders      SubscriptionOrder[]
+  memberships SubscriptionMembership[]
+
+  @@map("subscription_plans")
+}
+
+enum SubscriptionOrderStatus {
+  PENDING
+  SUCCESS
+  EXPIRED
+}
+
+// Yêu cầu mua gói Subscription — THANH TOÁN RIÊNG qua SePay (không đụng ví $P theo yêu cầu), cùng
+// thiết kế TopupOrder (code đối soát + expiresAt 30 phút) nhưng "code" bắt đầu bằng "SUB" (khác
+// "GD" của TopupOrder.code) để webhook phân biệt được ngay bằng cách thử khớp lần lượt, không cần
+// sửa 1 dòng nào trong TopupOrder/SepayService.matchAndCredit() hiện có (xem
+// sepay-webhook.controller.ts và subscription.service.ts matchAndActivateFromWebhook()).
+model SubscriptionOrder {
+  id        String                  @id @default(cuid())
+  userId    String
+  user      User                    @relation(fields: [userId], references: [id])
+  planId    String
+  plan      SubscriptionPlan        @relation(fields: [planId], references: [id])
+  code      String                  @unique
+  amountVnd Int
+  status    SubscriptionOrderStatus @default(PENDING)
+  expiresAt DateTime
+  createdAt DateTime                @default(now())
+
+  membership SubscriptionMembership?
+
+  @@map("subscription_orders")
+}
+
+enum SubscriptionMembershipStatus {
+  ACTIVE
+  EXPIRED
+}
+
+// Kỳ Subscription đang/đã hiệu lực của 1 user. Mua gói mới trong lúc còn 1 kỳ ACTIVE sẽ đánh dấu kỳ
+// cũ EXPIRED ngay và tạo kỳ mới bắt đầu từ lúc mua (KHÔNG cộng dồn thời hạn kỳ cũ) — xem
+// subscription.service.ts activateFromOrder(). Tối đa 1 membership ACTIVE/user tại 1 thời điểm.
+model SubscriptionMembership {
+  id        String                       @id @default(cuid())
+  userId    String
+  user      User                         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  planId    String
+  plan      SubscriptionPlan             @relation(fields: [planId], references: [id])
+  orderId   String?                      @unique
+  order     SubscriptionOrder?           @relation(fields: [orderId], references: [id])
+  startsAt  DateTime                     @default(now())
+  endsAt    DateTime
+  status    SubscriptionMembershipStatus @default(ACTIVE)
+  createdAt DateTime                     @default(now())
+
+  downloadEvents DownloadEvent[]
+
+  @@index([userId, status])
+  @@map("subscription_memberships")
+}
+
+// Đối soát webhook SePay CHO SUBSCRIPTION — bảng RIÊNG, không dùng chung SepayTransaction (cố ý,
+// để không đụng 1 dòng nào vào bảng/luồng nạp $P đang chạy thật). unique theo sepayTransactionCode
+// cùng cơ chế chống race/webhook gọi lại như SepayTransaction: check tồn tại trước (fast path cho
+// retry tuần tự), rồi tạo record bên trong CÙNG transaction với activateFromOrder() — 2 webhook
+// trùng đến gần như đồng thời sẽ có 1 cái vi phạm unique constraint lúc insert, transaction đó rollback
+// an toàn (không kích hoạt 2 lần), SePay sẽ tự retry và lần sau rơi vào fast path.
+model SubscriptionSepayTransaction {
+  id                   String         @id @default(cuid())
+  sepayTransactionCode String         @unique
+  subscriptionOrderId  String?
+  amountVnd            Int
+  rawPayload           Json
+  status               WalletTxStatus @default(PENDING)
+  createdAt            DateTime       @default(now())
+
+  @@map("subscription_sepay_transactions")
 }
 
 // ───────────────────────── Cài đặt hệ thống ─────────────────────────

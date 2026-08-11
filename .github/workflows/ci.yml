@@ -42,6 +42,10 @@ jobs:
       JWT_REFRESH_SECRET: ci-test-refresh-secret
       JWT_REFRESH_TTL_DAYS: 30
       FRONTEND_URL: http://localhost:3000
+      # Cần cho encryptSecret/decryptSecret (StorageProvider secrets, SePay webhook API key) — thiếu
+      # biến này thì mọi test đụng tới secret mã hoá (vd test/subscription.e2e-spec.ts webhook auth)
+      # sẽ luôn thất bại ở bước decrypt, không liên quan gì tới logic thật đang test.
+      STORAGE_SECRET_KEY: ci-test-storage-secret-key
     steps:
       - uses: actions/checkout@v4
 
