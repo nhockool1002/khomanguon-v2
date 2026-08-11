@@ -1,10 +1,12 @@
 import { Test, TestingModule } from '@nestjs/testing';
+import { BadRequestException, NotFoundException } from '@nestjs/common';
 import { WalletTxStatus } from '@prisma/client';
 import { SubscriptionService } from './subscription.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { SepayService } from '../sepay/sepay.service';
 import { SubscriptionPlansService } from '../subscription-plans/subscription-plans.service';
 import { UserActivityService } from '../user-activity/user-activity.service';
+import { AuditLogService } from '../audit-log/audit-log.service';
 import type { SepayWebhookPayload } from '../sepay/sepay-webhook.types';
 
 describe('SubscriptionService.checkFreeDownloadEligibility — quota (tổng + theo ngày)', () => {
@@ -34,6 +36,7 @@ describe('SubscriptionService.checkFreeDownloadEligibility — quota (tổng + t
         { provide: SepayService, useValue: {} },
         { provide: SubscriptionPlansService, useValue: {} },
         { provide: UserActivityService, useValue: { log: jest.fn() } },
+        { provide: AuditLogService, useValue: { log: jest.fn() } },
       ],
     }).compile();
 
@@ -180,6 +183,7 @@ describe('SubscriptionService.matchAndActivateFromWebhook — đối soát SePay
         { provide: SepayService, useValue: {} },
         { provide: SubscriptionPlansService, useValue: {} },
         { provide: UserActivityService, useValue: userActivity },
+        { provide: AuditLogService, useValue: { log: jest.fn() } },
       ],
     }).compile();
 
@@ -325,6 +329,7 @@ describe('SubscriptionService.expireEndedMemberships — cron hết hạn', () =
         { provide: SepayService, useValue: {} },
         { provide: SubscriptionPlansService, useValue: {} },
         { provide: UserActivityService, useValue: { log: jest.fn() } },
+        { provide: AuditLogService, useValue: { log: jest.fn() } },
       ],
     }).compile();
 
@@ -381,5 +386,159 @@ describe('SubscriptionService.expireEndedMemberships — cron hết hạn', () =
     await service.expireEndedMemberships();
 
     expect(prisma.userRole.deleteMany).toHaveBeenCalledTimes(2); // user-1 (1 lần, không lặp), user-2
+  });
+});
+
+describe('SubscriptionService.createOrder — chặn mua chồng gói', () => {
+  let service: SubscriptionService;
+  let prisma: {
+    subscriptionMembership: Record<string, jest.Mock>;
+    subscriptionOrder: Record<string, jest.Mock>;
+  };
+  let subscriptionPlansService: { findActiveByIdOrThrow: jest.Mock };
+  let sepayService: { getConfig: jest.Mock; buildVietQrUrl: jest.Mock };
+
+  const plan = { id: 'plan-1', priceVnd: 300000 };
+
+  beforeEach(async () => {
+    prisma = {
+      subscriptionMembership: { findFirst: jest.fn() },
+      subscriptionOrder: {
+        findUnique: jest.fn().mockResolvedValue(null), // mã sinh ra chưa tồn tại -> không cần retry
+        create: jest.fn().mockResolvedValue({
+          id: 'order-1',
+          code: 'SUB123456',
+          amountVnd: 300000,
+        }),
+      },
+    };
+    subscriptionPlansService = {
+      findActiveByIdOrThrow: jest.fn().mockResolvedValue(plan),
+    };
+    sepayService = {
+      getConfig: jest.fn().mockResolvedValue({
+        bankAccountNumber: '0123456789',
+        bankName: 'Vietcombank',
+      }),
+      buildVietQrUrl: jest.fn().mockReturnValue('https://vietqr.app/fake'),
+    };
+
+    const module: TestingModule = await Test.createTestingModule({
+      providers: [
+        SubscriptionService,
+        { provide: PrismaService, useValue: prisma },
+        { provide: SepayService, useValue: sepayService },
+        {
+          provide: SubscriptionPlansService,
+          useValue: subscriptionPlansService,
+        },
+        { provide: UserActivityService, useValue: { log: jest.fn() } },
+        { provide: AuditLogService, useValue: { log: jest.fn() } },
+      ],
+    }).compile();
+
+    service = module.get(SubscriptionService);
+  });
+
+  it('user đã có membership ACTIVE -> BadRequestException, KHÔNG đụng tới plan/order', async () => {
+    prisma.subscriptionMembership.findFirst.mockResolvedValue({
+      id: 'membership-1',
+      plan: { totalDownloadLimit: null, dailyDownloadLimit: null },
+    });
+
+    await expect(service.createOrder('user-1', 'plan-1')).rejects.toThrow(
+      BadRequestException,
+    );
+    expect(
+      subscriptionPlansService.findActiveByIdOrThrow,
+    ).not.toHaveBeenCalled();
+    expect(prisma.subscriptionOrder.create).not.toHaveBeenCalled();
+  });
+
+  it('user KHÔNG có membership ACTIVE -> tạo đơn bình thường', async () => {
+    prisma.subscriptionMembership.findFirst.mockResolvedValue(null);
+
+    const result = await service.createOrder('user-1', 'plan-1');
+
+    expect(result.order.code).toBe('SUB123456');
+    expect(prisma.subscriptionOrder.create).toHaveBeenCalled();
+  });
+});
+
+describe('SubscriptionService.revokeMembership — Admin thu hồi trước hạn', () => {
+  let service: SubscriptionService;
+  let prisma: {
+    subscriptionMembership: Record<string, jest.Mock>;
+    role: Record<string, jest.Mock>;
+    userRole: Record<string, jest.Mock>;
+  };
+  let auditLog: { log: jest.Mock };
+
+  const activeMembership = {
+    id: 'membership-1',
+    planId: 'plan-1',
+    plan: { name: 'Gói 7 ngày' },
+  };
+
+  beforeEach(async () => {
+    prisma = {
+      subscriptionMembership: {
+        findFirst: jest.fn().mockResolvedValue(activeMembership),
+        update: jest.fn(),
+      },
+      role: { findUnique: jest.fn().mockResolvedValue({ id: 'role-sub' }) },
+      userRole: { deleteMany: jest.fn() },
+    };
+    auditLog = { log: jest.fn() };
+
+    const module: TestingModule = await Test.createTestingModule({
+      providers: [
+        SubscriptionService,
+        { provide: PrismaService, useValue: prisma },
+        { provide: SepayService, useValue: {} },
+        { provide: SubscriptionPlansService, useValue: {} },
+        { provide: UserActivityService, useValue: { log: jest.fn() } },
+        { provide: AuditLogService, useValue: auditLog },
+      ],
+    }).compile();
+
+    service = module.get(SubscriptionService);
+  });
+
+  it('user không có membership ACTIVE nào -> NotFoundException, không đụng gì khác', async () => {
+    prisma.subscriptionMembership.findFirst.mockResolvedValue(null);
+
+    await expect(service.revokeMembership('user-1', 'admin-1')).rejects.toThrow(
+      NotFoundException,
+    );
+    expect(prisma.subscriptionMembership.update).not.toHaveBeenCalled();
+    expect(prisma.userRole.deleteMany).not.toHaveBeenCalled();
+    expect(auditLog.log).not.toHaveBeenCalled();
+  });
+
+  it('user có membership ACTIVE -> đánh dấu REVOKED, gỡ role, ghi AuditLog', async () => {
+    await service.revokeMembership('user-1', 'admin-1');
+
+    expect(prisma.subscriptionMembership.update).toHaveBeenCalledWith({
+      where: { id: 'membership-1' },
+      data: { status: 'REVOKED' },
+    });
+    expect(prisma.userRole.deleteMany).toHaveBeenCalledWith({
+      where: { userId: 'user-1', roleId: 'role-sub' },
+    });
+    expect(auditLog.log).toHaveBeenCalledWith(
+      'admin-1',
+      'SUBSCRIPTION_REVOKED',
+      expect.objectContaining({ targetType: 'user', targetId: 'user-1' }),
+    );
+  });
+
+  it('role "subscription" chưa tồn tại trong DB -> vẫn revoke membership, chỉ bỏ qua bước gỡ role', async () => {
+    prisma.role.findUnique.mockResolvedValue(null);
+
+    await service.revokeMembership('user-1', 'admin-1');
+
+    expect(prisma.subscriptionMembership.update).toHaveBeenCalled();
+    expect(prisma.userRole.deleteMany).not.toHaveBeenCalled();
   });
 });

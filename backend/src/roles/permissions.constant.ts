@@ -56,6 +56,11 @@ export const PERMISSIONS = {
   // subscription.controller.ts getUserStatus). Cùng mức nhạy cảm với WALLET_VIEW_ANY nên cũng gán
   // mặc định cho Super Moderator (xem DEFAULT_ROLE_PERMISSIONS bên dưới).
   SUBSCRIPTION_VIEW_ANY: 'subscription.view_any',
+  // Thu hồi (revoke) gói Subscription của bất kỳ user nào trước hạn — mạnh hơn hẳn xem thông tin
+  // (SUBSCRIPTION_VIEW_ANY), tác động trực tiếp tới quyền lợi user khác nên KHÔNG gán mặc định cho
+  // Super Moderator (cùng mức nhạy cảm với WALLET_ADJUST/SETTINGS_BACKUP), chỉ Admin có qua
+  // ALL_PERMISSION_KEYS — muốn cấp cho role khác phải làm thủ công qua trang Phân quyền.
+  SUBSCRIPTION_REVOKE: 'subscription.revoke',
 } as const;
 
 export type PermissionKey = (typeof PERMISSIONS)[keyof typeof PERMISSIONS];

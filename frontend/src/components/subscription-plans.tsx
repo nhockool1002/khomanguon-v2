@@ -35,13 +35,11 @@ function formatCountdown(expiresAt: string): string {
   return `${mm}:${ss}`;
 }
 
-function formatDaysLeft(endsAt: string): string {
-  const ms = new Date(endsAt).getTime() - Date.now();
-  if (ms <= 0) return "đã hết hạn";
-  const days = Math.ceil(ms / (24 * 60 * 60 * 1000));
-  return `còn ${days} ngày`;
-}
-
+// Đặt ở trang Nạp tiền — ai cũng xem được các gói (kể cả chưa đăng ký gói nào), theo đúng vị trí
+// "trang mua hàng" quen thuộc. Thông tin CHI TIẾT của gói đang dùng (đếm ngược, lượt tải còn lại...)
+// KHÔNG hiển thị ở đây nữa — chuyển hẳn sang card ở tab Hồ sơ (subscription-status-view.tsx), component
+// này chỉ cần biết ĐANG có gói ACTIVE hay không để disable nút Đăng ký (chặn mua chồng, khớp
+// validate ở backend createOrder()).
 export function SubscriptionPlans() {
   const [plans, setPlans] = useState<SubscriptionPlan[]>([]);
   const [myStatus, setMyStatus] = useState<MySubscriptionStatus | null>(null);
@@ -108,19 +106,9 @@ export function SubscriptionPlans() {
 
       {myStatus && (
         <div className="rounded-md border border-[#1d3557]/20 bg-[#1d3557]/5 p-3 text-sm text-zinc-700">
-          Đang dùng <span className="font-semibold">{myStatus.plan.name}</span> —{" "}
-          {formatDaysLeft(myStatus.endsAt)} (hết hạn{" "}
-          {new Date(myStatus.endsAt).toLocaleString("vi-VN")})
-          <br />
-          Đã tải: <span className="font-mono">{myStatus.totalDownloadsUsed}</span>
-          {myStatus.plan.totalDownloadLimit !== null && `/${myStatus.plan.totalDownloadLimit}`} lượt
-          {myStatus.plan.dailyDownloadLimit !== null && (
-            <>
-              {" "}
-              · hôm nay: <span className="font-mono">{myStatus.dailyDownloadsUsed}</span>/
-              {myStatus.plan.dailyDownloadLimit} lượt
-            </>
-          )}
+          Bạn đang dùng gói <span className="font-semibold">{myStatus.plan.name}</span> — xem chi
+          tiết (đếm ngược, lượt tải còn lại) ở tab <span className="font-semibold">Hồ sơ</span>. Đăng
+          ký gói mới chỉ mở lại sau khi gói hiện tại hết hạn hoặc được Admin thu hồi.
         </div>
       )}
 
@@ -149,8 +137,9 @@ export function SubscriptionPlans() {
               <button
                 type="button"
                 onClick={() => handleSubscribe(plan)}
-                disabled={creatingPlanId === plan.id}
-                className="mt-2 rounded-md bg-[#1d3557] px-3 py-1.5 text-sm font-medium text-white hover:bg-[#16294a] disabled:opacity-50"
+                disabled={creatingPlanId === plan.id || !!myStatus}
+                title={myStatus ? "Bạn đang có gói đang hoạt động, không thể đăng ký thêm" : undefined}
+                className="mt-2 rounded-md bg-[#1d3557] px-3 py-1.5 text-sm font-medium text-white hover:bg-[#16294a] disabled:cursor-not-allowed disabled:opacity-50"
               >
                 {creatingPlanId === plan.id ? "Đang tạo..." : "Đăng ký"}
               </button>

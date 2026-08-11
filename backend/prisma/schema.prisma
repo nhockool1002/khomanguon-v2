@@ -610,6 +610,8 @@ enum AuditAction {
   // DownloadGrant/DownloadEvent (xem download-links.service.ts adminBypassUnlock) — vẫn audit log
   // lại vì đây là năng lực nhạy cảm dễ bị lạm dụng, dù không hiện trong lịch sử người dùng thấy được.
   DOWNLOAD_BYPASSED
+  // Admin thu hồi gói Subscription của user trước hạn (subscription.service.ts revokeMembership).
+  SUBSCRIPTION_REVOKED
 }
 
 // Audit log thao tác nhạy cảm (PLAN.md 4.3) — đổi quyền, chỉnh ví tay, đổi key R2/S3. Khác
@@ -769,6 +771,10 @@ model SubscriptionOrder {
 enum SubscriptionMembershipStatus {
   ACTIVE
   EXPIRED
+  // Admin chủ động thu hồi trước hạn (subscription.controller.ts revoke) — khác EXPIRED (tự hết hạn
+  // do cron) để phân biệt được lý do khi tra cứu/audit. checkFreeDownloadEligibility() coi REVOKED
+  // như không còn ACTIVE — mất quyền tải free ngay lập tức, không cần đợi cron.
+  REVOKED
 }
 
 // Kỳ Subscription đang/đã hiệu lực của 1 user. Mua gói mới trong lúc còn 1 kỳ ACTIVE sẽ đánh dấu kỳ

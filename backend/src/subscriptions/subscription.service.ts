@@ -6,6 +6,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import {
+  AuditAction,
   Prisma,
   SubscriptionMembershipStatus,
   SubscriptionOrderStatus,
@@ -16,6 +17,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { SepayService } from '../sepay/sepay.service';
 import { SubscriptionPlansService } from '../subscription-plans/subscription-plans.service';
 import { UserActivityService } from '../user-activity/user-activity.service';
+import { AuditLogService } from '../audit-log/audit-log.service';
 import { DEFAULT_ROLES } from '../roles/permissions.constant';
 import type { SepayWebhookPayload } from '../sepay/sepay-webhook.types';
 
@@ -38,6 +40,7 @@ export class SubscriptionService {
     private readonly sepayService: SepayService,
     private readonly subscriptionPlansService: SubscriptionPlansService,
     private readonly userActivity: UserActivityService,
+    private readonly auditLog: AuditLogService,
   ) {}
 
   // ───────────────────────── Tạo yêu cầu mua gói ─────────────────────────
@@ -56,6 +59,17 @@ export class SubscriptionService {
   }
 
   async createOrder(userId: string, planId: string) {
+    // Chặn mua chồng — user đang có 1 kỳ ACTIVE thì không được tạo đơn mới cho tới khi hết hạn hoặc
+    // bị Admin revoke. Trước đây webhook cho phép "mua gói mới thay thế kỳ đang dùng", nhưng theo yêu
+    // cầu thực tế UI phải disable nút Đăng ký khi đã có gói — validate lại ở tầng service (không chỉ
+    // FE) để chặn cả trường hợp gọi thẳng API.
+    const existingActive = await this.findActiveMembership(userId);
+    if (existingActive) {
+      throw new BadRequestException(
+        'Bạn đang có gói Subscription đang hoạt động — không thể đăng ký thêm cho tới khi hết hạn hoặc được Admin thu hồi',
+      );
+    }
+
     const plan =
       await this.subscriptionPlansService.findActiveByIdOrThrow(planId);
     const config = await this.sepayService.getConfig();
@@ -256,6 +270,48 @@ export class SubscriptionService {
     }
 
     return { eligible: true, membershipId: membership.id };
+  }
+
+  // ───────────────────────── Admin thu hồi (revoke) ─────────────────────────
+
+  // Admin chấm dứt gói của user trước hạn (subscription.controller.ts, guard bằng permission
+  // subscription.revoke). Khác cron expireEndedMemberships(): đây LUÔN chỉ có đúng 1 membership
+  // ACTIVE để xử lý (design đảm bảo tối đa 1 ACTIVE/user), nên không cần re-check "còn ACTIVE nào
+  // khác" như cron trước khi gỡ role.
+  async revokeMembership(
+    targetUserId: string,
+    actorUserId: string,
+  ): Promise<void> {
+    const membership = await this.findActiveMembership(targetUserId);
+    if (!membership) {
+      throw new NotFoundException(
+        'User này hiện không có gói Subscription nào đang hoạt động để thu hồi',
+      );
+    }
+
+    await this.prisma.subscriptionMembership.update({
+      where: { id: membership.id },
+      data: { status: SubscriptionMembershipStatus.REVOKED },
+    });
+
+    const role = await this.prisma.role.findUnique({
+      where: { slug: DEFAULT_ROLES.SUBSCRIPTION.slug },
+    });
+    if (role) {
+      await this.prisma.userRole.deleteMany({
+        where: { userId: targetUserId, roleId: role.id },
+      });
+    }
+
+    void this.auditLog.log(actorUserId, AuditAction.SUBSCRIPTION_REVOKED, {
+      targetType: 'user',
+      targetId: targetUserId,
+      metadata: {
+        membershipId: membership.id,
+        planId: membership.planId,
+        planName: membership.plan.name,
+      },
+    });
   }
 
   private async findActiveMembership(userId: string) {

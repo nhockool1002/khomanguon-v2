@@ -2,6 +2,7 @@ import {
   Controller,
   ForbiddenException,
   Get,
+  HttpCode,
   Param,
   Body,
   Post,
@@ -11,6 +12,8 @@ import { SubscriptionService } from './subscription.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { RolesService } from '../roles/roles.service';
+import { PermissionsGuard } from '../roles/guards/permissions.guard';
+import { Permissions } from '../roles/decorators/permissions.decorator';
 import { PERMISSIONS } from '../roles/permissions.constant';
 import { CreateSubscriptionOrderDto } from './dto/create-subscription-order.dto';
 
@@ -35,8 +38,8 @@ export class SubscriptionController {
     return this.subscriptionService.getMyStatus(user.id);
   }
 
-  // Xem thông tin Subscription của MỘT USER BẤT KỲ — dùng cho tab "Subscription" ở trang Hồ sơ
-  // (profile-page.tsx). Riêng tư theo đúng yêu cầu: chính chủ luôn xem được (không cần permission
+  // Xem thông tin Subscription của MỘT USER BẤT KỲ — dùng cho card Subscription ở tab Hồ sơ
+  // (profile-page.tsx, chỉ hiện khi có kỳ ACTIVE). Riêng tư theo đúng yêu cầu: chính chủ luôn xem được (không cần permission
   // gì thêm), người khác phải có quyền subscription.view_any (Admin có mặc định qua
   // ALL_PERMISSION_KEYS, Super Moderator có mặc định — xem permissions.constant.ts, role khác phải
   // được cấp riêng qua trang Phân quyền). KHÔNG dùng @Permissions()/PermissionsGuard chuẩn vì đó chỉ
@@ -58,6 +61,22 @@ export class SubscriptionController {
       }
     }
     return this.subscriptionService.getMyStatus(userId);
+  }
+
+  // Admin (hoặc role được cấp riêng quyền subscription.revoke) thu hồi gói của bất kỳ user nào
+  // trước hạn — dùng nút "Thu hồi" ở card Subscription khi xem hồ sơ người khác. Khác
+  // getUserStatus() ở trên: đây dùng PermissionsGuard/@Permissions() chuẩn (không có nhánh "hoặc là
+  // chính mình" — revoke chỉ dành cho người có quyền quản trị, không tự áp dụng cho chính chủ).
+  @UseGuards(JwtAuthGuard, PermissionsGuard)
+  @Permissions(PERMISSIONS.SUBSCRIPTION_REVOKE)
+  @HttpCode(200)
+  @Post('users/:userId/revoke')
+  async revoke(
+    @CurrentUser() actor: AuthUser,
+    @Param('userId') userId: string,
+  ) {
+    await this.subscriptionService.revokeMembership(userId, actor.id);
+    return { success: true };
   }
 
   @UseGuards(JwtAuthGuard)
