@@ -113,12 +113,12 @@ export function SubscriptionPlans() {
           {new Date(myStatus.endsAt).toLocaleString("vi-VN")})
           <br />
           Đã tải: <span className="font-mono">{myStatus.totalDownloadsUsed}</span>
-          {myStatus.plan.totalDownloadLimit !== null && `/${myStatus.plan.totalDownloadLimit}`} link
+          {myStatus.plan.totalDownloadLimit !== null && `/${myStatus.plan.totalDownloadLimit}`} lượt
           {myStatus.plan.dailyDownloadLimit !== null && (
             <>
               {" "}
               · hôm nay: <span className="font-mono">{myStatus.dailyDownloadsUsed}</span>/
-              {myStatus.plan.dailyDownloadLimit} link
+              {myStatus.plan.dailyDownloadLimit} lượt
             </>
           )}
         </div>
@@ -143,8 +143,8 @@ export function SubscriptionPlans() {
               <p className="text-xs text-zinc-500">
                 {plan.totalDownloadLimit === null
                   ? "Tải không giới hạn"
-                  : `Tải tối đa ${plan.totalDownloadLimit} liên kết`}
-                {plan.dailyDownloadLimit !== null && ` (tối đa ${plan.dailyDownloadLimit}/ngày)`}
+                  : `Tải tối đa ${plan.totalDownloadLimit} lượt`}
+                {plan.dailyDownloadLimit !== null && ` (tối đa ${plan.dailyDownloadLimit} lượt/ngày)`}
               </p>
               <button
                 type="button"

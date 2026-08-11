@@ -16,11 +16,16 @@ import { StyledUserName } from "@/components/styled-user-name";
 import { ProfileMessages } from "@/components/profile-messages";
 import { WalletDashboard } from "@/components/wallet-dashboard";
 import { ActivityTab } from "@/components/activity-tab";
+import { SubscriptionPlans } from "@/components/subscription-plans";
+import { SubscriptionStatusView } from "@/components/subscription-status-view";
 
-type Tab = "ho-so" | "thong-tin" | "bao-mat" | "vi" | "hoat-dong";
-const TABS: Tab[] = ["ho-so", "thong-tin", "bao-mat", "vi", "hoat-dong"];
-// Tab công khai — ai cũng xem được, kể cả không phải chính chủ (Hồ sơ + Hoạt động). 3 tab còn lại
-// (Thông tin/Bảo mật/Ví) chỉ chính chủ mới thấy — chứa dữ liệu riêng tư (email, đổi mật khẩu, ví).
+type Tab = "ho-so" | "thong-tin" | "bao-mat" | "vi" | "subscription" | "hoat-dong";
+const TABS: Tab[] = ["ho-so", "thong-tin", "bao-mat", "vi", "subscription", "hoat-dong"];
+// Tab công khai — ai cũng xem được, kể cả không phải chính chủ (Hồ sơ + Hoạt động). 3 tab
+// Thông tin/Bảo mật/Ví chỉ chính chủ mới thấy — chứa dữ liệu riêng tư (email, đổi mật khẩu, ví).
+// Tab Subscription RIÊNG TƯ nhưng KHÔNG hoàn toàn giống 3 tab kia — ngoài chính chủ, user có quyền
+// subscription.view_any (Admin/Super Moderator...) cũng xem được (chỉ xem, không mua hộ) — xem
+// canViewSubscription bên dưới, không đưa vào PUBLIC_TABS vì user thường khác thì không được xem.
 const PUBLIC_TABS: Tab[] = ["ho-so", "hoat-dong"];
 
 // Trang gộp "Hồ sơ công khai" (/nguoi-dung/[id] cũ) + "Tài khoản của tôi" (/tai-khoan cũ) —
@@ -37,6 +42,10 @@ export function ProfilePage({
 }) {
   const { user, loading } = useAuth();
   const isOwnProfile = !loading && user?.id === profileId;
+  const canViewSubscriptionAny = !!user?.permissionKeys?.includes(
+    PERMISSIONS.SUBSCRIPTION_VIEW_ANY,
+  );
+  const canViewSubscription = isOwnProfile || canViewSubscriptionAny;
 
   const [tab, setTab] = useState<Tab>(
     initialTab && TABS.includes(initialTab as Tab) ? (initialTab as Tab) : "ho-so",
@@ -46,8 +55,14 @@ export function ProfilePage({
   // URL/state đòi tab riêng tư (thong-tin/bao-mat/vi) nhưng đây không phải profile của chính mình
   // (hoặc auth chưa xác định xong) — suy ra ngay lúc render thay vì đồng bộ qua effect (tránh
   // cascading render), rơi về tab Hồ sơ để không render nhầm form của người khác. Tab Hoạt động thì
-  // công khai nên vẫn giữ nguyên dù không phải chính chủ (xem PUBLIC_TABS).
-  const effectiveTab: Tab = isOwnProfile || PUBLIC_TABS.includes(tab) ? tab : "ho-so";
+  // công khai nên vẫn giữ nguyên dù không phải chính chủ (xem PUBLIC_TABS). Tab Subscription có luật
+  // riêng (canViewSubscription) — không nằm trong PUBLIC_TABS nhưng vẫn cho phép nếu có quyền.
+  const effectiveTab: Tab =
+    isOwnProfile ||
+    PUBLIC_TABS.includes(tab) ||
+    (tab === "subscription" && canViewSubscriptionAny)
+      ? tab
+      : "ho-so";
 
   const reloadPublicProfile = useCallback(async () => {
     const next = await fetchPublicProfile(profileId);
@@ -81,6 +96,11 @@ export function ProfilePage({
             </TabButton>
           </>
         )}
+        {canViewSubscription && (
+          <TabButton active={tab === "subscription"} onClick={() => setTab("subscription")}>
+            Subscription
+          </TabButton>
+        )}
         <TabButton active={tab === "hoat-dong"} onClick={() => setTab("hoat-dong")}>
           Hoạt động
         </TabButton>
@@ -90,6 +110,12 @@ export function ProfilePage({
       {effectiveTab === "thong-tin" && <AccountInfoTab onSaved={reloadPublicProfile} />}
       {effectiveTab === "bao-mat" && <SecurityTab />}
       {effectiveTab === "vi" && <WalletDashboard />}
+      {effectiveTab === "subscription" &&
+        (isOwnProfile ? (
+          <SubscriptionPlans />
+        ) : (
+          <SubscriptionStatusView key={profileId} userId={profileId} />
+        ))}
       {effectiveTab === "hoat-dong" && <ActivityTab key={profileId} userId={profileId} />}
     </main>
   );

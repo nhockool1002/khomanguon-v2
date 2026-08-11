@@ -24,7 +24,7 @@ describe('SubscriptionService.checkFreeDownloadEligibility — quota (tổng + t
   beforeEach(async () => {
     prisma = {
       subscriptionMembership: { findFirst: jest.fn() },
-      downloadEvent: { findFirst: jest.fn(), findMany: jest.fn() },
+      downloadEvent: { count: jest.fn() },
     };
 
     const module: TestingModule = await Test.createTestingModule({
@@ -42,18 +42,15 @@ describe('SubscriptionService.checkFreeDownloadEligibility — quota (tổng + t
 
   it('không có membership ACTIVE nào -> không eligible', async () => {
     prisma.subscriptionMembership.findFirst.mockResolvedValue(null);
-    const result = await service.checkFreeDownloadEligibility(
-      'user-1',
-      'link-1',
-    );
+    const result = await service.checkFreeDownloadEligibility('user-1');
     expect(result).toEqual({ eligible: false });
     // Không được đụng downloadEvent nếu đã biết chắc không có membership.
-    expect(prisma.downloadEvent.findFirst).not.toHaveBeenCalled();
+    expect(prisma.downloadEvent.count).not.toHaveBeenCalled();
   });
 
   it('chỉ tìm membership ACTIVE và còn hạn (endsAt > now) — bảo vệ chống hồi quy nếu ai đó lỡ xoá filter', async () => {
     prisma.subscriptionMembership.findFirst.mockResolvedValue(null);
-    await service.checkFreeDownloadEligibility('user-1', 'link-1');
+    await service.checkFreeDownloadEligibility('user-1');
     const call = prisma.subscriptionMembership.findFirst.mock.calls[0] as [
       { where: { status: string; endsAt: { gt: Date } } },
     ];
@@ -61,32 +58,26 @@ describe('SubscriptionService.checkFreeDownloadEligibility — quota (tổng + t
     expect(call[0].where.endsAt.gt).toBeInstanceOf(Date);
   });
 
-  it('link đã từng tải qua đúng kỳ Subscription này -> eligible, KHÔNG cần kiểm tra quota nữa (tải lại miễn phí)', async () => {
+  it('mỗi lần tải đều tính 1 lượt — kể cả tải lại đúng link đã từng tải trước đó (không có ngoại lệ "link cũ tải lại miễn phí")', async () => {
     prisma.subscriptionMembership.findFirst.mockResolvedValue(
       activeMembership({
-        plan: { totalDownloadLimit: 1, dailyDownloadLimit: 1 },
+        plan: { totalDownloadLimit: 2, dailyDownloadLimit: null },
       }),
     );
-    prisma.downloadEvent.findFirst.mockResolvedValue({ id: 'evt-1' });
-    const result = await service.checkFreeDownloadEligibility(
-      'user-1',
-      'link-1',
-    );
+    // Giả lập: user đã tải link-1 một lần (1 DownloadEvent), giờ tải LẠI đúng link-1 -> vẫn phải
+    // tính vào quota, không có nhánh "đã từng tải link này -> miễn phí" nữa.
+    prisma.downloadEvent.count.mockResolvedValue(1); // đã dùng 1/2
+    const result = await service.checkFreeDownloadEligibility('user-1');
     expect(result).toEqual({ eligible: true, membershipId: 'membership-1' });
-    // Không gọi findMany (đếm quota) vì đã eligible từ bước "đã từng tải".
-    expect(prisma.downloadEvent.findMany).not.toHaveBeenCalled();
   });
 
-  it('cả 2 giới hạn đều null (không giới hạn) -> luôn eligible', async () => {
+  it('cả 2 giới hạn đều null (không giới hạn) -> luôn eligible, không cần đếm quota', async () => {
     prisma.subscriptionMembership.findFirst.mockResolvedValue(
       activeMembership(),
     );
-    prisma.downloadEvent.findFirst.mockResolvedValue(null);
-    const result = await service.checkFreeDownloadEligibility(
-      'user-1',
-      'link-new',
-    );
+    const result = await service.checkFreeDownloadEligibility('user-1');
     expect(result).toEqual({ eligible: true, membershipId: 'membership-1' });
+    expect(prisma.downloadEvent.count).not.toHaveBeenCalled();
   });
 
   it('còn dưới giới hạn TỔNG -> eligible', async () => {
@@ -95,14 +86,8 @@ describe('SubscriptionService.checkFreeDownloadEligibility — quota (tổng + t
         plan: { totalDownloadLimit: 2, dailyDownloadLimit: null },
       }),
     );
-    prisma.downloadEvent.findFirst.mockResolvedValue(null);
-    prisma.downloadEvent.findMany.mockResolvedValue([
-      { downloadLinkId: 'link-a' },
-    ]); // đã dùng 1/2
-    const result = await service.checkFreeDownloadEligibility(
-      'user-1',
-      'link-new',
-    );
+    prisma.downloadEvent.count.mockResolvedValue(1); // đã dùng 1/2
+    const result = await service.checkFreeDownloadEligibility('user-1');
     expect(result).toEqual({ eligible: true, membershipId: 'membership-1' });
   });
 
@@ -112,15 +97,8 @@ describe('SubscriptionService.checkFreeDownloadEligibility — quota (tổng + t
         plan: { totalDownloadLimit: 2, dailyDownloadLimit: null },
       }),
     );
-    prisma.downloadEvent.findFirst.mockResolvedValue(null);
-    prisma.downloadEvent.findMany.mockResolvedValue([
-      { downloadLinkId: 'link-a' },
-      { downloadLinkId: 'link-b' },
-    ]); // đã dùng 2/2
-    const result = await service.checkFreeDownloadEligibility(
-      'user-1',
-      'link-new',
-    );
+    prisma.downloadEvent.count.mockResolvedValue(2); // đã dùng 2/2
+    const result = await service.checkFreeDownloadEligibility('user-1');
     expect(result).toEqual({ eligible: false });
   });
 
@@ -130,14 +108,8 @@ describe('SubscriptionService.checkFreeDownloadEligibility — quota (tổng + t
         plan: { totalDownloadLimit: null, dailyDownloadLimit: 3 },
       }),
     );
-    prisma.downloadEvent.findFirst.mockResolvedValue(null);
-    prisma.downloadEvent.findMany.mockResolvedValue([
-      { downloadLinkId: 'link-a' },
-    ]); // 1/3 hôm nay
-    const result = await service.checkFreeDownloadEligibility(
-      'user-1',
-      'link-new',
-    );
+    prisma.downloadEvent.count.mockResolvedValue(1); // 1/3 hôm nay
+    const result = await service.checkFreeDownloadEligibility('user-1');
     expect(result).toEqual({ eligible: true, membershipId: 'membership-1' });
   });
 
@@ -147,15 +119,11 @@ describe('SubscriptionService.checkFreeDownloadEligibility — quota (tổng + t
         plan: { totalDownloadLimit: 100, dailyDownloadLimit: 1 },
       }),
     );
-    prisma.downloadEvent.findFirst.mockResolvedValue(null);
-    // findMany được gọi 2 lần: lần 1 kiểm tra tổng (chưa chạm), lần 2 kiểm tra theo ngày (đã chạm).
-    prisma.downloadEvent.findMany
-      .mockResolvedValueOnce([{ downloadLinkId: 'link-a' }]) // tổng: 1/100, chưa chạm
-      .mockResolvedValueOnce([{ downloadLinkId: 'link-a' }]); // hôm nay: 1/1, đã chạm
-    const result = await service.checkFreeDownloadEligibility(
-      'user-1',
-      'link-new',
-    );
+    // count được gọi 2 lần: lần 1 kiểm tra tổng (chưa chạm), lần 2 kiểm tra theo ngày (đã chạm).
+    prisma.downloadEvent.count
+      .mockResolvedValueOnce(1) // tổng: 1/100, chưa chạm
+      .mockResolvedValueOnce(1); // hôm nay: 1/1, đã chạm
+    const result = await service.checkFreeDownloadEligibility('user-1');
     expect(result).toEqual({ eligible: false });
   });
 });

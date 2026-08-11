@@ -178,10 +178,7 @@ export class DownloadLinksService {
   // phí thì tính tiền $P bình thường.
   async unlockSmart(userId: string, linkId: string, ipAddress: string) {
     const eligibility =
-      await this.subscriptionService.checkFreeDownloadEligibility(
-        userId,
-        linkId,
-      );
+      await this.subscriptionService.checkFreeDownloadEligibility(userId);
     if (eligibility.eligible && eligibility.membershipId) {
       return this.unlockViaSubscription(
         userId,

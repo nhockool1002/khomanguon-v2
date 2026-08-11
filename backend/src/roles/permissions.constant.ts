@@ -51,6 +51,11 @@ export const PERMISSIONS = {
   AUDIT_VIEW: 'audit.view',
   // Quản lý gói Subscription/VIP (giá, thời hạn, giới hạn tải) — xem subscription-plans module.
   SETTINGS_SUBSCRIPTION: 'settings.subscription',
+  // Xem thông tin Subscription (gói đang dùng, hạn, quota đã tải) của NGƯỜI KHÁC trong trang Hồ sơ
+  // — chính chủ luôn xem được thông tin của mình mà không cần quyền này (xem
+  // subscription.controller.ts getUserStatus). Cùng mức nhạy cảm với WALLET_VIEW_ANY nên cũng gán
+  // mặc định cho Super Moderator (xem DEFAULT_ROLE_PERMISSIONS bên dưới).
+  SUBSCRIPTION_VIEW_ANY: 'subscription.view_any',
 } as const;
 
 export type PermissionKey = (typeof PERMISSIONS)[keyof typeof PERMISSIONS];
@@ -89,6 +94,7 @@ export const DEFAULT_ROLE_PERMISSIONS: Record<string, PermissionKey[]> = {
     PERMISSIONS.COMMENT_MODERATE,
     PERMISSIONS.USER_MANAGE,
     PERMISSIONS.WALLET_VIEW_ANY,
+    PERMISSIONS.SUBSCRIPTION_VIEW_ANY,
     PERMISSIONS.DOWNLOAD_MANAGE_LINKS,
     PERMISSIONS.MEDIA_MANAGE,
     PERMISSIONS.FEEDBACK_MANAGE,

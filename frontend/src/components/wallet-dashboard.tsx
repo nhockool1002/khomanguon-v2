@@ -23,7 +23,6 @@ import type {
   WalletTransactionListResponse,
 } from "@/lib/types";
 import { ErrorBanner } from "@/components/ui";
-import { SubscriptionPlans } from "@/components/subscription-plans";
 
 const STATUS_LABEL: Record<TopupOrder["status"], string> = {
   PENDING: "Đang chờ thanh toán",
@@ -207,8 +206,6 @@ export function WalletDashboard() {
           <p className="truncate font-mono text-3xl font-bold">{wallet?.balance ?? "—"} $P</p>
         </div>
       </div>
-
-      <SubscriptionPlans />
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         {/* Cột trái — xử lý nạp tiền */}
