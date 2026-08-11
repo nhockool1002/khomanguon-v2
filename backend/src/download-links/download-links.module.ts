@@ -6,9 +6,10 @@ import { DownloadRateLimitGuard } from './download-rate-limit.guard';
 import { AuthModule } from '../auth/auth.module';
 import { StorageModule } from '../storage/storage.module';
 import { RealtimeModule } from '../realtime/realtime.module';
+import { SubscriptionModule } from '../subscriptions/subscription.module';
 
 @Module({
-  imports: [AuthModule, StorageModule, RealtimeModule],
+  imports: [AuthModule, StorageModule, RealtimeModule, SubscriptionModule],
   controllers: [DownloadLinksController, DownloadLinkController],
   providers: [DownloadLinksService, DownloadRateLimitGuard],
   exports: [DownloadLinksService],

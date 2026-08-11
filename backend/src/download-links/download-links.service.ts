@@ -13,6 +13,7 @@ import { MailService } from '../mail/mail.service';
 import { AuditLogService } from '../audit-log/audit-log.service';
 import { EXCLUDE_ADMIN_USER_WHERE } from '../common/exclude-admin-user.filter';
 import { resolveStyleRoleSlug } from '../roles/style-role.util';
+import { SubscriptionService } from '../subscriptions/subscription.service';
 import { CreateDownloadLinkDto } from './dto/create-download-link.dto';
 import { UpdateDownloadLinkDto } from './dto/update-download-link.dto';
 
@@ -45,6 +46,7 @@ export class DownloadLinksService {
     private readonly walletGateway: WalletGateway,
     private readonly mailService: MailService,
     private readonly auditLog: AuditLogService,
+    private readonly subscriptionService: SubscriptionService,
   ) {}
 
   async createForPost(postId: string, dto: CreateDownloadLinkDto) {
@@ -169,11 +171,65 @@ export class DownloadLinksService {
     return detected;
   }
 
+  // Điểm vào DUY NHẤT từ controller (bổ sung 2026-08-11, thay cho gọi thẳng unlock()) — quyết định
+  // user có được tải MIỄN PHÍ theo quota Subscription hay không TRƯỚC KHI đụng vào luồng $P, mà
+  // KHÔNG sửa 1 dòng nào trong unlock() ở dưới. Hết quota Subscription (hoặc không có gói) thì rơi
+  // thẳng về unlock() y hệt hành vi hiện tại — không có khái niệm "chặn cứng", chỉ là hết phần miễn
+  // phí thì tính tiền $P bình thường.
+  async unlockSmart(userId: string, linkId: string, ipAddress: string) {
+    const eligibility =
+      await this.subscriptionService.checkFreeDownloadEligibility(userId);
+    if (eligibility.eligible && eligibility.membershipId) {
+      return this.unlockViaSubscription(
+        userId,
+        linkId,
+        ipAddress,
+        eligibility.membershipId,
+      );
+    }
+    return this.unlock(userId, linkId, ipAddress);
+  }
+
+  // Tải MIỄN PHÍ qua quota Subscription — KHÔNG đụng Wallet/WalletTransaction (yêu cầu rõ: user
+  // Subscription không bị trừ $P). Vẫn ghi DownloadGrant (nhất quán với danh sách "downloaders" ở
+  // toPublicInfo()/cloud-files.service.ts) và DownloadEvent (kèm subscriptionMembershipId để
+  // SubscriptionService đếm quota đã dùng — xem checkFreeDownloadEligibility) giống hệt nhánh miễn
+  // phí (priceP=0) của unlock() ở dưới, chỉ khác việc gắn thêm subscriptionMembershipId.
+  private async unlockViaSubscription(
+    userId: string,
+    linkId: string,
+    ipAddress: string,
+    subscriptionMembershipId: string,
+  ) {
+    const link = await this.getLinkOrThrow(linkId);
+
+    await this.prisma.$transaction(async (tx) => {
+      await tx.downloadGrant.create({
+        data: { userId, downloadLinkId: link.id },
+      });
+      await tx.downloadEvent.create({
+        data: {
+          userId,
+          downloadLinkId: link.id,
+          ipAddress,
+          subscriptionMembershipId,
+        },
+      });
+    });
+
+    const url = await this.r2Client.getPresignedDownloadUrl(
+      link.storageProviderId,
+      link.objectKey,
+    );
+    return { url };
+  }
+
   // Mỗi lượt tải luôn kiểm tra + trừ ví trong 1 transaction — KHÔNG có khái niệm "đã mở khoá thì
   // tải lại miễn phí" như thiết kế Phase 3 ban đầu (đã bỏ do yêu cầu thực tế: mỗi lần tải = 1 lần
   // trừ $P). DownloadGrant vẫn được ghi mỗi lần tải thành công — không còn dùng để kiểm tra quyền
   // truy cập, chỉ còn là lịch sử mua phục vụ tính doanh thu/danh sách member (cloud-files.service.ts).
   // Nhận thẳng linkId (thay vì postId) — đúng thiết kế nhiều link/bài, mỗi link mở khoá độc lập.
+  // KHÔNG SỬA HÀM NÀY khi đụng vào tính năng Subscription — mọi nhánh mới đi qua unlockSmart() ở trên.
   async unlock(userId: string, linkId: string, ipAddress: string) {
     const link = await this.prisma.downloadLink.findUnique({
       where: { id: linkId },
