@@ -312,6 +312,14 @@ describe('Subscription (e2e)', () => {
     });
   });
 
+  it('POST /subscriptions/orders khi ĐÃ có membership ACTIVE -> 400 (chặn mua chồng)', async () => {
+    await request(app.getHttpServer())
+      .post('/subscriptions/orders')
+      .set('Authorization', `Bearer ${accessToken}`)
+      .send({ planId })
+      .expect(400);
+  });
+
   it('webhook gọi lại TRÙNG (SePay retry) -> vẫn 200, KHÔNG tạo thêm membership thứ 2 (idempotent)', async () => {
     await request(app.getHttpServer())
       .post('/sepay/webhook')
@@ -374,6 +382,107 @@ describe('Subscription (e2e)', () => {
       where: { userId, code: { not: orderCode } },
     });
     expect(subOrderCount).toBe(0);
+  });
+
+  // ───────────────────────── Admin thu hồi (revoke) ─────────────────────────
+  // Block RIÊNG với user/membership tạo trực tiếp qua Prisma (không phụ thuộc lifecycle userId/
+  // accessToken ở trên) để không ảnh hưởng các test quota/cron hết hạn phía sau vẫn cần membership
+  // của userId chính còn ACTIVE.
+
+  describe('POST /subscriptions/users/:userId/revoke — Admin thu hồi trước hạn', () => {
+    const targetEmail = `e2e-subscription-revoke-target-${Date.now()}@khomanguon.local`;
+    const adminEmail = `e2e-subscription-revoke-admin-${Date.now()}@khomanguon.local`;
+    let targetUserId: string;
+    let targetToken: string;
+    let adminToken: string;
+
+    beforeAll(async () => {
+      const targetRes = await request(app.getHttpServer())
+        .post('/auth/register')
+        .send({ email: targetEmail, password, displayName: 'Revoke Target' })
+        .expect(201);
+      const targetBody = targetRes.body as AuthResponseBody;
+      targetUserId = targetBody.user.id;
+      targetToken = targetBody.accessToken;
+
+      const adminRes = await request(app.getHttpServer())
+        .post('/auth/register')
+        .send({ email: adminEmail, password, displayName: 'Revoke Admin' })
+        .expect(201);
+      adminToken = (adminRes.body as AuthResponseBody).accessToken;
+      const adminUserId = (adminRes.body as AuthResponseBody).user.id;
+
+      const adminRole = await prisma.role.findUniqueOrThrow({
+        where: { slug: 'admin' },
+      });
+      await prisma.userRole.create({
+        data: { userId: adminUserId, roleId: adminRole.id },
+      });
+
+      // Tạo thẳng 1 membership ACTIVE cho targetUserId (bỏ qua luồng mua/webhook — không phải điều
+      // đang test ở đây).
+      await prisma.subscriptionMembership.create({
+        data: {
+          userId: targetUserId,
+          planId,
+          endsAt: new Date(Date.now() + 24 * 60 * 60 * 1000),
+        },
+      });
+      const subRole = await prisma.role.findUniqueOrThrow({
+        where: { slug: 'subscription' },
+      });
+      await prisma.userRole.create({
+        data: { userId: targetUserId, roleId: subRole.id },
+      });
+    });
+
+    afterAll(async () => {
+      await prisma.subscriptionMembership.deleteMany({
+        where: { userId: targetUserId },
+      });
+      await prisma.userRole.deleteMany({
+        where: { userId: { in: [targetUserId] } },
+      });
+      await prisma.user.deleteMany({
+        where: { email: { in: [targetEmail, adminEmail] } },
+      });
+    });
+
+    it('user thường (kể cả chính chủ) không có quyền subscription.revoke -> 403', async () => {
+      await request(app.getHttpServer())
+        .post(`/subscriptions/users/${targetUserId}/revoke`)
+        .set('Authorization', `Bearer ${targetToken}`)
+        .expect(403);
+    });
+
+    it('Admin revoke thành công -> membership REVOKED, gỡ role, mất quyền tải free ngay lập tức', async () => {
+      await request(app.getHttpServer())
+        .post(`/subscriptions/users/${targetUserId}/revoke`)
+        .set('Authorization', `Bearer ${adminToken}`)
+        .expect(200, { success: true });
+
+      const membership = await prisma.subscriptionMembership.findFirstOrThrow({
+        where: { userId: targetUserId },
+        orderBy: { createdAt: 'desc' },
+      });
+      expect(membership.status).toBe('REVOKED');
+
+      const hasRole = await prisma.userRole.findFirst({
+        where: { userId: targetUserId, role: { slug: 'subscription' } },
+      });
+      expect(hasRole).toBeNull();
+
+      const eligibility =
+        await subscriptionService.checkFreeDownloadEligibility(targetUserId);
+      expect(eligibility).toEqual({ eligible: false });
+    });
+
+    it('revoke lại lần nữa (không còn membership ACTIVE) -> 404', async () => {
+      await request(app.getHttpServer())
+        .post(`/subscriptions/users/${targetUserId}/revoke`)
+        .set('Authorization', `Bearer ${adminToken}`)
+        .expect(404);
+    });
   });
 
   // ───────────────────────── Quota tải (đọc thẳng Postgres thật) ─────────────────────────

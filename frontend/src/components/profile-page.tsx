@@ -16,7 +16,6 @@ import { StyledUserName } from "@/components/styled-user-name";
 import { ProfileMessages } from "@/components/profile-messages";
 import { WalletDashboard } from "@/components/wallet-dashboard";
 import { ActivityTab } from "@/components/activity-tab";
-import { SubscriptionPlans } from "@/components/subscription-plans";
 import { SubscriptionStatusView } from "@/components/subscription-status-view";
 
 type Tab = "ho-so" | "thong-tin" | "bao-mat" | "vi" | "hoat-dong";
@@ -134,9 +133,10 @@ function TabButton({
 }
 
 // Nội dung công khai — ai cũng xem được, kể cả khách vãng lai chưa đăng nhập. Riêng card
-// Subscription (bên dưới ProfileMessages) KHÔNG công khai — chỉ chính chủ hoặc viewer có quyền
-// subscription.view_any mới thấy, người khác/khách vãng lai không thấy card này (isOwnProfile và
-// canViewSubscriptionAny đều false với khách vãng lai vì user === undefined lúc đó).
+// Subscription (ngay dưới phần bio, TRƯỚC ProfileMessages) KHÔNG công khai — chỉ chính chủ hoặc
+// viewer có quyền subscription.view_any mới thấy (isOwnProfile/canViewSubscriptionAny đều false với
+// khách vãng lai vì user === undefined lúc đó). Card tự ẩn nếu user đó hiện không có gói ACTIVE nào
+// (xem subscription-status-view.tsx) — mua gói giờ chỉ làm ở trang Nạp tiền, tab Hồ sơ chỉ đọc.
 function ProfileTab({
   profile,
   profileId,
@@ -196,15 +196,11 @@ function ProfileTab({
         </div>
       </div>
 
-      <ProfileMessages profileUserId={profileId} />
-
-      {isOwnProfile ? (
-        <SubscriptionPlans />
-      ) : (
-        canViewSubscriptionAny && (
-          <SubscriptionStatusView key={profileId} userId={profileId} />
-        )
+      {(isOwnProfile || canViewSubscriptionAny) && (
+        <SubscriptionStatusView key={profileId} userId={profileId} />
       )}
+
+      <ProfileMessages profileUserId={profileId} />
     </div>
   );
 }

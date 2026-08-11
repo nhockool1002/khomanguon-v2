@@ -23,9 +23,12 @@ export const PERMISSIONS = {
   NEWSLETTER_MANAGE: "newsletter.manage",
   MAINTENANCE_BYPASS: "maintenance.bypass",
   SETTINGS_SUBSCRIPTION: "settings.subscription",
-  // Xem thông tin Subscription (gói, hạn, quota đã tải) của NGƯỜI KHÁC ở tab Subscription trang Hồ
+  // Xem thông tin Subscription (gói, hạn, quota đã tải) của NGƯỜI KHÁC ở card Subscription trang Hồ
   // sơ — chính chủ luôn xem được, không cần quyền này (xem profile-page.tsx).
   SUBSCRIPTION_VIEW_ANY: "subscription.view_any",
+  // Thu hồi (revoke) gói Subscription của bất kỳ user nào trước hạn — nút "Thu hồi" ở card
+  // Subscription khi xem hồ sơ người khác (xem subscription-status-view.tsx).
+  SUBSCRIPTION_REVOKE: "subscription.revoke",
   DOWNLOAD_BYPASS: "download.bypass",
   SETTINGS_SEO: "settings.seo",
   SETTINGS_STORAGE_KEYS: "settings.storage_keys",
