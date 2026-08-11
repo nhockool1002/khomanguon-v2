@@ -430,6 +430,48 @@ export interface TopupOrderWithQr {
   qrUrl: string;
 }
 
+// ───────────────────────── Gói Subscription/VIP ─────────────────────────
+
+export interface SubscriptionPlan {
+  id: string;
+  name: string;
+  durationDays: number;
+  priceVnd: number;
+  totalDownloadLimit: number | null;
+  dailyDownloadLimit: number | null;
+  isActive: boolean;
+  order: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export type SubscriptionOrderStatus = "PENDING" | "SUCCESS" | "EXPIRED";
+
+export interface SubscriptionOrder {
+  id: string;
+  userId: string;
+  planId: string;
+  plan: SubscriptionPlan;
+  code: string;
+  amountVnd: number;
+  status: SubscriptionOrderStatus;
+  expiresAt: string;
+  createdAt: string;
+}
+
+export interface SubscriptionOrderWithQr {
+  order: SubscriptionOrder;
+  qrUrl: string;
+}
+
+export interface MySubscriptionStatus {
+  plan: SubscriptionPlan;
+  startsAt: string;
+  endsAt: string;
+  totalDownloadsUsed: number;
+  dailyDownloadsUsed: number;
+}
+
 export type WalletTxType = "TOPUP" | "PURCHASE" | "ADMIN_ADJUST" | "REFUND";
 export type WalletTxStatus = "PENDING" | "SUCCESS" | "FAILED";
 
