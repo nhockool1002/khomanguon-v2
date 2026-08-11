@@ -21,6 +21,8 @@ import { LinkReportsModule } from './link-reports/link-reports.module';
 import { FeedbackModule } from './feedback/feedback.module';
 import { BookmarksModule } from './bookmarks/bookmarks.module';
 import { NewsletterModule } from './newsletter/newsletter.module';
+import { SubscriptionPlansModule } from './subscription-plans/subscription-plans.module';
+import { SubscriptionModule } from './subscriptions/subscription.module';
 import { SepayModule } from './sepay/sepay.module';
 import { RealtimeModule } from './realtime/realtime.module';
 import { CloudFilesModule } from './cloud-files/cloud-files.module';
@@ -63,6 +65,8 @@ import { DbBackupModule } from './db-backup/db-backup.module';
     FeedbackModule,
     BookmarksModule,
     NewsletterModule,
+    SubscriptionPlansModule,
+    SubscriptionModule,
     SepayModule,
     RealtimeModule,
     CloudFilesModule,

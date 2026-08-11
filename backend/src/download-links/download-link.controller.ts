@@ -52,7 +52,9 @@ export class DownloadLinkController {
     @CurrentUser() user: AuthUser,
     @Ip() ip: string,
   ) {
-    return this.downloadLinksService.unlock(user.id, linkId, ip);
+    // unlockSmart() tự kiểm tra quota Subscription trước, hết quota (hoặc không có gói) mới rơi về
+    // unlock() ($P) — xem download-links.service.ts.
+    return this.downloadLinksService.unlockSmart(user.id, linkId, ip);
   }
 
   // Nút ẩn "Admin Get Presigned Link" (chỉ hiện trên FE với user có quyền download.bypass) — không
