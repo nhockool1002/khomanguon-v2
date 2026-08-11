@@ -212,12 +212,18 @@ describe('Subscription (e2e)', () => {
 
   // ───────────────────────── Webhook kích hoạt ─────────────────────────
 
-  it('GET /subscriptions/me trước khi thanh toán -> null (chưa có gói nào)', async () => {
+  it('GET /subscriptions/me trước khi thanh toán -> body rỗng (chưa có gói nào)', async () => {
+    // Controller trả về `null` khi chưa có membership; Nest/Express coi null là "không có nội dung"
+    // và gọi response.end() thay vì gửi chuỗi JSON "null" — supertest parse response rỗng thành {}
+    // (không phải `null` theo nghĩa JS). Frontend (apiFetch) tự suy ra null đúng từ Content-Type
+    // rỗng — xem lib/api.ts — nên hành vi thật với FE không bị ảnh hưởng, chỉ assertion ở đây cần
+    // khớp đúng những gì HTTP thật trả về.
     const res = await request(app.getHttpServer())
       .get('/subscriptions/me')
       .set('Authorization', `Bearer ${accessToken}`)
       .expect(200);
-    expect(res.body).toBeNull();
+    expect(res.body).toEqual({});
+    expect(res.text).toBe('');
   });
 
   it('webhook SePay sai Apikey -> 401, không kích hoạt', async () => {
@@ -268,6 +274,32 @@ describe('Subscription (e2e)', () => {
       where: { userId, role: { slug: 'subscription' } },
     });
     expect(hasRole).not.toBeNull();
+  });
+
+  // ───────────────────────── Riêng tư: xem Subscription của người khác ─────────────────────────
+
+  it('GET /subscriptions/users/:userId — chính chủ luôn xem được thông tin của mình', async () => {
+    const res = await request(app.getHttpServer())
+      .get(`/subscriptions/users/${userId}`)
+      .set('Authorization', `Bearer ${accessToken}`)
+      .expect(200);
+    expect(res.body).toMatchObject({ plan: { id: planId } });
+  });
+
+  it('GET /subscriptions/users/:userId — user KHÁC không có quyền subscription.view_any -> 403', async () => {
+    const viewerEmail = `e2e-subscription-viewer-${Date.now()}@khomanguon.local`;
+    const viewerRes = await request(app.getHttpServer())
+      .post('/auth/register')
+      .send({ email: viewerEmail, password, displayName: 'Viewer' })
+      .expect(201);
+    const viewerToken = (viewerRes.body as AuthResponseBody).accessToken;
+
+    await request(app.getHttpServer())
+      .get(`/subscriptions/users/${userId}`)
+      .set('Authorization', `Bearer ${viewerToken}`)
+      .expect(403);
+
+    await prisma.user.deleteMany({ where: { email: viewerEmail } });
   });
 
   it('GET /subscriptions/me sau khi thanh toán -> trả đúng gói vừa mua', async () => {
@@ -349,8 +381,6 @@ describe('Subscription (e2e)', () => {
   describe('checkFreeDownloadEligibility — quota thật trên Postgres (không mock)', () => {
     let membershipId: string;
     let linkAId: string;
-    let linkBId: string;
-    let linkCId: string;
 
     beforeAll(async () => {
       const membership = await prisma.subscriptionMembership.findFirstOrThrow({
@@ -358,31 +388,20 @@ describe('Subscription (e2e)', () => {
       });
       membershipId = membership.id;
 
-      const [linkA, linkB, linkC] = await Promise.all([
-        prisma.downloadLink.create({
-          data: { postId, label: 'A', storageProviderId, objectKey: 'a.zip' },
-        }),
-        prisma.downloadLink.create({
-          data: { postId, label: 'B', storageProviderId, objectKey: 'b.zip' },
-        }),
-        prisma.downloadLink.create({
-          data: { postId, label: 'C', storageProviderId, objectKey: 'c.zip' },
-        }),
-      ]);
+      const linkA = await prisma.downloadLink.create({
+        data: { postId, label: 'A', storageProviderId, objectKey: 'a.zip' },
+      });
       linkAId = linkA.id;
-      linkBId = linkB.id;
-      linkCId = linkC.id;
     });
 
-    it('chưa tải link nào -> eligible cho link A (plan giới hạn tổng 2 link)', async () => {
-      const result = await subscriptionService.checkFreeDownloadEligibility(
-        userId,
-        linkAId,
-      );
+    it('chưa tải lượt nào -> eligible (plan giới hạn tổng 2 lượt)', async () => {
+      const result =
+        await subscriptionService.checkFreeDownloadEligibility(userId);
       expect(result).toEqual({ eligible: true, membershipId });
     });
 
-    it('sau khi tải A + B (đủ 2/2 quota tổng) -> link C mới KHÔNG eligible', async () => {
+    it('mỗi lần tải đều tính 1 lượt — kể cả tải LẠI đúng link A cũ (không có ngoại lệ tải lại miễn phí)', async () => {
+      // Lượt 1: tải link A lần đầu.
       await prisma.downloadEvent.create({
         data: {
           userId,
@@ -391,28 +410,24 @@ describe('Subscription (e2e)', () => {
           subscriptionMembershipId: membershipId,
         },
       });
+      // Còn 1/2 -> vẫn eligible.
+      expect(
+        await subscriptionService.checkFreeDownloadEligibility(userId),
+      ).toEqual({ eligible: true, membershipId });
+
+      // Lượt 2: tải LẠI đúng link A (không phải link mới) -> vẫn phải tính vào quota.
       await prisma.downloadEvent.create({
         data: {
           userId,
-          downloadLinkId: linkBId,
+          downloadLinkId: linkAId,
           ipAddress: '1.1.1.1',
           subscriptionMembershipId: membershipId,
         },
       });
-
-      const resultC = await subscriptionService.checkFreeDownloadEligibility(
-        userId,
-        linkCId,
-      );
-      expect(resultC).toEqual({ eligible: false });
-    });
-
-    it('link A ĐÃ tải trước đó vẫn eligible để tải lại (không tính thêm vào quota dù đã hết quota)', async () => {
-      const resultA = await subscriptionService.checkFreeDownloadEligibility(
-        userId,
-        linkAId,
-      );
-      expect(resultA).toEqual({ eligible: true, membershipId });
+      // Đủ 2/2 -> hết quota, dù cả 2 lượt đều là CÙNG 1 link.
+      expect(
+        await subscriptionService.checkFreeDownloadEligibility(userId),
+      ).toEqual({ eligible: false });
     });
   });
 
@@ -440,10 +455,8 @@ describe('Subscription (e2e)', () => {
     expect(hasRole).toBeNull();
 
     // Quota cũng phải hết hiệu lực theo — không còn membership ACTIVE nào để tải free nữa.
-    const eligibility = await subscriptionService.checkFreeDownloadEligibility(
-      userId,
-      'bat-ky-link-nao',
-    );
+    const eligibility =
+      await subscriptionService.checkFreeDownloadEligibility(userId);
     expect(eligibility).toEqual({ eligible: false });
   });
 });
