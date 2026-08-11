@@ -3,6 +3,7 @@ import {
   ArrowLeft,
   Cloud,
   CreditCard,
+  Crown,
   FileClock,
   FileText,
   FolderTree,
@@ -215,6 +216,13 @@ export const ADMIN_NAV: NavEntry[] = [
         icon: Mail,
         match: "prefix",
         permission: PERMISSIONS.SETTINGS_MAIL,
+      },
+      {
+        href: "/admin/settings/subscription",
+        label: "Cài đặt Subscription",
+        icon: Crown,
+        match: "prefix",
+        permission: PERMISSIONS.SETTINGS_SUBSCRIPTION,
       },
       {
         href: "/admin/newsletter",
