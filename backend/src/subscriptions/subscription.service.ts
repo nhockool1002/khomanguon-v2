@@ -211,8 +211,8 @@ export class SubscriptionService {
     if (!membership) return null;
 
     const [totalDownloadsUsed, dailyDownloadsUsed] = await Promise.all([
-      this.countDistinctLinks(membership.id),
-      this.countDistinctLinks(membership.id, startOfToday()),
+      this.countDownloads(membership.id),
+      this.countDownloads(membership.id, startOfToday()),
     ]);
 
     return {
@@ -227,29 +227,26 @@ export class SubscriptionService {
   // Dùng bởi DownloadLinksService.unlockSmart() — chỉ ĐỌC, không có side-effect (không ghi
   // DownloadEvent ở đây, việc đó do DownloadLinksService làm sau khi biết eligible=true, để giữ
   // đúng 1 nơi duy nhất ghi DownloadEvent/DownloadGrant giống luồng $P hiện có).
+  //
+  // Quota đếm theo TỔNG SỐ LƯỢT TẢI — mỗi lần bấm tải đều tính 1, KỂ CẢ tải lại đúng link đã tải
+  // trước đó (không có khái niệm "link đã mở khoá thì tải lại miễn phí không tính quota" như bản
+  // đầu — đổi theo yêu cầu thực tế, khớp đúng cách priceP hoạt động ở unlock() $P: mỗi lần tải là 1
+  // lần trừ). Vì vậy hàm này không cần biết downloadLinkId cụ thể nào, chỉ cần biết CÒN QUOTA hay không.
   async checkFreeDownloadEligibility(
     userId: string,
-    downloadLinkId: string,
   ): Promise<{ eligible: boolean; membershipId?: string }> {
     const membership = await this.findActiveMembership(userId);
     if (!membership) return { eligible: false };
 
-    // Link ĐÃ tải qua đúng kỳ Subscription này rồi — tải lại miễn phí, không tính thêm vào quota
-    // (quota đếm theo SỐ LINK PHÂN BIỆT đã mở khoá, không đếm số lượt bấm tải).
-    const alreadyUnlocked = await this.prisma.downloadEvent.findFirst({
-      where: { subscriptionMembershipId: membership.id, downloadLinkId },
-    });
-    if (alreadyUnlocked) return { eligible: true, membershipId: membership.id };
-
     if (membership.plan.totalDownloadLimit !== null) {
-      const totalUsed = await this.countDistinctLinks(membership.id);
+      const totalUsed = await this.countDownloads(membership.id);
       if (totalUsed >= membership.plan.totalDownloadLimit) {
         return { eligible: false };
       }
     }
 
     if (membership.plan.dailyDownloadLimit !== null) {
-      const todayUsed = await this.countDistinctLinks(
+      const todayUsed = await this.countDownloads(
         membership.id,
         startOfToday(),
       );
@@ -273,19 +270,16 @@ export class SubscriptionService {
     });
   }
 
-  private async countDistinctLinks(
+  private async countDownloads(
     membershipId: string,
     since?: Date,
   ): Promise<number> {
-    const rows = await this.prisma.downloadEvent.findMany({
+    return this.prisma.downloadEvent.count({
       where: {
         subscriptionMembershipId: membershipId,
         ...(since && { createdAt: { gte: since } }),
       },
-      distinct: ['downloadLinkId'],
-      select: { downloadLinkId: true },
     });
-    return rows.length;
   }
 
   // ───────────────────────── Cron ─────────────────────────

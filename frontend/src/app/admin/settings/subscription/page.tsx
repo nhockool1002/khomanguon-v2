@@ -248,8 +248,9 @@ export default function AdminSubscriptionPlansPage() {
                 </div>
                 <p className="mt-1 text-sm text-zinc-500">
                   {plan.durationDays} ngày · {formatVnd(plan.priceVnd)} · tổng tối đa{" "}
-                  {plan.totalDownloadLimit ?? "không giới hạn"} link
-                  {plan.dailyDownloadLimit !== null && ` · tối đa ${plan.dailyDownloadLimit} link/ngày`}
+                  {plan.totalDownloadLimit ?? "không giới hạn"} lượt tải
+                  {plan.dailyDownloadLimit !== null &&
+                    ` · tối đa ${plan.dailyDownloadLimit} lượt tải/ngày`}
                 </p>
               </div>
               <div className="flex items-center gap-1">
@@ -338,7 +339,8 @@ function PlanFields({
         />
       </label>
       <label className="flex flex-col gap-1 text-sm text-zinc-700">
-        Tổng số link được tải (để trống = không giới hạn)
+        Tổng số lượt tải trong cả kỳ (mỗi lần bấm tải tính 1 lượt, kể cả tải lại — để trống = không
+        giới hạn)
         <input
           type="number"
           min={1}
@@ -349,7 +351,7 @@ function PlanFields({
         />
       </label>
       <label className="flex flex-col gap-1 text-sm text-zinc-700">
-        Giới hạn link tải / ngày (tuỳ chọn, để trống = không giới hạn)
+        Giới hạn lượt tải / ngày (tuỳ chọn, để trống = không giới hạn)
         <input
           type="number"
           min={1}
