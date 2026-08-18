@@ -5,6 +5,12 @@ import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { Injectable, Logger } from '@nestjs/common';
 import * as mammoth from 'mammoth';
 import { load } from 'cheerio';
+// GHIM CỨNG "2.17.5" (không phải "^2.17.5") trong package.json — từ 2.17.6 trở đi, sanitize-html
+// đổi dependency htmlparser2 sang bản thuần ESM (không có build CommonJS thật). require() vẫn chạy
+// được ở Node 22+ (tính năng "require(esm)" mới), nhưng Jest tự quản lý module loader riêng, KHÔNG
+// hỗ trợ tính năng này -> mọi test import tới AppModule (mọi *.e2e-spec.ts) crash "Cannot use
+// import statement outside a module". Bản 2.17.5 vẫn dùng htmlparser2 ^10.1.0 (có build CommonJS
+// thật qua "exports" map, không dựa vào tính năng mới của Node) — an toàn ở mọi môi trường.
 import sanitizeHtml from 'sanitize-html';
 import { MediaService } from '../media/media.service';
 import { guessImageMimeType } from '../common/mime-by-ext.util';
