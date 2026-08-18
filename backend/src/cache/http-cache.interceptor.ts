@@ -42,6 +42,12 @@ export class HttpCacheInterceptor implements NestInterceptor {
 
     const request = context.switchToHttp().getRequest<Request>();
     if (request.method !== 'GET') return next.handle();
+    // Mọi route @Cacheable đều dành cho khách công khai (không đọc @CurrentUser — xem comment trên).
+    // Request có Authorization là admin tự đọc lại dữ liệu vừa ghi (vd trang Cài đặt chung load lại
+    // sau khi Lưu) — nếu vẫn cache/set Cache-Control public như khách thường, CDN (Cloudflare) lẫn
+    // Redis sẽ trả bản CŨ tới 300s dù DB đã cập nhật đúng, admin thấy "lưu xong reload lại mất tick".
+    // Bỏ qua toàn bộ cache (đọc thẳng DB + không set Cache-Control) khi có Authorization.
+    if (request.headers.authorization) return next.handle();
 
     const response = context.switchToHttp().getResponse<Response>();
     // stale-while-revalidate gấp đôi ttl — cho phép CDN trả bản cũ ngay lập tức trong lúc âm thầm

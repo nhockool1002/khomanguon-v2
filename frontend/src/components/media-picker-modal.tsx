@@ -6,6 +6,8 @@ import { toAbsoluteUploadUrl } from "@/lib/upload";
 import { LOCAL_SOURCE, useMediaStorageTargets } from "@/lib/use-media-storage-targets";
 import type { MediaFile, MediaFileListResponse } from "@/lib/types";
 import { ErrorBanner } from "@/components/ui";
+import { useAuth } from "@/context/auth-context";
+import { PERMISSIONS } from "@/lib/permissions";
 
 const PAGE_SIZE = 24;
 
@@ -35,7 +37,12 @@ export function MediaPickerModal({
   const [error, setError] = useState<string | null>(null);
   const [selectedPaths, setSelectedPaths] = useState<Set<string>>(new Set());
   const [syncedOpen, setSyncedOpen] = useState(open);
+  const [contextMenu, setContextMenu] = useState<{ x: number; y: number; file: MediaFile } | null>(
+    null,
+  );
   const { targets, activeSource, setActiveSource } = useMediaStorageTargets();
+  const { user } = useAuth();
+  const canDelete = user?.permissionKeys?.includes(PERMISSIONS.MEDIA_MANAGE) ?? false;
 
   const loadFiles = useCallback(() => {
     setFetching(true);
@@ -81,11 +88,33 @@ export function MediaPickerModal({
   useEffect(() => {
     if (!open) return;
     function handleKey(e: KeyboardEvent) {
-      if (e.key === "Escape") onClose();
+      if (e.key !== "Escape") return;
+      // Escape đóng context menu trước (nếu đang mở) — bấm 1 lần nữa mới đóng cả modal, giống hành
+      // vi menu chuột phải chuẩn của hệ điều hành/trình duyệt.
+      setContextMenu((prev) => {
+        if (prev) return null;
+        onClose();
+        return prev;
+      });
     }
     window.addEventListener("keydown", handleKey);
     return () => window.removeEventListener("keydown", handleKey);
   }, [open, onClose]);
+
+  // Đóng context menu khi click ra ngoài hoặc cuộn — menu tự vẽ tuyệt đối, không nằm trong luồng
+  // click-outside mặc định của <div onClick={onClose}> ở overlay ngoài cùng.
+  useEffect(() => {
+    if (!contextMenu) return;
+    function close() {
+      setContextMenu(null);
+    }
+    window.addEventListener("click", close);
+    window.addEventListener("scroll", close, true);
+    return () => {
+      window.removeEventListener("click", close);
+      window.removeEventListener("scroll", close, true);
+    };
+  }, [contextMenu]);
 
   async function handleUpload(e: React.ChangeEvent<HTMLInputElement>) {
     const files = Array.from(e.target.files ?? []);
@@ -108,6 +137,26 @@ export function MediaPickerModal({
       setError(err instanceof ApiError ? err.message : "Tải lên thất bại");
     } finally {
       setUploading(false);
+    }
+  }
+
+  async function handleDelete(file: MediaFile) {
+    setContextMenu(null);
+    if (!confirm(`Xoá "${file.fileName}"? Không thể hoàn tác.`)) return;
+    setError(null);
+    try {
+      const query = new URLSearchParams({ path: file.path });
+      if (activeSource !== LOCAL_SOURCE) query.set("storageProviderId", activeSource);
+      await apiFetch(`/media?${query.toString()}`, { method: "DELETE" });
+      setSelectedPaths((prev) => {
+        if (!prev.has(file.path)) return prev;
+        const next = new Set(prev);
+        next.delete(file.path);
+        return next;
+      });
+      loadFiles();
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : "Có lỗi xảy ra");
     }
   }
 
@@ -240,6 +289,11 @@ export function MediaPickerModal({
                     key={file.path}
                     type="button"
                     onClick={() => toggleSelect(file)}
+                    onContextMenu={(e) => {
+                      if (!canDelete) return;
+                      e.preventDefault();
+                      setContextMenu({ x: e.clientX, y: e.clientY, file });
+                    }}
                     title={file.fileName}
                     className={`group relative flex aspect-square overflow-hidden rounded-md border-2 bg-zinc-100 transition-colors ${
                       isSelected ? "border-[#1d3557]" : "border-transparent hover:border-zinc-300"
@@ -310,6 +364,23 @@ export function MediaPickerModal({
           </div>
         </div>
       </div>
+
+      {contextMenu && (
+        <div
+          onClick={(e) => e.stopPropagation()}
+          onContextMenu={(e) => e.preventDefault()}
+          style={{ left: contextMenu.x, top: contextMenu.y }}
+          className="fixed z-[210] min-w-[140px] overflow-hidden rounded-md border border-zinc-200 bg-white py-1 shadow-lg"
+        >
+          <button
+            type="button"
+            onClick={() => handleDelete(contextMenu.file)}
+            className="block w-full px-3 py-1.5 text-left text-sm text-red-600 hover:bg-red-50"
+          >
+            Xoá ảnh
+          </button>
+        </div>
+      )}
     </div>
   );
 }

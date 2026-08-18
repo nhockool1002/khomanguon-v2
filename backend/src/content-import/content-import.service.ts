@@ -13,6 +13,7 @@ import { load } from 'cheerio';
 // thật qua "exports" map, không dựa vào tính năng mới của Node) — an toàn ở mọi môi trường.
 import sanitizeHtml from 'sanitize-html';
 import { MediaService } from '../media/media.service';
+import { PrismaService } from '../prisma/prisma.service';
 import { guessImageMimeType } from '../common/mime-by-ext.util';
 
 // Cho phép thêm "img" (sanitize-html KHÔNG bật mặc định dù có sẵn allowedAttributes.img — dễ hiểu
@@ -43,12 +44,35 @@ interface UploadImageParams {
 export class ContentImportService {
   private readonly logger = new Logger(ContentImportService.name);
 
-  constructor(private readonly mediaService: MediaService) {}
+  constructor(
+    private readonly mediaService: MediaService,
+    private readonly prisma: PrismaService,
+  ) {}
+
+  // Form nhập tài liệu (rich-text-editor.tsx) không có UI chọn nơi lưu như MediaPickerModal (tab
+  // Local/R2) — không truyền storageProviderId. Nếu cứ mặc định Local như uploadBuffer() thì toàn
+  // bộ ảnh trích từ docx/html/pdf luôn nằm trên đĩa VPS dù site đã cấu hình R2/S3 làm nơi lưu chính,
+  // lệch với kỳ vọng "ảnh nội dung bài viết dùng cloud storage đã cấu hình". Tự tra Provider đang
+  // isDefault (cùng điều kiện với GET /media/storage-targets — phải có publicBaseUrl mới dùng được)
+  // để dùng làm mặc định, chỉ rơi về Local khi site chưa cấu hình Provider mặc định nào.
+  private async resolveStorageProviderId(
+    explicit: string | undefined,
+  ): Promise<string | undefined> {
+    if (explicit) return explicit;
+    const provider = await this.prisma.storageProvider.findFirst({
+      where: { isDefault: true, publicBaseUrl: { not: null }, type: { in: ['R2', 'S3'] } },
+      select: { id: true },
+    });
+    return provider?.id;
+  }
 
   // docx → HTML qua mammoth — giữ định dạng tốt cho văn bản Word thường gặp (tiêu đề, đậm/nghiêng,
   // danh sách, bảng...), ảnh nhúng được mammoth tách ra qua convertImage() callback, tải lên Thư
   // viện Media qua uploadBuffer() rồi mới ghép URL thật vào <img src>.
   async fromDocx(buffer: Buffer, params: UploadImageParams): Promise<string> {
+    const storageProviderId = await this.resolveStorageProviderId(
+      params.storageProviderId,
+    );
     let imageIndex = 0;
     const result = await mammoth.convertToHtml(
       { buffer },
@@ -62,7 +86,7 @@ export class ContentImportService {
               mimetype: image.contentType,
               originalName: `docx-image-${imageIndex}`,
               uploadedById: params.uploadedById,
-              storageProviderId: params.storageProviderId,
+              storageProviderId,
             });
             return { src: url };
           } catch (err) {
@@ -83,6 +107,9 @@ export class ContentImportService {
   // Thư viện Media rồi thay src — nội dung sau khi chèn vào bài viết không còn phụ thuộc nguồn ngoài
   // (ảnh mất nếu domain gốc sập/đổi). Sanitize sau cùng để loại script/on* trước khi trả về.
   async fromHtml(html: string, params: UploadImageParams): Promise<string> {
+    const storageProviderId = await this.resolveStorageProviderId(
+      params.storageProviderId,
+    );
     const $ = load(html);
     const images = $('img').toArray();
 
@@ -100,7 +127,7 @@ export class ContentImportService {
             mimetype,
             originalName: 'pasted-image',
             uploadedById: params.uploadedById,
-            storageProviderId: params.storageProviderId,
+            storageProviderId,
           });
           $(img).attr('src', url);
         } catch (err) {
@@ -119,7 +146,7 @@ export class ContentImportService {
             mimetype,
             originalName: basename(new URL(src).pathname) || 'imported-image',
             uploadedById: params.uploadedById,
-            storageProviderId: params.storageProviderId,
+            storageProviderId,
           });
           $(img).attr('src', url);
         } catch (err) {
@@ -141,6 +168,9 @@ export class ContentImportService {
   // sang HTML (định dạng chảy tự do). Coi mỗi ảnh nền trang như 1 ảnh thường, tải lên Thư viện Media
   // như các luồng docx/html ở trên.
   async fromPdf(buffer: Buffer, params: UploadImageParams): Promise<string> {
+    const storageProviderId = await this.resolveStorageProviderId(
+      params.storageProviderId,
+    );
     const tmpDir = await mkdtemp(join(tmpdir(), 'content-import-pdf-'));
     try {
       const pdfPath = join(tmpDir, 'input.pdf');
@@ -166,7 +196,7 @@ export class ContentImportService {
             mimetype: guessImageMimeType(src),
             originalName: src,
             uploadedById: params.uploadedById,
-            storageProviderId: params.storageProviderId,
+            storageProviderId,
           });
           $(img).attr('src', url);
         } catch (err) {
