@@ -60,7 +60,11 @@ export class ContentImportService {
   ): Promise<string | undefined> {
     if (explicit) return explicit;
     const provider = await this.prisma.storageProvider.findFirst({
-      where: { isDefault: true, publicBaseUrl: { not: null }, type: { in: ['R2', 'S3'] } },
+      where: {
+        isDefault: true,
+        publicBaseUrl: { not: null },
+        type: { in: ['R2', 'S3'] },
+      },
       select: { id: true },
     });
     return provider?.id;

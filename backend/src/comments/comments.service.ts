@@ -8,6 +8,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { NotificationsService } from '../notifications/notifications.service';
 import { NotificationGateway } from '../realtime/notification.gateway';
 import { UserActivityService } from '../user-activity/user-activity.service';
+import { BadgesService } from '../badges/badges.service';
 import { resolveStyleRoleSlug } from '../roles/style-role.util';
 import { CreateCommentDto } from './dto/create-comment.dto';
 
@@ -61,6 +62,7 @@ export class CommentsService {
     private readonly notificationsService: NotificationsService,
     private readonly notificationGateway: NotificationGateway,
     private readonly userActivity: UserActivityService,
+    private readonly badges: BadgesService,
   ) {}
 
   // Công khai — chỉ bình luận đã duyệt (UC07, wireframe #03). sort/authorId cấu hình được qua
@@ -169,6 +171,7 @@ export class CommentsService {
       postTitle: post.title,
       commentId: comment.id,
     });
+    void this.badges.checkAndAward(userId);
 
     return { ...this.stripCount(comment), likedByMe: false };
   }

@@ -12,6 +12,7 @@ import { resolveStyleRoleSlug } from '../roles/style-role.util';
 import { buildUniqueSlug } from '../common/slugify';
 import { CacheService } from '../cache/cache.service';
 import { FrontendRevalidateService } from '../cache/frontend-revalidate.service';
+import { BadgesService } from '../badges/badges.service';
 import { CreatePostDto } from './dto/create-post.dto';
 import { UpdatePostDto } from './dto/update-post.dto';
 
@@ -93,6 +94,7 @@ export class PostsService {
     private readonly roles: RolesService,
     private readonly cache: CacheService,
     private readonly frontendRevalidate: FrontendRevalidateService,
+    private readonly badges: BadgesService,
   ) {}
 
   // "sort=popular" sắp theo viewCount — tìm kiếm dùng ILIKE trên title/excerpt (đơn giản, đủ
@@ -288,6 +290,8 @@ export class PostsService {
       this.cache.invalidatePrefix('posts'),
       this.frontendRevalidate.revalidateAll(),
     ]);
+    if (status === PostStatus.PUBLISHED)
+      void this.badges.checkAndAward(authorId);
     return mapPost(created);
   }
 
@@ -353,6 +357,11 @@ export class PostsService {
       this.cache.invalidatePrefix('posts'),
       this.frontendRevalidate.revalidateAll(),
     ]);
+    // Cấp huy hiệu cho TÁC GIẢ bài viết (post.authorId), không phải người bấm publish — editor có
+    // quyền POST_EDIT_ANY publish hộ bài của người khác vẫn phải tính đúng thành tích cho tác giả.
+    if (nextStatus === PostStatus.PUBLISHED) {
+      void this.badges.checkAndAward(post.authorId);
+    }
     return mapPost(updated);
   }
 

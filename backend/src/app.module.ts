@@ -30,6 +30,7 @@ import { WidgetsModule } from './widgets/widgets.module';
 import { SlidersModule } from './sliders/sliders.module';
 import { ContentImportModule } from './content-import/content-import.module';
 import { NotificationsModule } from './notifications/notifications.module';
+import { BadgesModule } from './badges/badges.module';
 import { SiteSettingsModule } from './settings/site-settings.module';
 import { MediaModule } from './media/media.module';
 import { CacheModule } from './cache/cache.module';
@@ -76,6 +77,7 @@ import { DbBackupModule } from './db-backup/db-backup.module';
     SlidersModule,
     ContentImportModule,
     NotificationsModule,
+    BadgesModule,
     SiteSettingsModule,
     MediaModule,
   ],

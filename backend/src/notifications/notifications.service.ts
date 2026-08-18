@@ -11,6 +11,7 @@ const notificationSelect = {
   actor: { select: { id: true, displayName: true, avatarUrl: true } },
   comment: { select: { id: true, content: true } },
   post: { select: { id: true, title: true, slug: true } },
+  badge: { select: { slug: true, name: true, icon: true } },
 } satisfies Prisma.NotificationSelect;
 
 const PREVIEW_LENGTH = 140;
@@ -51,6 +52,16 @@ export class NotificationsService {
 
     return this.prisma.notification.findMany({
       where: { userId: { in: validTargets }, commentId, actorId },
+      select: notificationSelect,
+    });
+  }
+
+  // Gọi từ BadgesService.checkAndAward() ngay sau khi tạo UserBadge — thông báo hệ thống, không có
+  // actor thật (khác createMentions ở trên) nên actorId để trống, khớp cột actorId đã nullable hoá
+  // riêng cho trường hợp này (xem migration 20260819100000_add_badges).
+  async createBadgeEarned(userId: string, badgeId: string) {
+    return this.prisma.notification.create({
+      data: { userId, type: NotificationType.BADGE_EARNED, badgeId },
       select: notificationSelect,
     });
   }

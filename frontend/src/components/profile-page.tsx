@@ -17,6 +17,7 @@ import { ProfileMessages } from "@/components/profile-messages";
 import { WalletDashboard } from "@/components/wallet-dashboard";
 import { ActivityTab } from "@/components/activity-tab";
 import { SubscriptionStatusView } from "@/components/subscription-status-view";
+import { UserBadges } from "@/components/user-badges";
 
 type Tab = "ho-so" | "thong-tin" | "bao-mat" | "vi" | "hoat-dong";
 const TABS: Tab[] = ["ho-so", "thong-tin", "bao-mat", "vi", "hoat-dong"];
@@ -195,6 +196,8 @@ function ProfileTab({
           {profile.bio && <p className="mt-1 text-sm text-zinc-700">{profile.bio}</p>}
         </div>
       </div>
+
+      <UserBadges userId={profileId} />
 
       {(isOwnProfile || canViewSubscriptionAny) && (
         <SubscriptionStatusView key={profileId} userId={profileId} />

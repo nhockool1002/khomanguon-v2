@@ -64,6 +64,7 @@ model User {
   feedbacksSubmitted     Feedback[]      @relation("FeedbackAuthor")
   feedbacksResolved      Feedback[]      @relation("FeedbackResolvedBy")
   bookmarks              PostBookmark[]
+  badges                 UserBadge[]
   activities             UserActivity[]
   auditLogs              AuditLog[]
   refreshTokens          RefreshToken[]
@@ -294,6 +295,36 @@ model PostBookmark {
   @@map("post_bookmarks")
 }
 
+// Huy hiệu thành tích (gamification) — danh mục cố định, hardcode ở
+// badges/badge-definitions.constant.ts và seed vào bảng này (cùng cách làm với Permission/
+// ALL_PERMISSION_KEYS), không có admin UI tạo/sửa vì chưa có nhu cầu thay đổi thường xuyên.
+model Badge {
+  id            String         @id @default(cuid())
+  slug          String         @unique
+  name          String
+  description   String
+  icon          String
+  createdAt     DateTime       @default(now())
+  userBadges    UserBadge[]
+  notifications Notification[]
+
+  @@map("badges")
+}
+
+// User đạt huy hiệu — tự động qua BadgesService.checkAndAward(), không phải composite-PK thuần
+// (khác UserRole) vì cần lưu thời điểm đạt được (createdAt), cùng shape PostBookmark/CommentLike.
+model UserBadge {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  badgeId   String
+  badge     Badge    @relation(fields: [badgeId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@unique([userId, badgeId])
+  @@map("user_badges")
+}
+
 // Menu đa cấp — cây tự tham chiếu, thứ tự/cấp độ cập nhật qua kéo-thả (UC16)
 model Menu {
   id           String  @id @default(cuid())
@@ -460,21 +491,25 @@ model CommentLike {
 
 enum NotificationType {
   MENTION
+  BADGE_EARNED
 }
 
 // Thông báo @mention trong bình luận — actorId là người gõ @, userId là người bị nhắc tới.
-// Chỉ 1 loại MENTION hiện tại; không làm thông báo cho like/reply (ngoài phạm vi yêu cầu).
+// BADGE_EARNED (2026-08-19, badges/) là hệ thống tự cấp khi đạt huy hiệu, không có actor thật —
+// actorId/actor NULLABLE riêng cho trường hợp này (MENTION vẫn luôn có actor).
 model Notification {
   id        String           @id @default(cuid())
   userId    String
   user      User             @relation("NotificationRecipient", fields: [userId], references: [id], onDelete: Cascade)
   type      NotificationType
-  actorId   String
-  actor     User             @relation("NotificationActor", fields: [actorId], references: [id], onDelete: Cascade)
+  actorId   String?
+  actor     User?            @relation("NotificationActor", fields: [actorId], references: [id], onDelete: Cascade)
   commentId String?
   comment   Comment?         @relation(fields: [commentId], references: [id], onDelete: Cascade)
   postId    String?
   post      Post?            @relation(fields: [postId], references: [id], onDelete: Cascade)
+  badgeId   String?
+  badge     Badge?           @relation(fields: [badgeId], references: [id], onDelete: Cascade)
   isRead    Boolean          @default(false)
   createdAt DateTime         @default(now())
 

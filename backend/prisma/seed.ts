@@ -6,6 +6,7 @@ import {
   DEFAULT_ROLE_PERMISSIONS,
   DEFAULT_ROLE_USER_TITLE_CONFIG,
 } from '../src/roles/permissions.constant';
+import { BADGE_DEFINITIONS } from '../src/badges/badge-definitions.constant';
 
 const prisma = new PrismaClient();
 
@@ -81,6 +82,15 @@ async function main() {
     });
   } else {
     console.log('SEED_ADMIN_EMAIL/SEED_ADMIN_PASSWORD chưa đặt — bỏ qua seed admin user.');
+  }
+
+  console.log('Seeding badges...');
+  for (const badge of BADGE_DEFINITIONS) {
+    await prisma.badge.upsert({
+      where: { slug: badge.slug },
+      update: { name: badge.name, description: badge.description, icon: badge.icon },
+      create: badge,
+    });
   }
 
   console.log('Seeding default widgets (nếu chưa có)...');

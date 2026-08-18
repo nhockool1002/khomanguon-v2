@@ -16,6 +16,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { WalletGateway } from '../realtime/wallet.gateway';
 import { MailService } from '../mail/mail.service';
 import { UserActivityService } from '../user-activity/user-activity.service';
+import { BadgesService } from '../badges/badges.service';
 import { encryptSecret, decryptSecret } from '../common/secret-crypto.util';
 import { UpdateSepayConfigDto } from './dto/update-sepay-config.dto';
 import {
@@ -43,6 +44,7 @@ export class SepayService {
     private readonly walletGateway: WalletGateway,
     private readonly mailService: MailService,
     private readonly userActivity: UserActivityService,
+    private readonly badges: BadgesService,
   ) {}
 
   // ───────────────────────── Cấu hình (Admin) ─────────────────────────
@@ -364,6 +366,7 @@ export class SepayService {
         amountVnd: payload.transferAmount,
         transactionCode: sepayTransactionCode,
       });
+      void this.badges.checkAndAward(order.userId);
     }
 
     return { credited: true };

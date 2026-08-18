@@ -204,16 +204,23 @@ export interface UserSearchResult {
   avatarUrl: string | null;
 }
 
-export type NotificationType = "MENTION";
+export type NotificationType = "MENTION" | "BADGE_EARNED";
 
 export interface AppNotification {
   id: string;
   type: NotificationType;
   isRead: boolean;
   createdAt: string;
-  actor: UserSearchResult;
+  // null cho thông báo hệ thống (vd BADGE_EARNED — không có ai "gây ra" thông báo này).
+  actor: UserSearchResult | null;
   comment: { id: string; content: string } | null;
   post: { id: string; title: string; slug: string } | null;
+  badge: { slug: string; name: string; icon: string } | null;
+}
+
+export interface UserBadge {
+  createdAt: string;
+  badge: { slug: string; name: string; description: string; icon: string };
 }
 
 // Bản ghi bình luận cho trang quản trị "Quản lý bình luận" — kèm thông tin bài viết vì kiểm duyệt

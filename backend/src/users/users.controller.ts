@@ -18,6 +18,7 @@ import { Permissions } from '../roles/decorators/permissions.decorator';
 import { PERMISSIONS } from '../roles/permissions.constant';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { UserActivityService } from '../user-activity/user-activity.service';
+import { BadgesService } from '../badges/badges.service';
 import { UpdateProfileDto } from './dto/update-profile.dto';
 import { ChangePasswordDto } from './dto/change-password.dto';
 import { AssignRoleDto } from './dto/assign-role.dto';
@@ -36,11 +37,16 @@ export class UsersController {
   constructor(
     private readonly usersService: UsersService,
     private readonly userActivity: UserActivityService,
+    private readonly badges: BadgesService,
   ) {}
 
   @UseGuards(JwtAuthGuard)
   @Get('me')
   getMe(@CurrentUser() user: AuthUser) {
+    // Điểm kiểm tra huy hiệu "veteran" (tuổi tài khoản) — KHÔNG đặt ở auth.service.ts vì sẽ tạo
+    // circular dependency (AuthModule cần BadgesModule → NotificationsModule → lại cần AuthModule).
+    // /users/me được gọi thường xuyên ở mọi trang đã đăng nhập (AuthProvider) nên đủ tần suất thay thế.
+    void this.badges.checkAndAward(user.id);
     return this.usersService.getProfile(user.id);
   }
 
@@ -57,6 +63,12 @@ export class UsersController {
       Number(page) || 1,
       Number(limit) || 20,
     );
+  }
+
+  // Huy hiệu thành tích công khai — cùng bar không-cần-đăng-nhập với listActivity() ở trên.
+  @Get(':id/badges')
+  listBadges(@Param('id') id: string) {
+    return this.badges.listForUser(id);
   }
 
   @UseGuards(JwtAuthGuard)

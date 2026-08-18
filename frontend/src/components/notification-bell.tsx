@@ -117,16 +117,23 @@ export function NotificationBell({ enabled }: { enabled: boolean }) {
             {items?.map((n) => (
               <Link
                 key={n.id}
-                href={n.post ? `/bai-viet/${n.post.slug}` : "#"}
+                href={n.type === "BADGE_EARNED" ? "/tai-khoan" : n.post ? `/bai-viet/${n.post.slug}` : "#"}
                 onClick={() => handleItemClick(n)}
                 className={`flex flex-col gap-0.5 border-b border-zinc-50 px-3 py-2 text-sm last:border-0 hover:bg-zinc-50 ${
                   n.isRead ? "" : "bg-blue-50/60"
                 }`}
               >
-                <span className="text-zinc-700">
-                  <span className="font-medium">{n.actor.displayName}</span> đã nhắc đến bạn
-                  {n.post && <> trong bài viết &quot;{n.post.title}&quot;</>}
-                </span>
+                {n.type === "BADGE_EARNED" ? (
+                  <span className="text-zinc-700">
+                    {n.badge?.icon} Bạn vừa đạt huy hiệu{" "}
+                    <span className="font-medium">{n.badge?.name}</span>!
+                  </span>
+                ) : (
+                  <span className="text-zinc-700">
+                    <span className="font-medium">{n.actor?.displayName}</span> đã nhắc đến bạn
+                    {n.post && <> trong bài viết &quot;{n.post.title}&quot;</>}
+                  </span>
+                )}
                 {n.comment && (
                   <span className="line-clamp-2 text-xs text-zinc-500">
                     {renderMentionText(n.comment.content)}
