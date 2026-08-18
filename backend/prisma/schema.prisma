@@ -365,6 +365,52 @@ model WidgetRole {
   @@map("widget_roles")
 }
 
+enum SliderBulletStyle {
+  DOTS
+  NUMBERS
+  THUMBNAILS
+  NONE
+}
+
+enum SliderTransitionStyle {
+  SLIDE
+  FADE
+  ZOOM
+  CUBE
+  COVERFLOW
+}
+
+// Slider/carousel tái sử dụng được — tạo 1 lần trong trang Quản lý Slider, chèn vào nhiều bài viết
+// khác nhau qua modal chọn Slider trong trình soạn (xem SliderSlide bên dưới cho danh sách ảnh).
+model Slider {
+  id              String                 @id @default(cuid())
+  title           String
+  bulletStyle     SliderBulletStyle      @default(DOTS)
+  transitionStyle SliderTransitionStyle  @default(SLIDE)
+  autoplay        Boolean                @default(true)
+  autoplayDelayMs Int                    @default(4000)
+  loop            Boolean                @default(true)
+  createdAt       DateTime               @default(now())
+  updatedAt       DateTime               @updatedAt
+
+  slides SliderSlide[]
+
+  @@map("sliders")
+}
+
+model SliderSlide {
+  id        String   @id @default(cuid())
+  sliderId  String
+  slider    Slider   @relation(fields: [sliderId], references: [id], onDelete: Cascade)
+  imageUrl  String
+  linkUrl   String?
+  caption   String?
+  order     Int      @default(0)
+  createdAt DateTime @default(now())
+
+  @@map("slider_slides")
+}
+
 enum CommentStatus {
   PUBLISHED
   HIDDEN

@@ -9,6 +9,7 @@ export const PERMISSIONS = {
   POST_DELETE: "post.delete",
   MENU_MANAGE: "menu.manage",
   WIDGET_MANAGE: "widget.manage",
+  SLIDER_MANAGE: "slider.manage",
   COMMENT_CREATE: "comment.create",
   COMMENT_MODERATE: "comment.moderate",
   USER_MANAGE: "user.manage",

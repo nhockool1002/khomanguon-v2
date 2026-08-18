@@ -152,6 +152,30 @@ export interface Widget {
   roleSlugs: string[];
 }
 
+export type SliderBulletStyle = "DOTS" | "NUMBERS" | "THUMBNAILS" | "NONE";
+export type SliderTransitionStyle = "SLIDE" | "FADE" | "ZOOM" | "CUBE" | "COVERFLOW";
+
+export interface SliderSlide {
+  id: string;
+  imageUrl: string;
+  linkUrl: string | null;
+  caption: string | null;
+  order: number;
+}
+
+export interface Slider {
+  id: string;
+  title: string;
+  bulletStyle: SliderBulletStyle;
+  transitionStyle: SliderTransitionStyle;
+  autoplay: boolean;
+  autoplayDelayMs: number;
+  loop: boolean;
+  createdAt: string;
+  updatedAt: string;
+  slides: SliderSlide[];
+}
+
 export type CommentStatus = "PUBLISHED" | "HIDDEN" | "PENDING";
 
 export interface CommentAuthor {

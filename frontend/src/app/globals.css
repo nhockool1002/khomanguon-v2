@@ -227,6 +227,24 @@ body {
 }
 
 /*
+ * Node "sliderEmbed" trong trình soạn Tiptap (tiptap-slider-node.ts) — chỉ hiện placeholder này
+ * TRONG lúc soạn bài (contenteditable), ở trang bài viết công khai prose-content.tsx sẽ mount
+ * SliderCarousel đè lên div[data-slider-embed] này nên style ở đây không ảnh hưởng người đọc.
+ */
+.slider-embed-placeholder {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  border: 1px dashed #a1a1aa;
+  border-radius: 0.5rem;
+  padding: 0.75rem 1rem;
+  color: #52525b;
+  font-size: 0.875rem;
+  background: #fafafa;
+  user-select: none;
+}
+
+/*
  * Chấm tròn cầu vồng xoay trước mỗi mục trong widget "Bài viết mới" (widget-area.tsx
  * RecentPostsWidget) — cùng kỹ thuật @property + conic-gradient với download-box-border, chỉ thu
  * nhỏ lại thành 1 chấm tròn thay vì viền khung.

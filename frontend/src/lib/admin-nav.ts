@@ -8,6 +8,7 @@ import {
   FileText,
   FolderTree,
   Tag as TagIcon,
+  GalleryHorizontal,
   Image as ImageIcon,
   LayoutGrid,
   LayoutTemplate,
@@ -115,6 +116,13 @@ export const ADMIN_NAV: NavEntry[] = [
         icon: LayoutGrid,
         match: "prefix",
         permission: PERMISSIONS.WIDGET_MANAGE,
+      },
+      {
+        href: "/admin/sliders",
+        label: "Quản lý Slider",
+        icon: GalleryHorizontal,
+        match: "prefix",
+        permission: PERMISSIONS.SLIDER_MANAGE,
       },
       {
         href: "/admin/menu",

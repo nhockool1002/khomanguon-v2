@@ -1,5 +1,3 @@
-import { mkdir, writeFile } from 'fs/promises';
-import { dirname, join } from 'path';
 import {
   BadRequestException,
   Body,
@@ -21,8 +19,6 @@ import { PermissionsGuard } from '../roles/guards/permissions.guard';
 import { Permissions } from '../roles/decorators/permissions.decorator';
 import { PERMISSIONS } from '../roles/permissions.constant';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
-import { UPLOAD_ROOT, buildDatedKey } from '../common/dated-upload.util';
-import { resizeToWebpBuffer } from '../common/image-pipeline.util';
 
 interface AuthUser {
   id: string;
@@ -112,30 +108,10 @@ export class MediaController {
   ) {
     if (!file) throw new BadRequestException('Thiếu file');
 
-    const { buffer, mimetype, ext } = await resizeToWebpBuffer(
-      file.buffer,
-      file.mimetype,
-    );
-    const key = buildDatedKey(ext || '.bin');
-
-    if (storageProviderId) {
-      await this.mediaService.putCloudObject(
-        storageProviderId,
-        key,
-        buffer,
-        mimetype,
-      );
-    } else {
-      const dest = join(UPLOAD_ROOT, key);
-      await mkdir(dirname(dest), { recursive: true });
-      await writeFile(dest, buffer);
-    }
-
-    await this.mediaService.record({
-      key,
+    await this.mediaService.uploadBuffer({
+      buffer: file.buffer,
+      mimetype: file.mimetype,
       originalName: file.originalname,
-      mimeType: mimetype,
-      sizeBytes: buffer.length,
       uploadedById: user.id,
       storageProviderId: storageProviderId || undefined,
     });

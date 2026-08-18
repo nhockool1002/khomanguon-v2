@@ -1,5 +1,5 @@
 import { promises as fs } from 'fs';
-import { basename, extname, join, relative, sep } from 'path';
+import { dirname, basename, join, relative, sep } from 'path';
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { R2ClientService } from '../storage/r2-client.service';
@@ -7,15 +7,10 @@ import {
   MEDIA_KEY_PREFIX,
   MEDIA_ROOT,
   UPLOAD_ROOT,
+  buildDatedKey,
 } from '../common/dated-upload.util';
-
-const IMAGE_MIME_BY_EXT: Record<string, string> = {
-  '.jpg': 'image/jpeg',
-  '.jpeg': 'image/jpeg',
-  '.png': 'image/png',
-  '.webp': 'image/webp',
-  '.gif': 'image/gif',
-};
+import { resizeToWebpBuffer } from '../common/image-pipeline.util';
+import { guessImageMimeType } from '../common/mime-by-ext.util';
 
 export interface MediaFileEntry {
   // Local: đường dẫn tương đối (từ /uploads). Cloud: object key thật trên bucket (luôn bắt đầu
@@ -40,12 +35,6 @@ export interface ListMediaParams {
 
 function toRelPath(absolutePath: string): string {
   return relative(UPLOAD_ROOT, absolutePath).split(sep).join('/');
-}
-
-function guessMimeType(key: string): string {
-  return (
-    IMAGE_MIME_BY_EXT[extname(key).toLowerCase()] ?? 'application/octet-stream'
-  );
 }
 
 // Thư viện Media (kiểu WordPress) — Local quét trực tiếp cây thư mục đĩa uploads/posts/yyyy/mm/dd
@@ -74,7 +63,9 @@ export class MediaService {
       const full = join(dir, entry.name);
       if (entry.isDirectory()) {
         files.push(...(await this.walk(full)));
-      } else if (IMAGE_MIME_BY_EXT[extname(entry.name).toLowerCase()]) {
+      } else if (
+        guessImageMimeType(entry.name) !== 'application/octet-stream'
+      ) {
         files.push(full);
       }
     }
@@ -142,7 +133,7 @@ export class MediaService {
         url,
         fileName: dbRow?.originalName ?? basename(relPath),
         sizeBytes: stat.size,
-        mimeType: guessMimeType(relPath),
+        mimeType: guessImageMimeType(relPath),
         createdAt: stat.mtime.toISOString(),
         uploadedBy: dbRow?.uploadedBy ?? null,
       };
@@ -211,7 +202,7 @@ export class MediaService {
         url: `${publicBase}/${obj.key}`,
         fileName: dbRow?.originalName ?? fileName,
         sizeBytes: obj.sizeBytes,
-        mimeType: guessMimeType(obj.key),
+        mimeType: guessImageMimeType(obj.key),
         createdAt: (obj.lastModified ?? new Date()).toISOString(),
         uploadedBy: dbRow?.uploadedBy ?? null,
       };
@@ -230,7 +221,7 @@ export class MediaService {
     sizeBytes: number;
     uploadedById: string;
     storageProviderId?: string;
-  }): Promise<void> {
+  }): Promise<{ url: string }> {
     const {
       key,
       originalName,
@@ -261,6 +252,46 @@ export class MediaService {
         uploadedById,
         storageProviderId,
       },
+    });
+    return { url };
+  }
+
+  // Upload 1 ảnh từ Buffer (không qua multipart HTTP) — dùng bởi MediaController.upload() và các
+  // nơi tự tạo ảnh trong lúc xử lý (vd content-import: ảnh trích từ docx/html/pdf). Gộp lại logic
+  // resize→chọn nơi ghi (đĩa hay cloud)→ghi bảng MediaFile từng bị lặp lại giữa các chỗ gọi.
+  async uploadBuffer(params: {
+    buffer: Buffer;
+    mimetype: string;
+    originalName: string;
+    uploadedById: string;
+    storageProviderId?: string;
+  }): Promise<{ url: string }> {
+    const { buffer, mimetype, ext } = await resizeToWebpBuffer(
+      params.buffer,
+      params.mimetype,
+    );
+    const key = buildDatedKey(ext || '.bin');
+
+    if (params.storageProviderId) {
+      await this.putCloudObject(
+        params.storageProviderId,
+        key,
+        buffer,
+        mimetype,
+      );
+    } else {
+      const dest = join(UPLOAD_ROOT, key);
+      await fs.mkdir(dirname(dest), { recursive: true });
+      await fs.writeFile(dest, buffer);
+    }
+
+    return this.record({
+      key,
+      originalName: params.originalName,
+      mimeType: mimetype,
+      sizeBytes: buffer.length,
+      uploadedById: params.uploadedById,
+      storageProviderId: params.storageProviderId,
     });
   }
 

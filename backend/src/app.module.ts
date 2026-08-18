@@ -27,6 +27,8 @@ import { SepayModule } from './sepay/sepay.module';
 import { RealtimeModule } from './realtime/realtime.module';
 import { CloudFilesModule } from './cloud-files/cloud-files.module';
 import { WidgetsModule } from './widgets/widgets.module';
+import { SlidersModule } from './sliders/sliders.module';
+import { ContentImportModule } from './content-import/content-import.module';
 import { NotificationsModule } from './notifications/notifications.module';
 import { SiteSettingsModule } from './settings/site-settings.module';
 import { MediaModule } from './media/media.module';
@@ -71,6 +73,8 @@ import { DbBackupModule } from './db-backup/db-backup.module';
     RealtimeModule,
     CloudFilesModule,
     WidgetsModule,
+    SlidersModule,
+    ContentImportModule,
     NotificationsModule,
     SiteSettingsModule,
     MediaModule,

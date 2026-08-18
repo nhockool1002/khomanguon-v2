@@ -23,6 +23,13 @@ fix(wallet): chặn webhook SePay cộng tiền trùng khi gọi lại
 docs(plan): cập nhật checklist Phase 2
 ```
 
+## Dependency hệ thống (backend, chạy trực tiếp trên máy — không qua Docker)
+
+- `pdftohtml` (gói `poppler-utils`) — cần cho tính năng "Nhập tài liệu PDF" (content-import module).
+  Cài: `brew install poppler` (macOS) / `apt install poppler-utils` (Debian/Ubuntu). Image production
+  (`backend/Dockerfile`) đã cài sẵn qua `apk add poppler-utils`.
+- `pg_dump` (gói `postgresql-client`, khớp version Postgres đang chạy) — cần cho tính năng Backup DB.
+
 ## Code style
 
 - Lint trước khi commit: `pnpm run lint` trong `frontend/` hoặc `backend/`.

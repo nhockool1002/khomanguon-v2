@@ -8,5 +8,8 @@ import { StorageModule } from '../storage/storage.module';
   imports: [AuthModule, StorageModule],
   controllers: [MediaController],
   providers: [MediaService],
+  // Export để content-import.module.ts tái dùng uploadBuffer() (ảnh trích từ docx/html/pdf) thay vì
+  // tự viết lại logic ghi đĩa/cloud + bảng MediaFile lần nữa.
+  exports: [MediaService],
 })
 export class MediaModule {}

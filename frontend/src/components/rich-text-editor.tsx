@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
 import { type Editor, EditorContent, useEditor } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import Subscript from "@tiptap/extension-subscript";
@@ -37,9 +37,30 @@ import {
   Link2,
   Unlink,
   ImagePlus,
+  GalleryHorizontal,
+  FileUp,
   Table as TableIcon,
 } from "lucide-react";
 import { MediaPickerModal } from "@/components/media-picker-modal";
+import { SliderPickerModal } from "@/components/slider-picker-modal";
+import { SliderEmbed } from "@/components/tiptap-slider-node";
+import { apiFetch, ApiError } from "@/lib/api";
+import { toAbsoluteUploadUrl } from "@/lib/upload";
+import { ErrorBanner } from "@/components/ui";
+import type { Slider } from "@/lib/types";
+
+// Backend trả src ảnh tương đối cho lưu trữ Local (giống mọi endpoint khác — xem comment
+// create-post.dto.ts "FE luôn gửi URL ảnh tuyệt đối") — HTML từ /content-import/* chèn thẳng vào
+// editor qua insertContent() nên phải tự ghép NEXT_PUBLIC_API_URL ở đây trước khi chèn, khác với
+// MediaPickerModal (đã tự làm việc này trong handleConfirm() trước khi gọi onSelect()).
+function absolutizeImageSrc(html: string): string {
+  const doc = new DOMParser().parseFromString(html, "text/html");
+  doc.querySelectorAll("img").forEach((img) => {
+    const src = img.getAttribute("src");
+    if (src) img.setAttribute("src", toAbsoluteUploadUrl(src));
+  });
+  return doc.body.innerHTML;
+}
 
 // WYSIWYG cho nội dung bài viết — Tiptap (đổi từ CKEditor 5, 2026-08-09, yêu cầu thực tế: CKEditor
 // cướp focus bàn phím về nút toolbar sau khi click nội dung, dù đã 3 lần vá vẫn tái diễn — xem lịch
@@ -112,9 +133,15 @@ function ToolbarDivider() {
 function Toolbar({
   editor,
   onOpenMediaPicker,
+  onOpenSliderPicker,
+  onImportDocument,
+  importing,
 }: {
   editor: Editor;
   onOpenMediaPicker: () => void;
+  onOpenSliderPicker: () => void;
+  onImportDocument: () => void;
+  importing: boolean;
 }) {
   const currentHeadingValue = HEADING_OPTIONS.find(({ value }) =>
     value === "0" ? editor.isActive("paragraph") : editor.isActive("heading", { level: Number(value) }),
@@ -263,6 +290,16 @@ function Toolbar({
       <ToolbarButton title="Chọn ảnh" onClick={onOpenMediaPicker}>
         <ImagePlus size={16} />
       </ToolbarButton>
+      <ToolbarButton title="Chèn Slider" onClick={onOpenSliderPicker}>
+        <GalleryHorizontal size={16} />
+      </ToolbarButton>
+      <ToolbarButton
+        title="Nhập tài liệu (.docx/.html/.pdf)"
+        disabled={importing}
+        onClick={onImportDocument}
+      >
+        <FileUp size={16} />
+      </ToolbarButton>
       <ToolbarButton
         title="Chèn bảng"
         onClick={() => editor.chain().focus().insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run()}
@@ -281,6 +318,10 @@ export function RichTextEditor({
   onChange: (html: string) => void;
 }) {
   const [mediaModalOpen, setMediaModalOpen] = useState(false);
+  const [sliderModalOpen, setSliderModalOpen] = useState(false);
+  const [importing, setImporting] = useState(false);
+  const [importError, setImportError] = useState<string | null>(null);
+  const importInputRef = useRef<HTMLInputElement>(null);
   // Chỉ lấy "value" làm nội dung KHỞI TẠO — không tiếp tục đồng bộ mỗi lần "value" đổi (value đổi
   // mỗi keystroke vì onUpdate bắn ngược lên PostForm.contentHtml). Cùng lý do với EDITOR_PROPS ở
   // trên: nếu content bám theo "value" sống, mỗi keystroke lại khiến compareOptions() thấy field
@@ -307,6 +348,7 @@ export function RichTextEditor({
       TaskItem.configure({ nested: true }),
       TableKit,
       TiptapImage,
+      SliderEmbed,
       Placeholder.configure({ placeholder: "Viết nội dung bài viết..." }),
     ],
     [],
@@ -330,6 +372,64 @@ export function RichTextEditor({
     [editor],
   );
 
+  const handleSliderSelect = useCallback(
+    (slider: Slider) => {
+      if (!editor) return;
+      // insertSliderEmbed chèn 1 node atom — ProseMirror để lại NodeSelection NGAY TRÊN node vừa
+      // chèn (thấy rõ qua class "ProseMirror-selectednode" trên DOM), không tự đẩy con trỏ ra sau
+      // nó. Nếu không dời selection, 1 lệnh insertContent/insertSliderEmbed kế tiếp (chèn ảnh, chèn
+      // slider khác, nhập tài liệu...) sẽ THAY THẾ đúng node atom này thay vì chèn tiếp sau nó — bug
+      // đã xác nhận qua devtools khi test nối tiếp 2 lượt "Nhập tài liệu" (ảnh lượt 1 biến mất).
+      // Tách làm 2 lệnh .run() riêng (không gộp 1 chain) — editor.state chỉ phản ánh doc MỚI sau khi
+      // lệnh insert trước đã thực sự dispatch xong; nếu gộp chung 1 chain, "editor.state.doc" đọc
+      // được ở đây vẫn là state TRƯỚC insert (JS evaluate tham số ngay lúc gọi, không phải lúc chain
+      // thực thi), tính sai vị trí cuối doc.
+      editor.chain().focus().insertSliderEmbed({ sliderId: slider.id, title: slider.title }).run();
+      editor.chain().setTextSelection(editor.state.doc.content.size).run();
+    },
+    [editor],
+  );
+
+  // Chọn endpoint theo đuôi file — tên field multipart luôn là "file" ở cả 3 route (xem
+  // content-import.controller.ts backend), chỉ khác đường dẫn xử lý theo định dạng.
+  async function handleImportFile(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file || !editor) return;
+
+    const name = file.name.toLowerCase();
+    const endpoint = name.endsWith(".docx")
+      ? "/content-import/docx"
+      : name.endsWith(".html") || name.endsWith(".htm")
+        ? "/content-import/html"
+        : name.endsWith(".pdf")
+          ? "/content-import/pdf"
+          : null;
+    if (!endpoint) {
+      setImportError("Chỉ hỗ trợ file .docx, .html hoặc .pdf");
+      return;
+    }
+
+    setImportError(null);
+    setImporting(true);
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+      const { html } = await apiFetch<{ html: string }>(endpoint, {
+        method: "POST",
+        body: formData,
+      });
+      // Xem comment ở handleSliderSelect — cùng lý do phải dời selection về cuối doc bằng 1 lệnh
+      // .run() riêng sau khi insert xong.
+      editor.chain().focus().insertContent(absolutizeImageSrc(html)).run();
+      editor.chain().setTextSelection(editor.state.doc.content.size).run();
+    } catch (err) {
+      setImportError(err instanceof ApiError ? err.message : "Nhập tài liệu thất bại");
+    } finally {
+      setImporting(false);
+    }
+  }
+
   if (!editor) {
     return (
       <div className="flex min-h-[320px] items-center justify-center rounded-md border border-zinc-300 text-sm text-zinc-400">
@@ -340,13 +440,41 @@ export function RichTextEditor({
 
   return (
     <div className="overflow-hidden rounded-md border border-zinc-300 focus-within:border-[#1d3557] focus-within:ring-1 focus-within:ring-[#1d3557]">
-      <Toolbar editor={editor} onOpenMediaPicker={() => setMediaModalOpen(true)} />
+      <Toolbar
+        editor={editor}
+        onOpenMediaPicker={() => setMediaModalOpen(true)}
+        onOpenSliderPicker={() => setSliderModalOpen(true)}
+        onImportDocument={() => importInputRef.current?.click()}
+        importing={importing}
+      />
+      {importing && (
+        <p className="border-b border-zinc-200 bg-zinc-50 px-3 py-1.5 text-xs text-zinc-500">
+          Đang nhập tài liệu...
+        </p>
+      )}
+      {importError && (
+        <div className="border-b border-zinc-200 px-3 py-1.5">
+          <ErrorBanner message={importError} />
+        </div>
+      )}
       <EditorContent editor={editor} />
       <MediaPickerModal
         open={mediaModalOpen}
         multiple
         onClose={() => setMediaModalOpen(false)}
         onSelect={handleMediaSelect}
+      />
+      <SliderPickerModal
+        open={sliderModalOpen}
+        onClose={() => setSliderModalOpen(false)}
+        onSelect={handleSliderSelect}
+      />
+      <input
+        ref={importInputRef}
+        type="file"
+        accept=".docx,.html,.htm,.pdf"
+        onChange={handleImportFile}
+        className="hidden"
       />
     </div>
   );

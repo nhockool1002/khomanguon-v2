@@ -7,6 +7,7 @@ import type {
   PostSummary,
   PublicProfile,
   RoleBadgeInfo,
+  Slider,
   Tag,
   Widget,
 } from "./types";
@@ -97,6 +98,12 @@ export async function fetchWidgets(area: string): Promise<Widget[]> {
   return (result ?? [])
     .filter((w) => w.area === area && w.isActive && w.roleSlugs.length === 0)
     .sort((a, b) => a.order - b.order);
+}
+
+// Dùng bởi prose-content.tsx (client-side, hydrate embed [data-slider-embed] trong nội dung bài
+// viết sau khi Tiptap render ra HTML) — trả null nếu slider đã bị xoá sau khi chèn vào bài viết.
+export async function fetchSliderById(id: string): Promise<Slider | null> {
+  return publicFetch<Slider>(`/sliders/${id}`);
 }
 
 // Style badge role (title/color/bold/italic/font) — công khai vì hiện cạnh bình luận/byline bài
