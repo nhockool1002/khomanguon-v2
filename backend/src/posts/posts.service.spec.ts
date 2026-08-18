@@ -7,6 +7,7 @@ import { RolesService } from '../roles/roles.service';
 import { PERMISSIONS } from '../roles/permissions.constant';
 import { CacheService } from '../cache/cache.service';
 import { FrontendRevalidateService } from '../cache/frontend-revalidate.service';
+import { BadgesService } from '../badges/badges.service';
 
 describe('PostsService.update — phân quyền sửa bài (post.edit.own / post.edit.any)', () => {
   let service: PostsService;
@@ -59,6 +60,10 @@ describe('PostsService.update — phân quyền sửa bài (post.edit.own / post
         {
           provide: FrontendRevalidateService,
           useValue: { revalidateAll: jest.fn() },
+        },
+        {
+          provide: BadgesService,
+          useValue: { checkAndAward: jest.fn() },
         },
       ],
     }).compile();
