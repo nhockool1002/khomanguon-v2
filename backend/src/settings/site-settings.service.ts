@@ -101,6 +101,9 @@ export class SiteSettingsService {
       }),
       ...(dto.footerText !== undefined && { footerText: dto.footerText }),
       ...(dto.rateLimits !== undefined && { rateLimits: dto.rateLimits }),
+      ...(dto.maintenanceMode !== undefined && {
+        maintenanceMode: dto.maintenanceMode,
+      }),
     };
     await this.prisma.siteSetting.upsert({
       where: { key: GENERAL_SETTINGS_KEY },

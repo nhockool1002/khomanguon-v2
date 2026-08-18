@@ -180,10 +180,17 @@ export function PostForm({
               className="rounded-md border border-zinc-300 px-3 py-2 text-sm text-zinc-900 outline-none focus:border-[#1d3557] focus:ring-1 focus:ring-[#1d3557]"
             />
           </label>
-          <label className="flex flex-col gap-1.5 text-sm text-zinc-700">
+          {/* KHÔNG dùng <label> bọc RichTextEditor — RichTextEditor chứa nhiều <input> thật (màu chữ,
+              màu nền, nhập tài liệu). Nếu bọc trong <label>, trình duyệt tự coi input ĐẦU TIÊN trong
+              cây DOM là "control được gán nhãn": bấm vào BẤT KỲ đâu trong vùng soạn thảo (kể cả không
+              phải chính input đó) sẽ khiến trình duyệt tự chuyển focus sang input ẩn đó — rớt
+              caret/selection khỏi editor ngay khi vừa bấm vào, người dùng thấy như bị "undo". Đã xác
+              minh qua test độc lập: click vào <div contenteditable> trong <label> bao 1 <input> luôn
+              kích hoạt "focusin" sang input dù không click trực tiếp vào nó. */}
+          <div className="flex flex-col gap-1.5 text-sm text-zinc-700">
             Nội dung
             <RichTextEditor value={contentHtml} onChange={setContentHtml} />
-          </label>
+          </div>
         </div>
 
         <div className="flex w-full flex-col gap-4 lg:w-80 lg:flex-none">
