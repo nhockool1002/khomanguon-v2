@@ -4,13 +4,15 @@ import { useCallback, useEffect, useState } from "react";
 import { apiFetch, ApiError } from "@/lib/api";
 import { formatFileSize } from "@/lib/format";
 import type { CloudFile, DownloadLinkPublic, StorageProvider } from "@/lib/types";
+import { Skeleton } from "@/components/ui";
 
 // "Download Config" — cấu hình link tải trả phí gắn theo bài viết (Cloud Storage + Key File + @Cash),
 // khớp bố cục trang quản trị v1 cũ. Hỗ trợ NHIỀU link/bài (đổi thiết kế — trước đây chỉ 1 link
 // "chính"/bài) — mỗi link là 1 hàng, mở rộng sửa/lưu/xoá riêng, giống WidgetEditPanel.
 export function DownloadConfigPanel({ postId }: { postId?: string }) {
   const [providers, setProviders] = useState<StorageProvider[]>([]);
-  const [links, setLinks] = useState<DownloadLinkPublic[]>([]);
+  // null = đang tải lần đầu — hiện Skeleton thay vì "Chưa có link tải nào" trong lúc chờ API.
+  const [links, setLinks] = useState<DownloadLinkPublic[] | null>(null);
   const [editingId, setEditingId] = useState<string | "new" | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -64,11 +66,19 @@ export function DownloadConfigPanel({ postId }: { postId?: string }) {
         <>
           {error && <p className="text-xs text-red-600">{error}</p>}
 
-          {links.length === 0 && editingId !== "new" && (
+          {links === null && (
+            <div className="flex flex-col gap-2" aria-busy="true">
+              {[0, 1].map((i) => (
+                <Skeleton key={i} className="h-12" />
+              ))}
+            </div>
+          )}
+
+          {links?.length === 0 && editingId !== "new" && (
             <p className="text-xs text-zinc-400">Chưa có link tải nào cho bài viết này.</p>
           )}
 
-          {links.map((link) =>
+          {links?.map((link) =>
             editingId === link.id ? (
               <DownloadLinkForm
                 key={link.id}

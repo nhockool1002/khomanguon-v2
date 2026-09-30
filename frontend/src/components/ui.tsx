@@ -116,3 +116,8 @@ export function AuthCard({
     </div>
   );
 }
+
+// Khối xám nhấp nháy giữ chỗ trong lúc dữ liệu đang tải — truyền kích thước/bo góc qua className.
+export function Skeleton({ className = "" }: { className?: string }) {
+  return <div aria-hidden className={`animate-pulse rounded-md bg-zinc-200/70 ${className}`} />;
+}
