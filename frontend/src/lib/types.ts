@@ -414,7 +414,12 @@ export type AuditAction =
   | "ROLE_REMOVED"
   | "WALLET_ADJUSTED"
   | "STORAGE_PROVIDER_KEY_CHANGED"
-  | "DOWNLOAD_BYPASSED";
+  | "DOWNLOAD_BYPASSED"
+  | "SUBSCRIPTION_REVOKED"
+  | "INTL_TOPUP_APPROVED"
+  | "INTL_TOPUP_REJECTED"
+  // Thao tác quản trị chung — ghi tự động (backend AdminAuditInterceptor), metadata.label là mô tả.
+  | "ADMIN_ACTION";
 
 export interface AuditLogEntry {
   id: string;
@@ -422,6 +427,7 @@ export interface AuditLogEntry {
   targetType: string | null;
   targetId: string | null;
   metadata: Record<string, unknown> | null;
+  ipAddress: string | null;
   createdAt: string;
   actor: { id: string; displayName: string; email: string };
 }

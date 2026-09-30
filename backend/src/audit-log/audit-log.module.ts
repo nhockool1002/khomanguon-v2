@@ -1,4 +1,6 @@
 import { Global, Module } from '@nestjs/common';
+import { APP_INTERCEPTOR } from '@nestjs/core';
+import { AdminAuditInterceptor } from './admin-audit.interceptor';
 import { AuditLogService } from './audit-log.service';
 import { AuditLogController } from './audit-log.controller';
 import { AuthModule } from '../auth/auth.module';
@@ -12,7 +14,11 @@ import { AuthModule } from '../auth/auth.module';
 @Module({
   imports: [AuthModule],
   controllers: [AuditLogController],
-  providers: [AuditLogService],
+  // AdminAuditInterceptor đăng ký toàn cục — tự ghi audit mọi thao tác quản trị (xem file interceptor).
+  providers: [
+    AuditLogService,
+    { provide: APP_INTERCEPTOR, useClass: AdminAuditInterceptor },
+  ],
   exports: [AuditLogService],
 })
 export class AuditLogModule {}

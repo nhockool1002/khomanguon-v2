@@ -24,6 +24,7 @@ import { ClaimIntlTopupPaidDto } from './dto/claim-intl-topup-paid.dto';
 import { ApproveIntlTopupDto } from './dto/approve-intl-topup.dto';
 import { RejectIntlTopupDto } from './dto/reject-intl-topup.dto';
 import { UpdateIntlPaymentSettingsDto } from './dto/update-intl-payment-settings.dto';
+import { SkipAudit } from '../audit-log/audit.decorators';
 
 interface AuthUser {
   id: string;
@@ -125,6 +126,7 @@ export class IntlTopupController {
     });
   }
 
+  @SkipAudit() // ghi INTL_TOPUP_APPROVED trong cùng transaction
   @UseGuards(JwtAuthGuard, PermissionsGuard)
   @Permissions(PERMISSIONS.PAYMENT_INTL_MANAGE)
   @Post('admin/orders/:id/approve')
@@ -136,6 +138,7 @@ export class IntlTopupController {
     return this.intlTopupService.approve(id, user.id, dto);
   }
 
+  @SkipAudit() // ghi INTL_TOPUP_REJECTED chi tiết trong service
   @UseGuards(JwtAuthGuard, PermissionsGuard)
   @Permissions(PERMISSIONS.PAYMENT_INTL_MANAGE)
   @Post('admin/orders/:id/reject')

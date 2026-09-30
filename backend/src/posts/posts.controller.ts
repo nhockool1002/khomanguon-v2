@@ -28,6 +28,7 @@ import { CreatePostDto } from './dto/create-post.dto';
 import { UpdatePostDto } from './dto/update-post.dto';
 import { Cacheable } from '../cache/cacheable.decorator';
 import { HttpCacheInterceptor } from '../cache/http-cache.interceptor';
+import { AuditAdminAction } from '../audit-log/audit.decorators';
 
 interface AuthUser {
   id: string;
@@ -166,6 +167,7 @@ export class PostsController {
 
   // Không dùng @Permissions cố định vì cần cho phép "sửa bài của chính mình" (post.edit.own)
   // hoặc "sửa bất kỳ bài nào" (post.edit.any) — kiểm tra chi tiết nằm trong PostsService.update.
+  @AuditAdminAction() // quyền post.edit.own/any kiểm tra trong service, không có @Permissions
   @UseGuards(JwtAuthGuard)
   @Patch(':id')
   update(
