@@ -7,6 +7,7 @@ import {
   FileClock,
   FileText,
   FolderTree,
+  Globe,
   Tag as TagIcon,
   GalleryHorizontal,
   Image as ImageIcon,
@@ -133,13 +134,35 @@ export const ADMIN_NAV: NavEntry[] = [
       },
     ],
   },
+  // Nạp quốc tế (Buy Me a Coffee, đối soát tay) tách trang riêng khỏi lịch sử ví — xem
+  // backend/src/intl-topup, quyền payment.intl.manage (mặc định chỉ Admin).
   {
-    kind: "leaf",
-    href: "/admin/transactions",
+    kind: "group",
     label: "Quản lý Giao Dịch",
     icon: Wallet,
-    match: "prefix",
-    permission: PERMISSIONS.WALLET_VIEW_ANY,
+    children: [
+      {
+        href: "/admin/transactions",
+        label: "Giao dịch ví",
+        icon: Wallet,
+        match: "prefix",
+        permission: PERMISSIONS.WALLET_VIEW_ANY,
+      },
+      {
+        href: "/admin/intl-topup",
+        label: "Duyệt nạp quốc tế",
+        icon: Globe,
+        match: "prefix",
+        permission: PERMISSIONS.PAYMENT_INTL_MANAGE,
+      },
+      {
+        href: "/admin/settings/intl-payment",
+        label: "Cài đặt thanh toán quốc tế",
+        icon: CreditCard,
+        match: "prefix",
+        permission: PERMISSIONS.PAYMENT_INTL_MANAGE,
+      },
+    ],
   },
   {
     kind: "group",

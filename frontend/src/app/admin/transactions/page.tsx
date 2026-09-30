@@ -21,6 +21,18 @@ function TransactionDetail({ tx }: { tx: AdminWalletTransaction }) {
   if (tx.type === "TOPUP") {
     return <span>{tx.amountVnd ? `Nạp ${formatVnd(tx.amountVnd)} qua SePay` : "Nạp tiền qua SePay"}</span>;
   }
+  // Nạp quốc tế (Buy Me a Coffee, Admin duyệt tay) — note ghi sẵn lúc duyệt đủ thông tin đối soát: mã
+  // KMN-, invoice, mã giao dịch + email trên BMC, USD thực nhận so với gói, $P, người duyệt.
+  if (tx.type === "INTL_TOPUP") {
+    return (
+      <span className="whitespace-normal">
+        {tx.note ??
+          (tx.amountUsdCents
+            ? `Nạp $${(tx.amountUsdCents / 100).toFixed(2)} qua Buy Me a Coffee`
+            : "Nạp quốc tế qua Buy Me a Coffee")}
+      </span>
+    );
+  }
   if (tx.type === "PURCHASE") {
     if (tx.postSlug) {
       return (
@@ -65,6 +77,7 @@ const TYPE_LABEL: Record<WalletTxType, string> = {
   PURCHASE: "Mua hàng",
   ADMIN_ADJUST: "Admin điều chỉnh",
   REFUND: "Hoàn tiền",
+  INTL_TOPUP: "Nạp quốc tế",
 };
 
 const TYPE_BADGE: Record<WalletTxType, string> = {
@@ -72,6 +85,7 @@ const TYPE_BADGE: Record<WalletTxType, string> = {
   PURCHASE: "bg-zinc-100 text-zinc-700",
   ADMIN_ADJUST: "bg-amber-100 text-amber-700",
   REFUND: "bg-sky-100 text-sky-700",
+  INTL_TOPUP: "bg-teal-100 text-teal-700",
 };
 
 const STATUS_LABEL: Record<WalletTxStatus, string> = {

@@ -86,6 +86,7 @@ export class WalletService {
             },
           },
           topupOrder: { select: { amountVnd: true } },
+          intlTopupOrder: { select: { receivedUsdCents: true } },
         },
       }),
       this.prisma.walletTransaction.count({ where }),
@@ -116,7 +117,10 @@ export class WalletService {
         orderBy: { createdAt: 'desc' },
         skip,
         take,
-        include: { topupOrder: { select: { amountVnd: true } } },
+        include: {
+          topupOrder: { select: { amountVnd: true } },
+          intlTopupOrder: { select: { receivedUsdCents: true } },
+        },
       }),
       this.prisma.walletTransaction.count({ where: { walletId: wallet.id } }),
     ]);
@@ -129,15 +133,23 @@ export class WalletService {
   // Ghép thêm thông tin dễ đọc theo từng loại giao dịch — không có FK thật trên referenceId (chỉ
   // string rời) nên phải tự batch-fetch theo loại thay vì include quan hệ Prisma:
   // - TOPUP: đã có qua include topupOrder (quan hệ thật) — chỉ cần đọc lại amountVnd.
+  // - INTL_TOPUP: tương tự qua include intlTopupOrder — số USD thực nhận (cent) Admin nhập khi duyệt.
   // - PURCHASE: referenceId = DownloadLink.id — tra ra slug bài viết để FE gắn link.
   // - ADMIN_ADJUST: referenceId = id Admin thực hiện — tra ra tên hiển thị để đối soát "ai điều chỉnh".
   private async enrich(
     rows: (Prisma.WalletTransactionGetPayload<{
-      include: { topupOrder: { select: { amountVnd: true } } };
-    }> & { topupOrder?: { amountVnd: number } | null })[],
+      include: {
+        topupOrder: { select: { amountVnd: true } };
+        intlTopupOrder: { select: { receivedUsdCents: true } };
+      };
+    }> & {
+      topupOrder?: { amountVnd: number } | null;
+      intlTopupOrder?: { receivedUsdCents: number | null } | null;
+    })[],
   ): Promise<
     {
       amountVnd: number | null;
+      amountUsdCents: number | null;
       postSlug: string | null;
       adminDisplayName: string | null;
     }[]
@@ -178,6 +190,7 @@ export class WalletService {
 
     return rows.map((tx) => ({
       amountVnd: tx.topupOrder?.amountVnd ?? null,
+      amountUsdCents: tx.intlTopupOrder?.receivedUsdCents ?? null,
       postSlug:
         tx.type === WalletTxType.PURCHASE && tx.referenceId
           ? (slugByLinkId.get(tx.referenceId) ?? null)

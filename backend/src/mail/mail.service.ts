@@ -17,7 +17,20 @@ interface SendMailInput {
   to: string | string[];
   subject: string;
   html: string;
+  attachments?: MailAttachment[];
 }
+
+export interface MailAttachment {
+  filename: string;
+  content: Buffer;
+  contentType?: string;
+}
+
+export type IntlTopupMailKind =
+  | 'intlTopupPendingUser'
+  | 'intlTopupPendingAdmin'
+  | 'intlTopupApproved'
+  | 'intlTopupRejected';
 
 function toJsonValue<T>(value: T): Prisma.InputJsonValue {
   return JSON.parse(JSON.stringify(value)) as Prisma.InputJsonValue;
@@ -83,15 +96,24 @@ export class MailService {
     return this.envTransporter;
   }
 
-  async send({ to, subject, html }: SendMailInput): Promise<void> {
+  async send({ to, subject, html, attachments }: SendMailInput): Promise<void> {
     const transporter = await this.getTransporter();
     if (!transporter) {
+      const attachmentInfo = attachments?.length
+        ? ` attachments=${attachments.map((a) => `${a.filename} (${a.content.length} bytes)`).join(', ')}`
+        : '';
       this.logger.log(
-        `[DEV MAIL] to=${Array.isArray(to) ? to.join(', ') : to} subject="${subject}"\n${html}`,
+        `[DEV MAIL] to=${Array.isArray(to) ? to.join(', ') : to} subject="${subject}"${attachmentInfo}\n${html}`,
       );
       return;
     }
-    await transporter.sendMail({ from: this.from, to, subject, html });
+    await transporter.sendMail({
+      from: this.from,
+      to,
+      subject,
+      html,
+      attachments,
+    });
   }
 
   async sendVerificationEmail(
@@ -161,6 +183,18 @@ export class MailService {
       }),
       ...(dto.feedbackReply !== undefined && {
         feedbackReply: dto.feedbackReply,
+      }),
+      ...(dto.intlTopupPendingUser !== undefined && {
+        intlTopupPendingUser: dto.intlTopupPendingUser,
+      }),
+      ...(dto.intlTopupPendingAdmin !== undefined && {
+        intlTopupPendingAdmin: dto.intlTopupPendingAdmin,
+      }),
+      ...(dto.intlTopupApproved !== undefined && {
+        intlTopupApproved: dto.intlTopupApproved,
+      }),
+      ...(dto.intlTopupRejected !== undefined && {
+        intlTopupRejected: dto.intlTopupRejected,
       }),
     };
     await this.prisma.siteSetting.upsert({
@@ -315,6 +349,32 @@ export class MailService {
     await this.send({ to: [to], subject, html });
   }
 
+  // Nạp quốc tế (intl-topup module) — recipients do IntlTopupService quyết định (user / notifyEmail
+  // / cả hai). Biến chèn vào template đều là giá trị hệ thống sinh hoặc user nhập (tên, email, lý do)
+  // nên escape hết. Throw khi gửi lỗi — caller tự quyết định có nuốt lỗi hay không.
+  async sendIntlTopupMail(
+    kind: IntlTopupMailKind,
+    vars: Record<string, string>,
+    to: string[],
+    attachments?: MailAttachment[],
+  ): Promise<void> {
+    const recipients = [...new Set(to.filter(Boolean))];
+    if (recipients.length === 0) return;
+    const templates = await this.getTemplates();
+    const escaped = Object.fromEntries(
+      Object.entries(vars).map(([k, v]) => [k, escapeMailText(v)]),
+    );
+    const { subject, html } = renderMailTemplate(templates[kind], {
+      timestamp: formatTimestamp(new Date()),
+      ...escaped,
+    });
+    await this.send({ to: recipients, subject, html, attachments });
+  }
+
+  getNotifyEmail(): Promise<string> {
+    return this.getTemplates().then((t) => t.notifyEmail);
+  }
+
   // Nút "Gửi thử" ở trang Admin — dùng dữ liệu mẫu, gửi đúng cả 2 người nhận thật (notifyEmail +
   // email của chính admin đang bấm nút) để kiểm chứng đúng logic 2 người nhận của luồng thật. Trả
   // {success,message} thay vì throw (khớp pattern testApiConnection() của sepay.service.ts) để FE
@@ -330,7 +390,8 @@ export class MailService {
       | 'linkReportResolved'
       | 'verifyEmail'
       | 'feedbackAdmin'
-      | 'feedbackReply',
+      | 'feedbackReply'
+      | IntlTopupMailKind,
     testerEmail: string,
   ): Promise<{ success: boolean; message: string }> {
     const templates = await this.getTemplates();
@@ -338,7 +399,9 @@ export class MailService {
       kind === 'passwordReset' ||
       kind === 'linkReportResolved' ||
       kind === 'verifyEmail' ||
-      kind === 'feedbackReply'
+      kind === 'feedbackReply' ||
+      kind === 'intlTopupPendingUser' ||
+      kind === 'intlTopupRejected'
         ? [testerEmail]
         : [...new Set([templates.notifyEmail, testerEmail].filter(Boolean))];
     if (recipients.length === 0) {
@@ -406,6 +469,24 @@ export class MailService {
           originalMessage: 'Tôi không thanh toán được bằng mã QR.',
           replyMessage:
             'Cảm ơn bạn! Bạn có thể liên hệ Admin để nạp $P qua kênh quốc tế.',
+        };
+        break;
+      case 'intlTopupPendingUser':
+      case 'intlTopupPendingAdmin':
+      case 'intlTopupApproved':
+      case 'intlTopupRejected':
+        sampleVars = {
+          displayName: 'demo_user',
+          userEmail: 'demo@example.com',
+          code: 'KMN-DEMO01',
+          amountUsd: '10',
+          amountP: '2700',
+          payerEmail: 'demo.bmc@example.com',
+          receivedUsd: '10.00',
+          creditedP: '2700',
+          invoiceNumber: 'INV-20260930-DEMO01',
+          approvedAt: formatTimestamp(new Date()),
+          reason: 'No matching payment found on Buy Me a Coffee.',
         };
         break;
     }

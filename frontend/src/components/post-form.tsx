@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { apiFetch, ApiError } from "@/lib/api";
 import type { Category, PostDetail, PostStatus, Tag } from "@/lib/types";
-import { ErrorBanner, FormField, SuccessBanner } from "@/components/ui";
+import { ErrorBanner, FormField, Skeleton, SuccessBanner } from "@/components/ui";
 import { RichTextEditor } from "@/components/rich-text-editor";
 import { ImageUploadField } from "@/components/image-upload-field";
 import { SeoPanel } from "@/components/seo-panel";
@@ -39,8 +39,10 @@ export function PostForm({
   initial?: Partial<PostDetail>;
   onSubmit: (values: PostFormValues) => Promise<void>;
 }) {
-  const [categories, setCategories] = useState<Category[]>([]);
-  const [tags, setTags] = useState<Tag[]>([]);
+  // null = đang tải — hiện Skeleton thay vì "— Không chọn —"/không có tag, tránh hiểu nhầm bài chưa có
+  // danh mục/tag trong lúc chờ API.
+  const [categories, setCategories] = useState<Category[] | null>(null);
+  const [tags, setTags] = useState<Tag[] | null>(null);
   const [title, setTitle] = useState(initial?.title ?? "");
   const [slug, setSlug] = useState(initial?.slug ?? "");
   const [excerpt, setExcerpt] = useState(initial?.excerpt ?? "");
@@ -79,7 +81,7 @@ export function PostForm({
   async function handleAddTag() {
     const name = tagInput.trim();
     if (!name) return;
-    const existing = tags.find((t) => t.name.toLowerCase() === name.toLowerCase());
+    const existing = tags?.find((t) => t.name.toLowerCase() === name.toLowerCase());
     if (existing) {
       if (!tagIds.includes(existing.id)) setTagIds((prev) => [...prev, existing.id]);
       setTagInput("");
@@ -92,7 +94,7 @@ export function PostForm({
         method: "POST",
         body: JSON.stringify({ name }),
       });
-      setTags((prev) => [...prev, created]);
+      setTags((prev) => [...(prev ?? []), created]);
       setTagIds((prev) => [...prev, created.id]);
       setTagInput("");
     } catch (err) {
@@ -250,6 +252,12 @@ export function PostForm({
               ))}
           </div>
 
+          {categories === null ? (
+            <div className="flex flex-col gap-1.5 text-sm text-zinc-700">
+              Danh mục
+              <Skeleton className="h-[38px]" />
+            </div>
+          ) : (
           <label className="flex flex-col gap-1.5 text-sm text-zinc-700">
             Danh mục
             <select
@@ -265,10 +273,18 @@ export function PostForm({
               ))}
             </select>
           </label>
+          )}
 
           <div className="flex flex-col gap-1.5 text-sm text-zinc-700">
             Tag
-            {tags.length > 0 && (
+            {tags === null && (
+              <div className="flex flex-wrap gap-1.5">
+                {["w-14", "w-20", "w-16", "w-24"].map((w) => (
+                  <Skeleton key={w} className={`h-6 rounded-full ${w}`} />
+                ))}
+              </div>
+            )}
+            {tags && tags.length > 0 && (
               <div className="flex flex-wrap gap-1.5">
                 {tags.map((t) => {
                   const active = tagIds.includes(t.id);
@@ -355,3 +371,73 @@ export function PostForm({
     </div>
   );
 }
+
+// Khung giữ chỗ cho trang Chỉnh sửa bài viết trong lúc tải bài (GET /posts/admin/:id) — cùng bố cục 2
+// cột với PostForm để trang không nhảy layout khi dữ liệu về; cột phải có đủ các thẻ Xuất bản, Danh
+// mục, Tag, Ảnh đại diện, SEO, Download Config.
+export function PostFormSkeleton() {
+  return (
+    <div className="flex flex-col gap-6 lg:flex-row lg:items-start" aria-busy="true" aria-label="Đang tải bài viết">
+      <div className="flex flex-1 flex-col gap-4">
+        {["Tiêu đề", "Slug"].map((label) => (
+          <div key={label} className="flex flex-col gap-1.5">
+            <Skeleton className="h-4 w-24" />
+            <Skeleton className="h-[42px]" />
+          </div>
+        ))}
+        <div className="flex flex-col gap-1.5">
+          <Skeleton className="h-4 w-20" />
+          <Skeleton className="h-16" />
+        </div>
+        <div className="flex flex-col gap-1.5">
+          <Skeleton className="h-4 w-20" />
+          <Skeleton className="h-11" />
+          <Skeleton className="h-96" />
+        </div>
+      </div>
+
+      <div className="flex w-full flex-col gap-4 lg:w-80 lg:flex-none">
+        <div className="flex flex-col gap-2 rounded-md border border-zinc-200 p-3">
+          <Skeleton className="h-3 w-20" />
+          <Skeleton className="h-4 w-44" />
+          <div className="flex gap-2">
+            <Skeleton className="h-8 w-20" />
+            <Skeleton className="h-8 w-20" />
+            <Skeleton className="h-8 w-20" />
+          </div>
+          <Skeleton className="h-3 w-full" />
+        </div>
+        <div className="flex flex-col gap-1.5">
+          <Skeleton className="h-4 w-20" />
+          <Skeleton className="h-[38px]" />
+        </div>
+        <div className="flex flex-col gap-1.5">
+          <Skeleton className="h-4 w-10" />
+          <div className="flex flex-wrap gap-1.5">
+            {["w-14", "w-20", "w-16"].map((w) => (
+              <Skeleton key={w} className={`h-6 rounded-full ${w}`} />
+            ))}
+          </div>
+          <Skeleton className="h-8" />
+        </div>
+        <div className="flex flex-col gap-1.5">
+          <Skeleton className="h-4 w-24" />
+          <Skeleton className="h-36" />
+          <Skeleton className="h-8 w-20" />
+        </div>
+        <div className="flex flex-col gap-2 rounded-md border border-zinc-200 p-3">
+          <Skeleton className="h-3 w-10" />
+          <Skeleton className="h-4 w-20" />
+          <Skeleton className="h-9" />
+          <Skeleton className="h-4 w-28" />
+          <Skeleton className="h-20" />
+        </div>
+        <div className="flex flex-col gap-2 rounded-md border border-zinc-200 p-3">
+          <Skeleton className="h-3 w-28" />
+          <Skeleton className="h-12" />
+        </div>
+      </div>
+    </div>
+  );
+}
+

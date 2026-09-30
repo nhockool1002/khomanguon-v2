@@ -70,6 +70,7 @@ export default function GeneralSettingsPage() {
   const [footerText, setFooterText] = useState("");
   const [rateLimits, setRateLimits] = useState<RateLimitSettings>(DEFAULT_RATE_LIMITS);
   const [maintenanceEnabled, setMaintenanceEnabled] = useState(false);
+  const [intlPaymentEnabled, setIntlPaymentEnabled] = useState(false);
   const [maintenanceMessage, setMaintenanceMessage] = useState("");
 
   const [recaptchaEnabled, setRecaptchaEnabled] = useState(false);
@@ -115,6 +116,7 @@ export default function GeneralSettingsPage() {
         setFooterText(res.footerText);
         setRateLimits(res.rateLimits);
         setMaintenanceEnabled(res.maintenanceMode.enabled);
+        setIntlPaymentEnabled(res.intlPaymentEnabled);
         setMaintenanceMessage(res.maintenanceMode.message);
       })
       .catch((err) => setError(err instanceof ApiError ? err.message : "Có lỗi xảy ra"));
@@ -183,6 +185,7 @@ export default function GeneralSettingsPage() {
           footerText,
           rateLimits,
           maintenanceMode: { enabled: maintenanceEnabled, message: maintenanceMessage },
+          intlPaymentEnabled,
         }),
       });
       setMessage("Đã lưu cấu hình chung.");
@@ -537,6 +540,31 @@ export default function GeneralSettingsPage() {
             className={inputClass}
           />
         </label>
+      </div>
+
+      <div className="flex flex-col gap-3 rounded-md border border-zinc-200 p-4">
+        <div className="flex items-center justify-between">
+          <p className="text-xs font-semibold uppercase tracking-wide text-zinc-500">
+            Thanh toán quốc tế (Buy Me a Coffee)
+          </p>
+          <label className="flex items-center gap-2 text-xs text-zinc-600">
+            <input
+              type="checkbox"
+              checked={intlPaymentEnabled}
+              onChange={(e) => setIntlPaymentEnabled(e.target.checked)}
+            />
+            Bật nạp $P quốc tế
+          </label>
+        </div>
+        <p className="text-xs text-zinc-400">
+          Bật thì trang Ví hiện tab &quot;International (Card)&quot; cho khách thanh toán thẻ qua Buy Me a
+          Coffee (Admin đối soát tay). Tắt thì ẩn tab và chặn tạo yêu cầu mới — yêu cầu đã tạo vẫn báo
+          đã thanh toán và được duyệt bình thường. Gói nạp, tỉ giá, link BMC cấu hình ở{" "}
+          <Link href="/admin/settings/intl-payment" className="font-medium text-[#1d3557] hover:underline">
+            Cài đặt thanh toán quốc tế
+          </Link>
+          . Chỉ bật sau khi đã kết nối Payout trên Buy Me a Coffee.
+        </p>
       </div>
 
       <div className="flex flex-col gap-3 rounded-md border border-zinc-200 p-4">

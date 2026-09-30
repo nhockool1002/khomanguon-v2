@@ -6,7 +6,7 @@ import { useAuth } from "@/context/auth-context";
 import { apiFetch, ApiError } from "@/lib/api";
 import { PERMISSIONS } from "@/lib/permissions";
 import type { PostDetail } from "@/lib/types";
-import { PostForm, type PostFormValues } from "@/components/post-form";
+import { PostForm, PostFormSkeleton, type PostFormValues } from "@/components/post-form";
 import { ErrorBanner } from "@/components/ui";
 import { ForbiddenPage } from "@/components/forbidden-page";
 
@@ -60,7 +60,7 @@ export default function EditPostPage() {
     <div className="flex w-full flex-col gap-6 px-4 py-6 sm:px-8 sm:py-8">
       <h1 className="text-xl font-semibold text-zinc-900">Chỉnh sửa bài viết</h1>
       <ErrorBanner message={error} />
-      {post && <PostForm initial={post} onSubmit={handleSubmit} />}
+      {post ? <PostForm initial={post} onSubmit={handleSubmit} /> : !error && <PostFormSkeleton />}
     </div>
   );
 }

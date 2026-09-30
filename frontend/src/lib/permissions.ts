@@ -30,6 +30,7 @@ export const PERMISSIONS = {
   // Thu hồi (revoke) gói Subscription của bất kỳ user nào trước hạn — nút "Thu hồi" ở card
   // Subscription khi xem hồ sơ người khác (xem subscription-status-view.tsx).
   SUBSCRIPTION_REVOKE: "subscription.revoke",
+  PAYMENT_INTL_MANAGE: "payment.intl.manage",
   DOWNLOAD_BYPASS: "download.bypass",
   SETTINGS_SEO: "settings.seo",
   SETTINGS_STORAGE_KEYS: "settings.storage_keys",

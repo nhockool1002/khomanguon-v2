@@ -66,6 +66,10 @@ export interface GeneralSettings {
   footerText: string;
   rateLimits: RateLimitSettings;
   maintenanceMode: MaintenanceModeSettings;
+  // Công tắc tổng cho nạp quốc tế qua Buy Me a Coffee (intl-topup module). Tắt = ẩn tab
+  // International ở trang Ví + chặn tạo yêu cầu mới; yêu cầu đã tạo vẫn báo đã trả/duyệt bình thường
+  // để không kẹt tiền khách đã thanh toán. Mặc định TẮT cho tới khi Admin cài payout trên BMC.
+  intlPaymentEnabled: boolean;
 }
 
 export const GENERAL_SETTINGS_KEY = 'general_settings';
@@ -104,6 +108,7 @@ export const DEFAULT_GENERAL_SETTINGS: GeneralSettings = {
     feedbackCreate: { windowSec: 3600, max: 5 },
     newsletterSubscribe: { windowSec: 3600, max: 5 },
   },
+  intlPaymentEnabled: false,
   maintenanceMode: {
     enabled: false,
     message:

@@ -101,6 +101,9 @@ export class SiteSettingsService {
       }),
       ...(dto.footerText !== undefined && { footerText: dto.footerText }),
       ...(dto.rateLimits !== undefined && { rateLimits: dto.rateLimits }),
+      ...(dto.intlPaymentEnabled !== undefined && {
+        intlPaymentEnabled: dto.intlPaymentEnabled,
+      }),
       ...(dto.maintenanceMode !== undefined && {
         maintenanceMode: dto.maintenanceMode,
       }),

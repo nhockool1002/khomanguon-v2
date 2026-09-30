@@ -61,4 +61,24 @@ export class UpdateMailTemplatesDto {
   @ValidateNested()
   @Type(() => MailTemplateConfigDto)
   feedbackReply?: MailTemplateConfigDto;
+
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => MailTemplateConfigDto)
+  intlTopupPendingUser?: MailTemplateConfigDto;
+
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => MailTemplateConfigDto)
+  intlTopupPendingAdmin?: MailTemplateConfigDto;
+
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => MailTemplateConfigDto)
+  intlTopupApproved?: MailTemplateConfigDto;
+
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => MailTemplateConfigDto)
+  intlTopupRejected?: MailTemplateConfigDto;
 }
