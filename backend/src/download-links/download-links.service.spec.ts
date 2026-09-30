@@ -200,4 +200,24 @@ describe('DownloadLinksService — unlock ($P) và unlockSmart (Subscription tr�
       ).rejects.toBeInstanceOf(HttpException);
     });
   });
+
+  describe('updateLink() — trả về storageProviderId để form Admin chọn sẵn đúng Cloud Storage', () => {
+    it('đổi provider sang S3 -> response mang storageProviderId mới (không rơi về R2 mặc định)', async () => {
+      prisma.downloadLink.findUnique.mockResolvedValue(freeLink);
+      prisma.downloadLink.update = jest
+        .fn()
+        .mockImplementation(({ data }: { data: Record<string, unknown> }) => ({
+          ...freeLink,
+          sizeBytes: null,
+          ...data,
+        }));
+      (prisma as unknown as Record<string, unknown>).storageProvider = {
+        findUnique: jest.fn().mockResolvedValue({ id: 'sp-s3', type: 'S3' }),
+      };
+      const result = await service.updateLink('link-free', {
+        storageProviderId: 'sp-s3',
+      });
+      expect(result.storageProviderId).toBe('sp-s3');
+    });
+  });
 });

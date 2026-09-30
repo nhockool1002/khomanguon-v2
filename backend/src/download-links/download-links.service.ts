@@ -23,6 +23,7 @@ function toPublicShape(link: {
   id: string;
   label: string;
   objectKey: string;
+  storageProviderId: string;
   sizeBytes: bigint | null;
   priceP: number;
 }) {
@@ -30,6 +31,9 @@ function toPublicShape(link: {
     id: link.id,
     label: link.label,
     objectKey: link.objectKey,
+    // Form sửa link ở Admin cần giá trị này để chọn sẵn đúng Cloud Storage đã lưu — thiếu nó FE
+    // luôn rơi về provider mặc định (R2) và lần lưu sau ghi đè mất provider thật.
+    storageProviderId: link.storageProviderId,
     sizeBytes: link.sizeBytes === null ? null : Number(link.sizeBytes),
     priceP: link.priceP,
   };

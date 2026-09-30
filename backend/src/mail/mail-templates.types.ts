@@ -22,9 +22,11 @@ export interface MailTemplates {
   // Gửi CHO USER lúc đăng ký/bấm "Gửi lại email xác minh" — trước đây hardcode trong
   // mail.service.ts, giờ admin-editable như passwordReset.
   verifyEmail: MailTemplateConfig;
-  // Góp ý mới từ modal Feedback — chỉ gửi CHO Admin (notifyEmail), không có chiều ngược lại như
-  // linkReportResolved vì người gửi có thể ẩn danh/không để lại email.
+  // Góp ý mới từ modal Feedback — gửi CHO Admin (notifyEmail).
   feedbackAdmin: MailTemplateConfig;
+  // Admin trả lời góp ý (trang Quản trị > Góp ý người dùng) — gửi CHO người góp ý. Modal Feedback
+  // bắt buộc email với khách ẩn danh nên góp ý mới luôn có địa chỉ để phản hồi.
+  feedbackReply: MailTemplateConfig;
 }
 
 export const MAIL_TEMPLATES_KEY = 'mail_templates';
@@ -112,6 +114,13 @@ const FEEDBACK_ADMIN_HTML = `<p>Xin chào Admin,</p>
 </table>
 <p>Vui lòng truy cập trang quản trị để xem/xử lý.</p>`;
 
+const FEEDBACK_REPLY_HTML = `<p>Chào {{displayName}},</p>
+<p>Cảm ơn bạn đã gửi góp ý tới KHOMANGUON.ORG. Đội ngũ quản trị đã phản hồi như sau:</p>
+<blockquote style="margin:0 0 12px;padding:8px 12px;border-left:4px solid #1d3557;background:#f4f6f9;">{{replyMessage}}</blockquote>
+<p style="color:#71717a;">Góp ý của bạn:</p>
+<blockquote style="margin:0;padding:8px 12px;border-left:4px solid #d4d4d8;color:#52525b;">{{originalMessage}}</blockquote>
+<p>Trân trọng,<br/>KHOMANGUON.ORG</p>`;
+
 export const DEFAULT_MAIL_TEMPLATES: MailTemplates = {
   // Mặc định email chủ dự án — Admin đổi lại qua /admin/settings/email nếu cần. Email này LUÔN
   // được cộng thêm vào danh sách nhận (cùng với chính email của user vừa nạp/tải) — xem
@@ -148,7 +157,23 @@ export const DEFAULT_MAIL_TEMPLATES: MailTemplates = {
     subject: 'Góp ý mới từ KHOMANGUON.ORG [{{timestamp}}]',
     html: FEEDBACK_ADMIN_HTML,
   },
+  feedbackReply: {
+    subject: 'Phản hồi góp ý của bạn — KHOMANGUON.ORG',
+    html: FEEDBACK_REPLY_HTML,
+  },
 };
+
+// Nội dung người dùng/Admin tự nhập (góp ý, phản hồi) chèn vào template HTML — escape để không
+// chèn được thẻ HTML tuỳ ý vào email, giữ xuống dòng bằng <br/>.
+export function escapeMailText(text: string): string {
+  return text
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;')
+    .replace(/\r?\n/g, '<br/>');
+}
 
 // Thay thế {{key}} bằng giá trị tương ứng trong vars — không dùng thư viện template engine ngoài,
 // đủ dùng cho nhu cầu thông báo đơn giản này (khớp quy ước "không thêm thư viện khi chưa cần").

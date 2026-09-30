@@ -341,6 +341,7 @@ export interface DownloadLinkAdmin {
   id: string;
   label: string;
   objectKey: string;
+  storageProviderId: string;
   sizeBytes: number | null;
   priceP: number;
 }
@@ -383,6 +384,8 @@ export interface Feedback {
   status: FeedbackStatus;
   createdAt: string;
   resolvedAt: string | null;
+  replyMessage: string | null;
+  repliedAt: string | null;
   author: { id: string; displayName: string; email: string } | null;
   resolvedBy: { id: string; displayName: string } | null;
 }
@@ -609,6 +612,7 @@ export interface MailTemplates {
   linkReportResolved: MailTemplateConfig;
   verifyEmail: MailTemplateConfig;
   feedbackAdmin: MailTemplateConfig;
+  feedbackReply: MailTemplateConfig;
 }
 
 export interface MediaFile {

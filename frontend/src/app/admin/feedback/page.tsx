@@ -16,6 +16,11 @@ const STATUS_LABEL: Record<FeedbackStatus, string> = {
   RESOLVED: "Đã xử lý",
 };
 
+// Email nhận phản hồi — email tài khoản nếu góp ý gửi lúc đã đăng nhập, không thì email khách để lại.
+function contactEmail(f: Feedback): string | null {
+  return f.author?.email ?? f.email;
+}
+
 const STATUS_COLOR: Record<FeedbackStatus, string> = {
   PENDING: "bg-amber-100 text-amber-700",
   RESOLVED: "bg-emerald-100 text-emerald-700",
@@ -33,6 +38,9 @@ export default function AdminFeedbackPage() {
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
+  // Góp ý đang mở khung soạn phản hồi (chỉ 1 cái tại 1 thời điểm) + nội dung đang soạn.
+  const [replyingId, setReplyingId] = useState<string | null>(null);
+  const [replyText, setReplyText] = useState("");
 
   useEffect(() => {
     if (!loading && !user) router.replace("/dang-nhap");
@@ -79,6 +87,28 @@ export default function AdminFeedbackPage() {
     }
   }
 
+  // Gửi email phản hồi (template "Khi Admin phản hồi góp ý" ở Cài đặt Email) + đánh dấu đã xử lý.
+  async function sendReply(feedback: Feedback) {
+    if (!replyText.trim()) return;
+    setError(null);
+    setMessage(null);
+    setBusyId(feedback.id);
+    try {
+      await apiFetch(`/feedback/${feedback.id}/reply`, {
+        method: "PATCH",
+        body: JSON.stringify({ message: replyText.trim() }),
+      });
+      setMessage(`Đã gửi phản hồi tới ${contactEmail(feedback)}.`);
+      setReplyingId(null);
+      setReplyText("");
+      reload();
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : "Có lỗi xảy ra");
+    } finally {
+      setBusyId(null);
+    }
+  }
+
   if (loading || !user) {
     return <div className="px-8 py-16 text-center text-sm text-zinc-400">Đang tải...</div>;
   }
@@ -92,8 +122,8 @@ export default function AdminFeedbackPage() {
     <div className="flex w-full flex-col gap-4 px-4 py-6 sm:px-8 sm:py-8">
       <h1 className="text-xl font-semibold text-zinc-900">Góp ý người dùng</h1>
       <p className="text-sm text-zinc-500">
-        Góp ý gửi từ nút Feedback trên toàn site — có thể gửi ẩn danh, không phải lúc nào cũng có
-        tên/email liên hệ.
+        Góp ý gửi từ nút Feedback trên toàn site. Khách chưa đăng nhập bắt buộc để lại email (góp ý
+        cũ trước đó có thể không có) — phản hồi gửi qua email theo template ở Cài đặt Email.
       </p>
 
       <form onSubmit={applyFilters} className="flex flex-wrap items-end gap-3">
@@ -138,7 +168,7 @@ export default function AdminFeedbackPage() {
                 <span className="font-medium text-zinc-800">
                   {f.author?.displayName ?? f.name ?? "Ẩn danh"}
                 </span>
-                <span>({f.author?.email ?? f.email ?? "không có email"})</span>
+                <span>({contactEmail(f) ?? "không có email"})</span>
                 <span>·</span>
                 <span>{new Date(f.createdAt).toLocaleString("vi-VN")}</span>
                 <span className={`rounded-full px-2 py-0.5 font-medium ${STATUS_COLOR[f.status]}`}>
@@ -146,8 +176,20 @@ export default function AdminFeedbackPage() {
                 </span>
               </div>
               <p className="whitespace-pre-wrap text-sm text-zinc-800">{f.message}</p>
-              {f.status === "PENDING" && (
+              {f.status === "PENDING" && replyingId !== f.id && (
                 <div className="flex items-center gap-1">
+                  {contactEmail(f) && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setReplyingId(f.id);
+                        setReplyText("");
+                      }}
+                      className="rounded px-2 py-0.5 text-xs font-medium text-[#1d3557] hover:bg-zinc-100"
+                    >
+                      Phản hồi qua email
+                    </button>
+                  )}
                   <button
                     type="button"
                     onClick={() => resolve(f)}
@@ -158,9 +200,48 @@ export default function AdminFeedbackPage() {
                   </button>
                 </div>
               )}
+              {replyingId === f.id && (
+                <div className="flex flex-col gap-2 rounded-md border border-[#1d3557]/30 bg-[#1d3557]/5 p-2">
+                  <label className="flex flex-col gap-1 text-xs text-zinc-600">
+                    Phản hồi gửi tới {contactEmail(f)} — đánh dấu đã xử lý sau khi gửi thành công
+                    <textarea
+                      value={replyText}
+                      onChange={(e) => setReplyText(e.target.value)}
+                      rows={4}
+                      maxLength={5000}
+                      autoFocus
+                      placeholder="Nhập nội dung phản hồi..."
+                      className="resize-y rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-900 outline-none focus:border-[#1d3557] focus:ring-1 focus:ring-[#1d3557]"
+                    />
+                  </label>
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => sendReply(f)}
+                      disabled={busyId === f.id || !replyText.trim()}
+                      className="rounded-md bg-[#1d3557] px-3 py-1.5 text-xs font-medium text-white hover:bg-[#16294a] disabled:opacity-50"
+                    >
+                      {busyId === f.id ? "Đang gửi..." : "Gửi phản hồi"}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setReplyingId(null)}
+                      className="rounded-md px-3 py-1.5 text-xs font-medium text-zinc-500 hover:bg-zinc-100"
+                    >
+                      Huỷ
+                    </button>
+                  </div>
+                </div>
+              )}
+              {f.status === "RESOLVED" && f.replyMessage && (
+                <div className="rounded-md border-l-4 border-[#1d3557] bg-zinc-50 px-3 py-2">
+                  <p className="text-xs font-medium text-zinc-500">Phản hồi đã gửi</p>
+                  <p className="whitespace-pre-wrap text-sm text-zinc-800">{f.replyMessage}</p>
+                </div>
+              )}
               {f.status === "RESOLVED" && f.resolvedBy && (
                 <p className="text-xs text-zinc-400">
-                  Đã xử lý bởi {f.resolvedBy.displayName}
+                  {f.replyMessage ? "Đã phản hồi" : "Đã xử lý"} bởi {f.resolvedBy.displayName}
                   {f.resolvedAt && ` lúc ${new Date(f.resolvedAt).toLocaleString("vi-VN")}`}
                 </p>
               )}
