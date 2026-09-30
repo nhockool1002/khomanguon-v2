@@ -121,10 +121,10 @@ export class PostsService {
         ],
       }),
     };
-    const orderBy: Prisma.PostOrderByWithRelationInput =
+    const orderBy: Prisma.PostOrderByWithRelationInput[] =
       query.sort === 'popular'
-        ? { viewCount: 'desc' }
-        : { publishedAt: 'desc' };
+        ? [{ viewCount: 'desc' }]
+        : [{ publishedAt: 'desc' }, { createdAt: 'desc' }];
     const [items, total] = await this.prisma.$transaction([
       this.prisma.post.findMany({
         where,
@@ -235,7 +235,12 @@ export class PostsService {
         where,
         skip,
         take,
-        orderBy: { createdAt: 'desc' },
+        // Cùng khoá sắp xếp với listPublic() để thứ tự bài đã xuất bản ở Trang quản trị khớp Trang
+        // chủ (issue #65); bài chưa xuất bản (publishedAt null) nổi lên đầu để dễ tìm bài đang viết.
+        orderBy: [
+          { publishedAt: { sort: 'desc', nulls: 'first' } },
+          { createdAt: 'desc' },
+        ],
         select: listSelect,
       }),
       this.prisma.post.count({ where }),
