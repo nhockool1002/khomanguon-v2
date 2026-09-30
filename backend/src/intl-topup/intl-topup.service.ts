@@ -18,6 +18,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { MailService } from '../mail/mail.service';
 import { WalletGateway } from '../realtime/wallet.gateway';
 import { SepayService } from '../sepay/sepay.service';
+import { SiteSettingsService } from '../settings/site-settings.service';
 import { IntlTopupInvoiceService } from './intl-topup-invoice.service';
 import {
   DEFAULT_INTL_PAYMENT_SETTINGS,
@@ -96,7 +97,13 @@ export class IntlTopupService {
     private readonly walletGateway: WalletGateway,
     private readonly sepayService: SepayService,
     private readonly invoiceService: IntlTopupInvoiceService,
+    private readonly siteSettings: SiteSettingsService,
   ) {}
+
+  // Công tắc tổng ở Cài đặt chung (GeneralSettings.intlPaymentEnabled).
+  private async isEnabled(): Promise<boolean> {
+    return (await this.siteSettings.getGeneralSettings()).intlPaymentEnabled;
+  }
 
   // ───────────────────────── Cài đặt + gói ─────────────────────────
 
@@ -158,13 +165,24 @@ export class IntlTopupService {
     return this.getAdminSettings();
   }
 
-  // Trang Nạp $P (user đã đăng nhập) — gói đang bật + link BMC, không lộ thông tin khác.
+  // Trang Nạp $P (user đã đăng nhập) — gói đang bật + link BMC, không lộ thông tin khác. enabled=false
+  // thì FE ẩn tab International (vẫn trả gói rỗng để không lộ cấu hình khi đang tắt).
   async getPublicConfig() {
-    const [settings, packages] = await Promise.all([
+    const [settings, packages, enabled] = await Promise.all([
       this.getSettings(),
       this.listPackages(true),
+      this.isEnabled(),
     ]);
+    if (!enabled) {
+      return {
+        enabled,
+        bmcPageUrl: '',
+        paymentWindowHours: settings.paymentWindowHours,
+        packages: [],
+      };
+    }
     return {
+      enabled,
       bmcPageUrl: settings.bmcPageUrl,
       paymentWindowHours: settings.paymentWindowHours,
       packages: packages.map((p) => ({
@@ -194,7 +212,13 @@ export class IntlTopupService {
     throw new Error('Could not generate a unique reference code — try again');
   }
 
+  // Chỉ chặn TẠO yêu cầu mới khi tắt — claimPaid/cancel/duyệt vẫn chạy để khách đã trả tiền không bị kẹt.
   async createOrder(userId: string, packageId: string, ip: string | null) {
+    if (!(await this.isEnabled())) {
+      throw new BadRequestException(
+        'International top-up is currently unavailable',
+      );
+    }
     const settings = await this.getSettings();
     const pkg = await this.prisma.intlTopupPackage.findUnique({
       where: { id: packageId },
@@ -361,10 +385,33 @@ export class IntlTopupService {
     const approvedAt = new Date();
     const order = await this.prisma.intlTopupOrder.findUnique({
       where: { id },
-      select: { code: true, userId: true },
+      select: {
+        code: true,
+        userId: true,
+        amountUsd: true,
+        amountP: true,
+        payerEmail: true,
+      },
     });
     if (!order) throw new NotFoundException('Không tìm thấy yêu cầu nạp');
+    const admin = await this.prisma.user.findUnique({
+      where: { id: adminUserId },
+      select: { displayName: true },
+    });
     const invoiceNumber = `INV-${approvedAt.toISOString().slice(0, 10).replace(/-/g, '')}-${order.code.slice(INTL_CODE_PREFIX.length)}`;
+
+    // Ghi chú đầy đủ trên WalletTransaction để trang Quản lý Giao Dịch đối soát được ngay (không cần
+    // mở trang Duyệt nạp quốc tế): mã đơn, invoice, mã giao dịch + email trên BMC, số USD thực nhận so
+    // với gói, $P, người duyệt.
+    const note = [
+      `Buy Me a Coffee ${order.code}`,
+      `Invoice ${invoiceNumber}`,
+      `BMC ref ${dto.bmcTransactionRef.trim()}`,
+      `Payer ${order.payerEmail ?? '—'}`,
+      `Nhận $${(receivedUsdCents / 100).toFixed(2)} (gói $${order.amountUsd} = ${order.amountP} $P)`,
+      `Cộng ${dto.creditedP} $P`,
+      `Duyệt bởi ${admin?.displayName ?? adminUserId}`,
+    ].join(' · ');
 
     const balanceAfter = await this.prisma.$transaction(async (tx) => {
       const claimed = await tx.intlTopupOrder.updateMany({
@@ -400,6 +447,7 @@ export class IntlTopupService {
           status: WalletTxStatus.SUCCESS,
           referenceType: 'intl_topup',
           referenceId: id,
+          note,
         },
       });
       await tx.wallet.update({

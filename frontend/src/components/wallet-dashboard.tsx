@@ -16,6 +16,7 @@ import { useAuth } from "@/context/auth-context";
 import { apiFetch, ApiError } from "@/lib/api";
 import { useWalletSocket } from "@/lib/socket";
 import type {
+  IntlTopupPublicConfig,
   TopupOrder,
   TopupOrderWithQr,
   TopupPreset,
@@ -133,6 +134,8 @@ export function WalletDashboard() {
   // Kênh nạp: SePay nội địa (VNĐ, tự đối soát) hoặc quốc tế qua Buy Me a Coffee (đối soát tay) —
   // 2 luồng tách biệt hoàn toàn, chỉ chung ví.
   const [channel, setChannel] = useState<"domestic" | "intl">("domestic");
+  // Công tắc tổng "Thanh toán quốc tế" ở Cài đặt chung — tắt thì ẩn hẳn bộ chọn kênh.
+  const [intlEnabled, setIntlEnabled] = useState(false);
   const [, forceTick] = useState(0);
 
   useEffect(() => {
@@ -159,6 +162,9 @@ export function WalletDashboard() {
         setPresets(res.presets);
       })
       .catch(() => {});
+    apiFetch<IntlTopupPublicConfig>("/intl-topup/config")
+      .then((res) => setIntlEnabled(res.enabled))
+      .catch(() => setIntlEnabled(false));
   }, [user, reloadWallet, reloadTransactions]);
 
   // Đếm ngược cập nhật mỗi giây khi có order đang chờ.
@@ -230,6 +236,7 @@ export function WalletDashboard() {
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         {/* Cột trái — xử lý nạp tiền */}
         <div className="flex flex-col gap-4">
+          {intlEnabled && (
           <div className="grid grid-cols-2 gap-1 rounded-lg border border-zinc-200 bg-zinc-50 p-1 text-sm font-medium">
             {(
               [
@@ -249,7 +256,8 @@ export function WalletDashboard() {
               </button>
             ))}
           </div>
-          {channel === "intl" ? (
+          )}
+          {intlEnabled && channel === "intl" ? (
             <IntlTopupPanel />
           ) : pending ? (
             <TopupOrderCard order={pending} onReset={() => setPending(null)} />

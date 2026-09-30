@@ -21,10 +21,15 @@ function TransactionDetail({ tx }: { tx: AdminWalletTransaction }) {
   if (tx.type === "TOPUP") {
     return <span>{tx.amountVnd ? `Nạp ${formatVnd(tx.amountVnd)} qua SePay` : "Nạp tiền qua SePay"}</span>;
   }
+  // Nạp quốc tế (Buy Me a Coffee, Admin duyệt tay) — note ghi sẵn lúc duyệt đủ thông tin đối soát: mã
+  // KMN-, invoice, mã giao dịch + email trên BMC, USD thực nhận so với gói, $P, người duyệt.
   if (tx.type === "INTL_TOPUP") {
     return (
-      <span>
-        {tx.amountUsdCents ? `Nạp $${(tx.amountUsdCents / 100).toFixed(2)} qua Buy Me a Coffee` : "Nạp quốc tế qua Buy Me a Coffee"}
+      <span className="whitespace-normal">
+        {tx.note ??
+          (tx.amountUsdCents
+            ? `Nạp $${(tx.amountUsdCents / 100).toFixed(2)} qua Buy Me a Coffee`
+            : "Nạp quốc tế qua Buy Me a Coffee")}
       </span>
     );
   }

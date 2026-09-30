@@ -149,6 +149,7 @@ export const DEFAULT_GENERAL_SETTINGS: GeneralSettings = {
     feedbackCreate: { windowSec: 3600, max: 5 },
     newsletterSubscribe: { windowSec: 3600, max: 5 },
   },
+  intlPaymentEnabled: false,
   maintenanceMode: {
     enabled: false,
     message:

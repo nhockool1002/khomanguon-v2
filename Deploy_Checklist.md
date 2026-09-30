@@ -196,9 +196,10 @@ Luồng riêng, không đụng SePay (module `backend/src/intl-topup`, bảng `i
    ```bash
    docker compose --env-file .env.production -f docker-compose.prod.yml exec backend pnpm exec prisma db seed
    ```
-3. Đăng nhập Admin → **Quản lý Giao Dịch → Cài đặt thanh toán quốc tế**: kiểm tra link BMC, tỉ giá USD→VNĐ, thông tin người bán; dán link **Extras** của từng gói trên Buy Me a Coffee (tạo mỗi gói 1 Extra đúng giá) → Lưu.
-4. **Cài đặt Email**: xem lại 4 template "Nạp quốc tế …", bấm "Gửi thử" để kiểm tra (bản thử của template "đã duyệt" không kèm PDF — PDF chỉ đính kèm ở giao dịch thật).
-5. Thử 1 giao dịch nhỏ thật: user tạo mã → trả trên BMC có dán mã → "I have paid" → Admin đối chiếu → Duyệt → kiểm tra email + invoice PDF.
+3. Đăng nhập Admin → **Quản lý Giao Dịch → Cài đặt thanh toán quốc tế**: kiểm tra link BMC, tỉ giá USD→VNĐ, thông tin người bán. Link Shop/Extras của 4 gói mặc định đã được migration điền sẵn (`buymeacoffee.com/nhutnm/e/581629…581637`) — sửa lại nếu đổi sản phẩm trên BMC → Lưu.
+4. Sau khi đã kết nối **Payout** trên Buy Me a Coffee: **Cài Đặt → Cài đặt chung → Thanh toán quốc tế (Buy Me a Coffee)** → tick "Bật nạp $P quốc tế" → Lưu cấu hình. Mặc định TẮT — khi tắt, tab International ở trang Ví bị ẩn và không tạo được yêu cầu mới.
+5. **Cài đặt Email**: xem lại 4 template "Nạp quốc tế …", bấm "Gửi thử" để kiểm tra (bản thử của template "đã duyệt" không kèm PDF — PDF chỉ đính kèm ở giao dịch thật).
+6. Thử 1 giao dịch nhỏ thật: user tạo mã → trả trên BMC có dán mã → "I have paid" → Admin đối chiếu → Duyệt → kiểm tra email + invoice PDF.
 
 ---
 

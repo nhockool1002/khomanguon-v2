@@ -178,4 +178,8 @@ export class UpdateGeneralSettingsDto {
   @ValidateNested()
   @Type(() => MaintenanceModeDto)
   maintenanceMode?: MaintenanceModeDto;
+
+  @IsOptional()
+  @IsBoolean()
+  intlPaymentEnabled?: boolean;
 }

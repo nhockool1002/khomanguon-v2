@@ -11,6 +11,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { MailService } from '../mail/mail.service';
 import { WalletGateway } from '../realtime/wallet.gateway';
 import { SepayService } from '../sepay/sepay.service';
+import { SiteSettingsService } from '../settings/site-settings.service';
 
 describe('IntlTopupService — nạp quốc tế Buy Me a Coffee (đối soát tay)', () => {
   let service: IntlTopupService;
@@ -19,8 +20,10 @@ describe('IntlTopupService — nạp quốc tế Buy Me a Coffee (đối soát t
     intlTopupPackage: Record<string, jest.Mock>;
     intlTopupOrder: Record<string, jest.Mock>;
     auditLog: Record<string, jest.Mock>;
+    user: Record<string, jest.Mock>;
     $transaction: jest.Mock;
   };
+  let generalSettings: { intlPaymentEnabled: boolean };
   let tx: {
     intlTopupOrder: Record<string, jest.Mock>;
     wallet: Record<string, jest.Mock>;
@@ -81,8 +84,12 @@ describe('IntlTopupService — nạp quốc tế Buy Me a Coffee (đối soát t
         updateMany: jest.fn().mockResolvedValue({ count: 1 }),
       },
       auditLog: { create: jest.fn() },
+      user: {
+        findUnique: jest.fn().mockResolvedValue({ displayName: 'Kang' }),
+      },
       $transaction: jest.fn((fn: (t: unknown) => unknown) => fn(tx)),
     };
+    generalSettings = { intlPaymentEnabled: true };
     mail = {
       sendIntlTopupMail: jest.fn().mockResolvedValue(undefined),
       getNotifyEmail: jest.fn().mockResolvedValue('admin@test.local'),
@@ -104,10 +111,50 @@ describe('IntlTopupService — nạp quốc tế Buy Me a Coffee (đối soát t
               .mockResolvedValue({ baseRateVndPerP: 100, presets: [] }),
           },
         },
+        {
+          provide: SiteSettingsService,
+          useValue: {
+            getGeneralSettings: jest.fn(() => Promise.resolve(generalSettings)),
+          },
+        },
       ],
     }).compile();
 
     service = module.get(IntlTopupService);
+  });
+
+  describe('công tắc Bật/Tắt (Cài đặt chung)', () => {
+    it('tắt -> không cho tạo yêu cầu mới', async () => {
+      generalSettings.intlPaymentEnabled = false;
+      await expect(
+        service.createOrder('user-a', 'pkg', '1.2.3.4'),
+      ).rejects.toBeInstanceOf(BadRequestException);
+      expect(prisma.intlTopupOrder.create).not.toHaveBeenCalled();
+    });
+
+    it('tắt -> config công khai enabled=false, không lộ gói/link', async () => {
+      generalSettings.intlPaymentEnabled = false;
+      prisma.intlTopupPackage.findMany = jest
+        .fn()
+        .mockResolvedValue([{ id: 'p', amountUsd: 10, amountP: 2700 }]);
+      const config = await service.getPublicConfig();
+      expect(config).toMatchObject({
+        enabled: false,
+        bmcPageUrl: '',
+        packages: [],
+      });
+    });
+
+    it('tắt -> yêu cầu đã tạo vẫn báo đã trả được (không kẹt tiền khách)', async () => {
+      generalSettings.intlPaymentEnabled = false;
+      prisma.intlTopupOrder.findUnique.mockResolvedValue({
+        ...pendingOrder,
+        status: IntlTopupStatus.AWAITING_PAYMENT,
+      });
+      await expect(
+        service.claimPaid('user-a', 'order-1', 'bmc@test.local'),
+      ).resolves.toBeDefined();
+    });
   });
 
   describe('createOrder()', () => {
@@ -272,6 +319,16 @@ describe('IntlTopupService — nạp quốc tế Buy Me a Coffee (đối soát t
           referenceId: 'order-1',
         }) as unknown,
       });
+      // Ghi chú đối soát đầy đủ hiển thị ở trang Quản lý Giao Dịch.
+      const [[{ data: txData }]] = tx.walletTransaction.create.mock.calls as [
+        [{ data: { note: string } }],
+      ];
+      expect(txData.note).toContain('Buy Me a Coffee KMN-7F3K2Q');
+      expect(txData.note).toMatch(/Invoice INV-\d{8}-7F3K2Q/);
+      expect(txData.note).toContain('BMC ref BMC-123456');
+      expect(txData.note).toContain('Payer bmc@test.local');
+      expect(txData.note).toContain('Nhận $10.00 (gói $10 = 2700 $P)');
+      expect(txData.note).toContain('Duyệt bởi Kang');
       expect(tx.wallet.update).toHaveBeenCalledWith({
         where: { userId: 'user-a' },
         data: { balance: 2800 },

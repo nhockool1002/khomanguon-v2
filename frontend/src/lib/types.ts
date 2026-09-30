@@ -591,6 +591,7 @@ export interface GeneralSettings {
   footerText: string;
   rateLimits: RateLimitSettings;
   maintenanceMode: MaintenanceModeSettings;
+  intlPaymentEnabled: boolean;
 }
 
 export interface RecaptchaAdminConfig {
@@ -683,6 +684,8 @@ export interface IntlTopupPublicPackage {
 }
 
 export interface IntlTopupPublicConfig {
+  // Công tắc tổng ở Cài đặt chung — false thì trang Ví ẩn tab International.
+  enabled: boolean;
   bmcPageUrl: string;
   paymentWindowHours: number;
   packages: IntlTopupPublicPackage[];
