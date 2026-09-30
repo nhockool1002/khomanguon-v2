@@ -52,32 +52,34 @@ model User {
   title          String?
   titleUpdatedAt DateTime?
 
-  roles                  UserRole[]
-  wallet                 Wallet?
-  posts                  Post[]
-  comments               Comment[]
-  commentLikes           CommentLike[]
-  downloadGrants         DownloadGrant[]
-  downloadEvents         DownloadEvent[]
-  linkReportsSubmitted   LinkReport[]    @relation("LinkReportReporter")
-  linkReportsResolved    LinkReport[]    @relation("LinkReportResolvedBy")
-  feedbacksSubmitted     Feedback[]      @relation("FeedbackAuthor")
-  feedbacksResolved      Feedback[]      @relation("FeedbackResolvedBy")
-  bookmarks              PostBookmark[]
-  badges                 UserBadge[]
-  activities             UserActivity[]
-  auditLogs              AuditLog[]
-  refreshTokens          RefreshToken[]
+  roles                   UserRole[]
+  wallet                  Wallet?
+  posts                   Post[]
+  comments                Comment[]
+  commentLikes            CommentLike[]
+  downloadGrants          DownloadGrant[]
+  downloadEvents          DownloadEvent[]
+  linkReportsSubmitted    LinkReport[]             @relation("LinkReportReporter")
+  linkReportsResolved     LinkReport[]             @relation("LinkReportResolvedBy")
+  feedbacksSubmitted      Feedback[]               @relation("FeedbackAuthor")
+  feedbacksResolved       Feedback[]               @relation("FeedbackResolvedBy")
+  bookmarks               PostBookmark[]
+  badges                  UserBadge[]
+  activities              UserActivity[]
+  auditLogs               AuditLog[]
+  refreshTokens           RefreshToken[]
   emailVerificationTokens EmailVerificationToken[]
-  passwordResetTokens    PasswordResetToken[]
-  topupOrders            TopupOrder[]
+  passwordResetTokens     PasswordResetToken[]
+  topupOrders             TopupOrder[]
+  intlTopupOrders         IntlTopupOrder[]         @relation("IntlTopupOrderUser")
+  intlTopupReviews        IntlTopupOrder[]         @relation("IntlTopupOrderReviewer")
   subscriptionOrders      SubscriptionOrder[]
   subscriptionMemberships SubscriptionMembership[]
-  notificationsReceived  Notification[] @relation("NotificationRecipient")
-  notificationsCaused    Notification[] @relation("NotificationActor")
-  uploadedMediaFiles     MediaFile[]
-  profileMessagesReceived ProfileMessage[] @relation("ProfileMessagesReceived")
-  profileMessagesSent     ProfileMessage[] @relation("ProfileMessagesSent")
+  notificationsReceived   Notification[]           @relation("NotificationRecipient")
+  notificationsCaused     Notification[]           @relation("NotificationActor")
+  uploadedMediaFiles      MediaFile[]
+  profileMessagesReceived ProfileMessage[]         @relation("ProfileMessagesReceived")
+  profileMessagesSent     ProfileMessage[]         @relation("ProfileMessagesSent")
   uploadedCloudFiles      CloudUploadRecord[]
 
   @@map("users")
@@ -125,14 +127,14 @@ model PasswordResetToken {
 
 // Refresh token xoay vòng (rotate mỗi lần dùng) — cho phép thu hồi từng phiên khi logout/đổi mật khẩu
 model RefreshToken {
-  id         String    @id @default(cuid())
-  userId     String
-  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  tokenHash  String    @unique
-  userAgent  String?
-  expiresAt  DateTime
-  revokedAt  DateTime?
-  createdAt  DateTime  @default(now())
+  id        String    @id @default(cuid())
+  userId    String
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tokenHash String    @unique
+  userAgent String?
+  expiresAt DateTime
+  revokedAt DateTime?
+  createdAt DateTime  @default(now())
 
   @@map("refresh_tokens")
 }
@@ -140,18 +142,18 @@ model RefreshToken {
 // Vai trò chỉ là một tập hợp quyền — Admin có thể tạo Custom Role bằng cách
 // tick permission trong RolePermission, không hard-code trong code (xem mục 06 docs/khomanguon-v2-spec.html).
 model Role {
-  id         String   @id @default(cuid())
-  name       String   @unique
-  slug       String   @unique
-  isSystem   Boolean  @default(false) // true cho 4 role mặc định, không cho xoá
-  createdAt  DateTime @default(now())
+  id        String   @id @default(cuid())
+  name      String   @unique
+  slug      String   @unique
+  isSystem  Boolean  @default(false) // true cho 4 role mặc định, không cho xoá
+  createdAt DateTime @default(now())
 
   // Style badge hiển thị công khai (cạnh bình luận, byline bài viết...) — title để trống thì
   // FE tự dùng name. fontFamily là key trong FONT_OPTIONS (xem roles/font-options.constant.ts).
   title      String?
   color      String?
-  bold       Boolean  @default(false)
-  italic     Boolean  @default(false)
+  bold       Boolean @default(false)
+  italic     Boolean @default(false)
   fontFamily String?
 
   // Cấu hình User Title cho MỌI user thuộc role này (users/user-title.util.ts gộp theo hướng "ưu
@@ -161,11 +163,11 @@ model Role {
   userTitleAllowHtml    Boolean @default(false)
   userTitleMaxLength    Int     @default(150)
 
-  users            UserRole[]
-  permissions      RolePermission[]
-  menus            MenuRole[]
-  widgets          WidgetRole[]
-  primaryForUsers  User[]           @relation("UserPrimaryRole")
+  users           UserRole[]
+  permissions     RolePermission[]
+  menus           MenuRole[]
+  widgets         WidgetRole[]
+  primaryForUsers User[]           @relation("UserPrimaryRole")
 
   @@map("roles")
 }
@@ -251,7 +253,7 @@ model Post {
   // author/publishedAt (xem frontend bai-viet/[slug]/page.tsx buildJsonLd()); có giá trị thì FE dùng
   // thẳng chuỗi JSON này (validate parse được, fallback về tự sinh nếu hỏng — không có gì đảm bảo
   // Admin nhập JSON hợp lệ 100%).
-  jsonLd String?
+  jsonLd          String?
 
   authorId   String
   author     User      @relation(fields: [authorId], references: [id])
@@ -414,15 +416,15 @@ enum SliderTransitionStyle {
 // Slider/carousel tái sử dụng được — tạo 1 lần trong trang Quản lý Slider, chèn vào nhiều bài viết
 // khác nhau qua modal chọn Slider trong trình soạn (xem SliderSlide bên dưới cho danh sách ảnh).
 model Slider {
-  id              String                 @id @default(cuid())
+  id              String                @id @default(cuid())
   title           String
-  bulletStyle     SliderBulletStyle      @default(DOTS)
-  transitionStyle SliderTransitionStyle  @default(SLIDE)
-  autoplay        Boolean                @default(true)
-  autoplayDelayMs Int                    @default(4000)
-  loop            Boolean                @default(true)
-  createdAt       DateTime               @default(now())
-  updatedAt       DateTime               @updatedAt
+  bulletStyle     SliderBulletStyle     @default(DOTS)
+  transitionStyle SliderTransitionStyle @default(SLIDE)
+  autoplay        Boolean               @default(true)
+  autoplayDelayMs Int                   @default(4000)
+  loop            Boolean               @default(true)
+  createdAt       DateTime              @default(now())
+  updatedAt       DateTime              @updatedAt
 
   slides SliderSlide[]
 
@@ -528,16 +530,16 @@ enum StorageProviderType {
 }
 
 model StorageProvider {
-  id       String              @id @default(cuid())
-  type     StorageProviderType
-  label    String
-  endpoint String? // R2 cần accountId/endpoint, S3 dùng region
-  region   String?
+  id                       String              @id @default(cuid())
+  type                     StorageProviderType
+  label                    String
+  endpoint                 String? // R2 cần accountId/endpoint, S3 dùng region
+  region                   String?
   // Không áp dụng cho MAILJET — để trống.
-  bucket       String?
-  uploadPrefix String?
+  bucket                   String?
+  uploadPrefix             String?
   // MAILJET: accessKeyId = API Key, secretAccessKeyEncrypted = Secret Key (SMTP user/pass).
-  accessKeyId String
+  accessKeyId              String
   // Secret không lưu plaintext — mã hoá ở tầng application trước khi ghi DB (xem UC20).
   secretAccessKeyEncrypted String
   isDefault                Boolean             @default(false)
@@ -546,7 +548,7 @@ model StorageProvider {
   // dùng Provider này làm nguồn Thư viện Media (media.service.ts), vì ảnh nhúng trong bài viết cần
   // URL vĩnh viễn, không thể dùng presigned URL (hết hạn sau vài phút). Provider chưa cấu hình field
   // này vẫn dùng bình thường cho "Quản lý File Cloud"/download link (luôn presigned) như cũ.
-  publicBaseUrl String?
+  publicBaseUrl            String?
 
   downloadLinks DownloadLink[]
   mediaFiles    MediaFile[]
@@ -566,8 +568,8 @@ model DownloadLink {
   priceP            Int             @default(0) // giá tính bằng $P, 0 = miễn phí
   createdAt         DateTime        @default(now())
 
-  grants DownloadGrant[]
-  events DownloadEvent[]
+  grants  DownloadGrant[]
+  events  DownloadEvent[]
   reports LinkReport[]
 
   @@map("download_links")
@@ -674,13 +676,13 @@ enum UserActivityType {
 // DEPOSIT {amountVnd, transactionCode}; VISIT_PROFILE {profileUserId, profileDisplayName};
 // COMMENT {postId, postTitle, commentId}; LOGIN không cần metadata.
 model UserActivity {
-  id        String            @id @default(cuid())
+  id        String           @id @default(cuid())
   userId    String
-  user      User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user      User             @relation(fields: [userId], references: [id], onDelete: Cascade)
   type      UserActivityType
   metadata  Json?
   ipAddress String?
-  createdAt DateTime          @default(now())
+  createdAt DateTime         @default(now())
 
   @@index([userId, createdAt])
   @@map("user_activities")
@@ -697,6 +699,9 @@ enum AuditAction {
   DOWNLOAD_BYPASSED
   // Admin thu hồi gói Subscription của user trước hạn (subscription.service.ts revokeMembership).
   SUBSCRIPTION_REVOKED
+  // Admin duyệt / từ chối yêu cầu nạp quốc tế (Buy Me a Coffee) — intl-topup.service.ts.
+  INTL_TOPUP_APPROVED
+  INTL_TOPUP_REJECTED
 }
 
 // Audit log thao tác nhạy cảm (PLAN.md 4.3) — đổi quyền, chỉnh ví tay, đổi key R2/S3. Khác
@@ -724,6 +729,9 @@ enum WalletTxType {
   PURCHASE
   ADMIN_ADJUST
   REFUND
+  // Nạp quốc tế qua Buy Me a Coffee, Admin duyệt tay (intl-topup module) — tách khỏi TOPUP (SePay)
+  // để lịch sử ví/đối soát phân biệt rõ 2 kênh.
+  INTL_TOPUP
 }
 
 enum WalletTxStatus {
@@ -759,6 +767,7 @@ model WalletTransaction {
 
   sepayTransaction SepayTransaction?
   topupOrder       TopupOrder?
+  intlTopupOrder   IntlTopupOrder?
 
   @@map("wallet_transactions")
 }
@@ -918,15 +927,15 @@ model SiteSetting {
 // đĩa cục bộ ./uploads với endpoint /uploads cũ (avatar, ảnh trong bài viết) — 2 nguồn ghi khác
 // nhau, không ép các endpoint upload cũ phải đổi hành vi.
 model MediaFile {
-  id           String   @id @default(cuid())
-  fileName     String   @unique
-  originalName String
-  mimeType     String
-  sizeBytes    Int
-  url          String
-  uploadedById String?
-  uploadedBy   User?    @relation(fields: [uploadedById], references: [id], onDelete: SetNull)
-  createdAt    DateTime @default(now())
+  id                String           @id @default(cuid())
+  fileName          String           @unique
+  originalName      String
+  mimeType          String
+  sizeBytes         Int
+  url               String
+  uploadedById      String?
+  uploadedBy        User?            @relation(fields: [uploadedById], references: [id], onDelete: SetNull)
+  createdAt         DateTime         @default(now())
   // null = Local (uploads/posts/... trên đĩa, hành vi gốc). Có giá trị = tải lên StorageProvider
   // R2/S3 tương ứng (media.service.ts) — key vẫn theo convention posts/yyyy/mm/dd/... như local.
   storageProviderId String?
@@ -997,4 +1006,64 @@ model NewsletterSubscriber {
   unsubscribedAt DateTime?
 
   @@map("newsletter_subscribers")
+}
+
+// ───────────────────────── Nạp quốc tế — Buy Me a Coffee (đối soát tay) ─────────────────────────
+// Tách hoàn toàn khỏi luồng SePay nội địa (TopupOrder/SepayTransaction): bảng, mã (tiền tố KMN-),
+// API (/intl-topup/*) riêng — webhook SePay không bao giờ nhìn thấy các bản ghi này. Chỉ dùng chung
+// Wallet/WalletTransaction (type INTL_TOPUP) ở bước Admin duyệt.
+
+// Gói nạp Admin cấu hình ở "Cài đặt thanh toán quốc tế". Đơn nạp chụp lại amountUsd/amountP lúc tạo
+// (không FK về gói) nên sửa/xoá gói không ảnh hưởng đơn cũ.
+model IntlTopupPackage {
+  id          String   @id @default(cuid())
+  amountUsd   Int // số USD nguyên, vd 10
+  amountP     Int
+  // Link sản phẩm Extras tương ứng trên BMC — trống thì dùng link trang BMC chung trong cài đặt.
+  bmcExtraUrl String?
+  isActive    Boolean  @default(true)
+  sortOrder   Int      @default(0)
+  createdAt   DateTime @default(now())
+
+  @@map("intl_topup_packages")
+}
+
+enum IntlTopupStatus {
+  AWAITING_PAYMENT // đã tạo mã, chờ user thanh toán trên BMC rồi bấm "I have paid"
+  PENDING // user báo đã thanh toán — chờ Admin đối chiếu trên BMC
+  APPROVED
+  REJECTED
+  EXPIRED // quá hạn thanh toán hoặc user tự huỷ khi còn AWAITING_PAYMENT
+}
+
+model IntlTopupOrder {
+  id                  String             @id @default(cuid())
+  code                String             @unique // "KMN-7F3K2Q" — user dán vào lời nhắn trên BMC
+  userId              String
+  user                User               @relation("IntlTopupOrderUser", fields: [userId], references: [id])
+  amountUsd           Int
+  amountP             Int
+  status              IntlTopupStatus    @default(AWAITING_PAYMENT)
+  expiresAt           DateTime
+  // Bằng chứng user đồng ý "$P là tín dụng số, không hoàn tiền" — dùng khi có tranh chấp thẻ.
+  termsAcceptedAt     DateTime
+  termsIp             String?
+  payerEmail          String? // email user khai đã dùng trên BMC
+  paidClaimedAt       DateTime?
+  // Admin nhập khi duyệt — số thực nhận trên BMC (cent) và $P thực cộng có thể khác gói ban đầu.
+  receivedUsdCents    Int?
+  creditedP           Int?
+  bmcTransactionRef   String?
+  reviewedById        String?
+  reviewedBy          User?              @relation("IntlTopupOrderReviewer", fields: [reviewedById], references: [id], onDelete: SetNull)
+  reviewedAt          DateTime?
+  rejectReason        String?
+  invoiceNumber       String?            @unique
+  walletTransactionId String?            @unique
+  walletTransaction   WalletTransaction? @relation(fields: [walletTransactionId], references: [id])
+  createdAt           DateTime           @default(now())
+
+  @@index([userId, status])
+  @@index([status, createdAt])
+  @@map("intl_topup_orders")
 }

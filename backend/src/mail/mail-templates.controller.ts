@@ -30,6 +30,10 @@ const VALID_KINDS = [
   'verifyEmail',
   'feedbackAdmin',
   'feedbackReply',
+  'intlTopupPendingUser',
+  'intlTopupPendingAdmin',
+  'intlTopupApproved',
+  'intlTopupRejected',
 ] as const;
 type NotificationKind = (typeof VALID_KINDS)[number];
 

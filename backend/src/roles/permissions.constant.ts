@@ -62,6 +62,10 @@ export const PERMISSIONS = {
   // Super Moderator (cùng mức nhạy cảm với WALLET_ADJUST/SETTINGS_BACKUP), chỉ Admin có qua
   // ALL_PERMISSION_KEYS — muốn cấp cho role khác phải làm thủ công qua trang Phân quyền.
   SUBSCRIPTION_REVOKE: 'subscription.revoke',
+  // Nạp quốc tế qua Buy Me a Coffee (intl-topup module): duyệt/từ chối yêu cầu (cộng $P thật) + cài
+  // đặt gói/tỉ giá. Cùng mức nhạy cảm với WALLET_ADJUST — KHÔNG gán cho Super Moderator mặc định,
+  // chỉ Admin có qua ALL_PERMISSION_KEYS (seed backfill khi deploy).
+  PAYMENT_INTL_MANAGE: 'payment.intl.manage',
 } as const;
 
 export type PermissionKey = (typeof PERMISSIONS)[keyof typeof PERMISSIONS];

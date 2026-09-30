@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import {
   ArrowDownToLine,
   Download,
+  Globe,
   RotateCcw,
   ShieldCheck,
   Sparkles,
@@ -24,6 +25,7 @@ import type {
 } from "@/lib/types";
 import { ErrorBanner } from "@/components/ui";
 import { SubscriptionPlans } from "@/components/subscription-plans";
+import { IntlTopupPanel } from "@/components/intl-topup-panel";
 
 const STATUS_LABEL: Record<TopupOrder["status"], string> = {
   PENDING: "Đang chờ thanh toán",
@@ -36,6 +38,7 @@ const TX_TYPE_LABEL: Record<WalletTransaction["type"], string> = {
   PURCHASE: "Mua link tải",
   ADMIN_ADJUST: "Admin điều chỉnh",
   REFUND: "Hoàn tiền",
+  INTL_TOPUP: "Nạp quốc tế",
 };
 
 const TX_TYPE_ICON: Record<WalletTransaction["type"], typeof WalletIcon> = {
@@ -43,6 +46,7 @@ const TX_TYPE_ICON: Record<WalletTransaction["type"], typeof WalletIcon> = {
   PURCHASE: Download,
   ADMIN_ADJUST: ShieldCheck,
   REFUND: RotateCcw,
+  INTL_TOPUP: Globe,
 };
 
 const TX_TYPE_TONE: Record<WalletTransaction["type"], string> = {
@@ -50,6 +54,7 @@ const TX_TYPE_TONE: Record<WalletTransaction["type"], string> = {
   PURCHASE: "bg-zinc-100 text-zinc-700",
   ADMIN_ADJUST: "bg-amber-100 text-amber-700",
   REFUND: "bg-sky-100 text-sky-700",
+  INTL_TOPUP: "bg-teal-100 text-teal-700",
 };
 
 const MIN_TOPUP_VND = 100000;
@@ -74,6 +79,15 @@ function TransactionDetail({ tx }: { tx: WalletTransaction }) {
     return (
       <span>
         {tx.amountVnd ? `Nạp ${formatVnd(tx.amountVnd)} qua SePay` : "Nạp tiền qua SePay"}
+      </span>
+    );
+  }
+  if (tx.type === "INTL_TOPUP") {
+    return (
+      <span>
+        {tx.amountUsdCents
+          ? `Nạp $${(tx.amountUsdCents / 100).toFixed(2)} qua Buy Me a Coffee`
+          : "Nạp quốc tế qua Buy Me a Coffee"}
       </span>
     );
   }
@@ -116,6 +130,9 @@ export function WalletDashboard() {
   const [error, setError] = useState<string | null>(null);
   const [creating, setCreating] = useState(false);
   const [transactions, setTransactions] = useState<WalletTransaction[]>([]);
+  // Kênh nạp: SePay nội địa (VNĐ, tự đối soát) hoặc quốc tế qua Buy Me a Coffee (đối soát tay) —
+  // 2 luồng tách biệt hoàn toàn, chỉ chung ví.
+  const [channel, setChannel] = useState<"domestic" | "intl">("domestic");
   const [, forceTick] = useState(0);
 
   useEffect(() => {
@@ -213,7 +230,28 @@ export function WalletDashboard() {
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         {/* Cột trái — xử lý nạp tiền */}
         <div className="flex flex-col gap-4">
-          {pending ? (
+          <div className="grid grid-cols-2 gap-1 rounded-lg border border-zinc-200 bg-zinc-50 p-1 text-sm font-medium">
+            {(
+              [
+                ["domestic", "Trong nước (VNĐ)"],
+                ["intl", "International (Card)"],
+              ] as const
+            ).map(([value, label]) => (
+              <button
+                key={value}
+                type="button"
+                onClick={() => setChannel(value)}
+                className={`rounded-md px-3 py-1.5 transition-colors ${
+                  channel === value ? "bg-white text-[#1d3557] shadow-sm" : "text-zinc-500 hover:text-zinc-800"
+                }`}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+          {channel === "intl" ? (
+            <IntlTopupPanel />
+          ) : pending ? (
             <TopupOrderCard order={pending} onReset={() => setPending(null)} />
           ) : (
             <div className="flex flex-col gap-4 rounded-lg border border-zinc-200 bg-white p-5">

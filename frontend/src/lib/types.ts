@@ -506,7 +506,7 @@ export interface MySubscriptionStatus {
   dailyDownloadsUsed: number;
 }
 
-export type WalletTxType = "TOPUP" | "PURCHASE" | "ADMIN_ADJUST" | "REFUND";
+export type WalletTxType = "TOPUP" | "PURCHASE" | "ADMIN_ADJUST" | "REFUND" | "INTL_TOPUP";
 export type WalletTxStatus = "PENDING" | "SUCCESS" | "FAILED";
 
 export interface WalletTransaction {
@@ -522,6 +522,7 @@ export interface WalletTransaction {
   // Ghép thêm ở backend/src/wallet/wallet.service.ts enrich() theo từng loại giao dịch — luôn có
   // mặt trên mọi item (null nếu không áp dụng loại đó) để đối soát chi tiết trên UI.
   amountVnd: number | null; // TOPUP — số VNĐ đã chuyển khoản qua SePay
+  amountUsdCents: number | null; // INTL_TOPUP — số USD (cent) thực nhận qua Buy Me a Coffee
   postSlug: string | null; // PURCHASE — bài viết chứa link tải vừa mua, dùng để gắn link
   adminDisplayName: string | null; // ADMIN_ADJUST — tên Admin đã điều chỉnh tay
 }
@@ -613,6 +614,10 @@ export interface MailTemplates {
   verifyEmail: MailTemplateConfig;
   feedbackAdmin: MailTemplateConfig;
   feedbackReply: MailTemplateConfig;
+  intlTopupPendingUser: MailTemplateConfig;
+  intlTopupPendingAdmin: MailTemplateConfig;
+  intlTopupApproved: MailTemplateConfig;
+  intlTopupRejected: MailTemplateConfig;
 }
 
 export interface MediaFile {
@@ -664,4 +669,67 @@ export interface ProfileMessage {
 export interface ProfileMessageListResponse {
   items: ProfileMessage[];
   total: number;
+}
+
+// ───────── Nạp quốc tế — Buy Me a Coffee (backend/src/intl-topup) ─────────
+
+export type IntlTopupStatus = "AWAITING_PAYMENT" | "PENDING" | "APPROVED" | "REJECTED" | "EXPIRED";
+
+export interface IntlTopupPublicPackage {
+  id: string;
+  amountUsd: number;
+  amountP: number;
+  bmcUrl: string;
+}
+
+export interface IntlTopupPublicConfig {
+  bmcPageUrl: string;
+  paymentWindowHours: number;
+  packages: IntlTopupPublicPackage[];
+}
+
+export interface IntlTopupOrder {
+  id: string;
+  code: string;
+  amountUsd: number;
+  amountP: number;
+  status: IntlTopupStatus;
+  expiresAt: string;
+  payerEmail: string | null;
+  paidClaimedAt: string | null;
+  receivedUsdCents: number | null;
+  creditedP: number | null;
+  reviewedAt: string | null;
+  rejectReason: string | null;
+  invoiceNumber: string | null;
+  createdAt: string;
+  // Chỉ có trong response tạo yêu cầu — link Extras của gói (hoặc trang BMC chung).
+  bmcUrl?: string;
+}
+
+export interface AdminIntlTopupOrder extends IntlTopupOrder {
+  termsAcceptedAt: string;
+  bmcTransactionRef: string | null;
+  user: { id: string; displayName: string; email: string };
+  reviewedBy: { id: string; displayName: string } | null;
+}
+
+export interface IntlTopupPackage {
+  id: string;
+  amountUsd: number;
+  amountP: number;
+  bmcExtraUrl: string | null;
+  isActive: boolean;
+  sortOrder: number;
+}
+
+export interface IntlPaymentAdminSettings {
+  bmcPageUrl: string;
+  usdToVndRate: number;
+  paymentWindowHours: number;
+  maxOpenOrdersPerUser: number;
+  sellerName: string;
+  sellerEmail: string;
+  domesticBaseRateVndPerP: number;
+  packages: IntlTopupPackage[];
 }

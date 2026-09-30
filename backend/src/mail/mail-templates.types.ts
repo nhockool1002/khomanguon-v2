@@ -27,6 +27,13 @@ export interface MailTemplates {
   // Admin trả lời góp ý (trang Quản trị > Góp ý người dùng) — gửi CHO người góp ý. Modal Feedback
   // bắt buộc email với khách ẩn danh nên góp ý mới luôn có địa chỉ để phản hồi.
   feedbackReply: MailTemplateConfig;
+  // Nạp quốc tế qua Buy Me a Coffee (intl-topup module). User-facing viết tiếng Anh (khách quốc tế),
+  // bản gửi Admin giữ tiếng Việt như các thông báo Admin khác.
+  intlTopupPendingUser: MailTemplateConfig;
+  intlTopupPendingAdmin: MailTemplateConfig;
+  // Gửi CẢ user lẫn notifyEmail, đính kèm invoice PDF.
+  intlTopupApproved: MailTemplateConfig;
+  intlTopupRejected: MailTemplateConfig;
 }
 
 export const MAIL_TEMPLATES_KEY = 'mail_templates';
@@ -121,6 +128,52 @@ const FEEDBACK_REPLY_HTML = `<p>Chào {{displayName}},</p>
 <blockquote style="margin:0;padding:8px 12px;border-left:4px solid #d4d4d8;color:#52525b;">{{originalMessage}}</blockquote>
 <p>Trân trọng,<br/>KHOMANGUON.ORG</p>`;
 
+const INTL_TOPUP_PENDING_USER_HTML = `<p>Hi {{displayName}},</p>
+<p>We have received your international top-up request. It is now <strong>pending</strong> while our team verifies your payment on Buy Me a Coffee.</p>
+<table border="1" cellpadding="8" cellspacing="0" style="border-collapse:collapse;">
+  <tr><td>Reference code</td><td><strong>{{code}}</strong></td></tr>
+  <tr><td>Package</td><td>\${{amountUsd}} USD → {{amountP}} $P</td></tr>
+  <tr><td>Buy Me a Coffee email</td><td>{{payerEmail}}</td></tr>
+</table>
+<p>You will receive another email once the transaction is approved (with your invoice) or rejected.</p>
+<p>KHOMANGUON.ORG</p>`;
+
+const INTL_TOPUP_PENDING_ADMIN_HTML = `<p>Xin chào Admin,</p>
+<p>User <strong>[{{displayName}}]</strong> ({{userEmail}}) báo đã thanh toán 1 giao dịch quốc tế qua Buy Me a Coffee — cần kiểm tra trên ví BMC:</p>
+<table border="1" cellpadding="8" cellspacing="0" style="border-collapse:collapse;">
+  <tr style="background:#1d3557;color:#fff;">
+    <th>Mã giao dịch</th>
+    <th>Số tiền</th>
+    <th>$P</th>
+    <th>Email trên BMC</th>
+  </tr>
+  <tr>
+    <td>{{code}}</td>
+    <td>\${{amountUsd}} USD</td>
+    <td>{{amountP}} $P</td>
+    <td>{{payerEmail}}</td>
+  </tr>
+</table>
+<p>Vào Quản lý Giao Dịch → Duyệt nạp quốc tế để xác nhận hoặc từ chối.</p>`;
+
+const INTL_TOPUP_APPROVED_HTML = `<p>Hi {{displayName}},</p>
+<p>Your international top-up has been <strong>approved</strong> and <strong>{{creditedP}} $P</strong> has been added to your wallet.</p>
+<table border="1" cellpadding="8" cellspacing="0" style="border-collapse:collapse;">
+  <tr><td>Invoice</td><td>{{invoiceNumber}}</td></tr>
+  <tr><td>Reference code</td><td>{{code}}</td></tr>
+  <tr><td>Amount received</td><td>\${{receivedUsd}} USD</td></tr>
+  <tr><td>Credited</td><td>{{creditedP}} $P</td></tr>
+  <tr><td>Confirmed at</td><td>{{approvedAt}}</td></tr>
+</table>
+<p>Your invoice is attached to this email. $P are digital credits and are non-refundable once delivered.</p>
+<p>KHOMANGUON.ORG</p>`;
+
+const INTL_TOPUP_REJECTED_HTML = `<p>Hi {{displayName}},</p>
+<p>Unfortunately your international top-up request <strong>{{code}}</strong> (\${{amountUsd}} USD) was <strong>rejected</strong>.</p>
+<p>Reason: {{reason}}</p>
+<p>If you believe this is a mistake, please reply via the Feedback button on our website and include your reference code.</p>
+<p>KHOMANGUON.ORG</p>`;
+
 export const DEFAULT_MAIL_TEMPLATES: MailTemplates = {
   // Mặc định email chủ dự án — Admin đổi lại qua /admin/settings/email nếu cần. Email này LUÔN
   // được cộng thêm vào danh sách nhận (cùng với chính email của user vừa nạp/tải) — xem
@@ -160,6 +213,23 @@ export const DEFAULT_MAIL_TEMPLATES: MailTemplates = {
   feedbackReply: {
     subject: 'Phản hồi góp ý của bạn — KHOMANGUON.ORG',
     html: FEEDBACK_REPLY_HTML,
+  },
+  intlTopupPendingUser: {
+    subject: 'Your top-up {{code}} is pending review — KHOMANGUON.ORG',
+    html: INTL_TOPUP_PENDING_USER_HTML,
+  },
+  intlTopupPendingAdmin: {
+    subject:
+      'User [{{displayName}}] có giao dịch quốc tế BMC cần kiểm tra — {{code}} [{{timestamp}}]',
+    html: INTL_TOPUP_PENDING_ADMIN_HTML,
+  },
+  intlTopupApproved: {
+    subject: 'Top-up approved — Invoice {{invoiceNumber}} — KHOMANGUON.ORG',
+    html: INTL_TOPUP_APPROVED_HTML,
+  },
+  intlTopupRejected: {
+    subject: 'Your top-up {{code}} was rejected — KHOMANGUON.ORG',
+    html: INTL_TOPUP_REJECTED_HTML,
   },
 };
 

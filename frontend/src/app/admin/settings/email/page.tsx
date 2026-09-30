@@ -45,6 +45,22 @@ const TEMPLATE_INFO = {
     title: "Khi Admin phản hồi góp ý (gửi người góp ý)",
     placeholders: ["displayName", "originalMessage", "replyMessage", "timestamp"],
   },
+  intlTopupPendingUser: {
+    title: "Nạp quốc tế — user báo đã thanh toán (gửi user, Pending)",
+    placeholders: ["displayName", "code", "amountUsd", "amountP", "payerEmail", "timestamp"],
+  },
+  intlTopupPendingAdmin: {
+    title: "Nạp quốc tế — có giao dịch BMC cần kiểm tra (gửi Admin)",
+    placeholders: ["displayName", "userEmail", "code", "amountUsd", "amountP", "payerEmail", "timestamp"],
+  },
+  intlTopupApproved: {
+    title: "Nạp quốc tế — đã duyệt, kèm invoice PDF (gửi user + Admin)",
+    placeholders: ["displayName", "code", "invoiceNumber", "receivedUsd", "creditedP", "approvedAt", "timestamp"],
+  },
+  intlTopupRejected: {
+    title: "Nạp quốc tế — bị từ chối (gửi user)",
+    placeholders: ["displayName", "code", "amountUsd", "reason", "timestamp"],
+  },
 } as const;
 
 type Kind = keyof typeof TEMPLATE_INFO;
@@ -84,6 +100,10 @@ export default function MailTemplatesPage() {
     verifyEmail: { subject: "", html: "" },
     feedbackAdmin: { subject: "", html: "" },
     feedbackReply: { subject: "", html: "" },
+    intlTopupPendingUser: { subject: "", html: "" },
+    intlTopupPendingAdmin: { subject: "", html: "" },
+    intlTopupApproved: { subject: "", html: "" },
+    intlTopupRejected: { subject: "", html: "" },
   });
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
@@ -108,6 +128,10 @@ export default function MailTemplatesPage() {
           verifyEmail: res.verifyEmail,
           feedbackAdmin: res.feedbackAdmin,
           feedbackReply: res.feedbackReply,
+          intlTopupPendingUser: res.intlTopupPendingUser,
+          intlTopupPendingAdmin: res.intlTopupPendingAdmin,
+          intlTopupApproved: res.intlTopupApproved,
+          intlTopupRejected: res.intlTopupRejected,
         });
       })
       .catch((err) => setError(err instanceof ApiError ? err.message : "Có lỗi xảy ra"));

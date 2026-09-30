@@ -24,6 +24,7 @@ import { NewsletterModule } from './newsletter/newsletter.module';
 import { SubscriptionPlansModule } from './subscription-plans/subscription-plans.module';
 import { SubscriptionModule } from './subscriptions/subscription.module';
 import { SepayModule } from './sepay/sepay.module';
+import { IntlTopupModule } from './intl-topup/intl-topup.module';
 import { RealtimeModule } from './realtime/realtime.module';
 import { CloudFilesModule } from './cloud-files/cloud-files.module';
 import { WidgetsModule } from './widgets/widgets.module';
@@ -71,6 +72,7 @@ import { DbBackupModule } from './db-backup/db-backup.module';
     SubscriptionPlansModule,
     SubscriptionModule,
     SepayModule,
+    IntlTopupModule,
     RealtimeModule,
     CloudFilesModule,
     WidgetsModule,
