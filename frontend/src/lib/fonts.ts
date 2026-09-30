@@ -1,50 +1,53 @@
-import {
-  Inter,
-  Roboto,
-  Open_Sans,
-  Montserrat,
-  Poppins,
-  Lato,
-  Nunito,
-  Merriweather,
-  Playfair_Display,
-  Oswald,
-  Raleway,
-  Ubuntu,
-  Quicksand,
-  Work_Sans,
-  Rubik,
-  Mulish,
-  Karla,
-  DM_Sans,
-  Space_Grotesk,
-  Bebas_Neue,
-} from "next/font/google";
+import localFont from "next/font/local";
 
 // 20 font cho phép Admin chọn làm style badge role (title/color/bold/italic/font) — PHẢI giữ
 // đồng bộ key với backend/src/roles/font-options.constant.ts (không import chéo được giữa 2 app).
 // Mỗi font export 1 CSS var "--font-role-<key>", gắn vào <html> ở layout.tsx để dùng được ở bất kỳ
 // đâu qua style={{ fontFamily: "var(--font-role-<key>)" }} (xem components/role-badge.tsx).
-const inter = Inter({ subsets: ["latin"], weight: ["400", "700"], variable: "--font-role-inter" });
-const roboto = Roboto({ subsets: ["latin"], weight: ["400", "700"], variable: "--font-role-roboto" });
-const openSans = Open_Sans({ subsets: ["latin"], weight: ["400", "700"], variable: "--font-role-open-sans" });
-const montserrat = Montserrat({ subsets: ["latin"], weight: ["400", "700"], variable: "--font-role-montserrat" });
-const poppins = Poppins({ subsets: ["latin"], weight: ["400", "700"], variable: "--font-role-poppins" });
-const lato = Lato({ subsets: ["latin"], weight: ["400", "700"], variable: "--font-role-lato" });
-const nunito = Nunito({ subsets: ["latin"], weight: ["400", "700"], variable: "--font-role-nunito" });
-const merriweather = Merriweather({ subsets: ["latin"], weight: ["400", "700"], variable: "--font-role-merriweather" });
-const playfairDisplay = Playfair_Display({ subsets: ["latin"], weight: ["400", "700"], variable: "--font-role-playfair-display" });
-const oswald = Oswald({ subsets: ["latin"], weight: ["400", "700"], variable: "--font-role-oswald" });
-const raleway = Raleway({ subsets: ["latin"], weight: ["400", "700"], variable: "--font-role-raleway" });
-const ubuntu = Ubuntu({ subsets: ["latin"], weight: ["400", "700"], variable: "--font-role-ubuntu" });
-const quicksand = Quicksand({ subsets: ["latin"], weight: ["400", "700"], variable: "--font-role-quicksand" });
-const workSans = Work_Sans({ subsets: ["latin"], weight: ["400", "700"], variable: "--font-role-work-sans" });
-const rubik = Rubik({ subsets: ["latin"], weight: ["400", "700"], variable: "--font-role-rubik" });
-const mulish = Mulish({ subsets: ["latin"], weight: ["400", "700"], variable: "--font-role-mulish" });
-const karla = Karla({ subsets: ["latin"], weight: ["400", "700"], variable: "--font-role-karla" });
-const dmSans = DM_Sans({ subsets: ["latin"], weight: ["400", "700"], variable: "--font-role-dm-sans" });
-const spaceGrotesk = Space_Grotesk({ subsets: ["latin"], weight: ["400", "700"], variable: "--font-role-space-grotesk" });
-const bebasNeue = Bebas_Neue({ subsets: ["latin"], weight: ["400"], variable: "--font-role-bebas-neue" });
+//
+// Dùng next/font/local với file woff2 (subset latin) lưu sẵn trong src/fonts — KHÔNG dùng
+// next/font/google: bản đó tải CSS/font từ Google lúc build, và từ datacenter Mỹ (Vercel, GitHub
+// Actions) Turbopack báo "next/font/google queries have exactly one entry" làm hỏng build dù máy
+// local build được. Font variable (1 file cho mọi độ đậm) khai báo weight "400 700".
+
+const inter = localFont({ src: "../fonts/inter-latin.woff2", weight: "400 700", variable: "--font-role-inter" });
+const roboto = localFont({ src: "../fonts/roboto-latin.woff2", weight: "400 700", variable: "--font-role-roboto" });
+const openSans = localFont({ src: "../fonts/open-sans-latin.woff2", weight: "400 700", variable: "--font-role-open-sans" });
+const montserrat = localFont({ src: "../fonts/montserrat-latin.woff2", weight: "400 700", variable: "--font-role-montserrat" });
+const poppins = localFont({
+  src: [
+    { path: "../fonts/poppins-400-latin.woff2", weight: "400" },
+    { path: "../fonts/poppins-700-latin.woff2", weight: "700" },
+  ],
+  variable: "--font-role-poppins",
+});
+const lato = localFont({
+  src: [
+    { path: "../fonts/lato-400-latin.woff2", weight: "400" },
+    { path: "../fonts/lato-700-latin.woff2", weight: "700" },
+  ],
+  variable: "--font-role-lato",
+});
+const nunito = localFont({ src: "../fonts/nunito-latin.woff2", weight: "400 700", variable: "--font-role-nunito" });
+const merriweather = localFont({ src: "../fonts/merriweather-latin.woff2", weight: "400 700", variable: "--font-role-merriweather" });
+const playfairDisplay = localFont({ src: "../fonts/playfair-display-latin.woff2", weight: "400 700", variable: "--font-role-playfair-display" });
+const oswald = localFont({ src: "../fonts/oswald-latin.woff2", weight: "400 700", variable: "--font-role-oswald" });
+const raleway = localFont({ src: "../fonts/raleway-latin.woff2", weight: "400 700", variable: "--font-role-raleway" });
+const ubuntu = localFont({
+  src: [
+    { path: "../fonts/ubuntu-400-latin.woff2", weight: "400" },
+    { path: "../fonts/ubuntu-700-latin.woff2", weight: "700" },
+  ],
+  variable: "--font-role-ubuntu",
+});
+const quicksand = localFont({ src: "../fonts/quicksand-latin.woff2", weight: "400 700", variable: "--font-role-quicksand" });
+const workSans = localFont({ src: "../fonts/work-sans-latin.woff2", weight: "400 700", variable: "--font-role-work-sans" });
+const rubik = localFont({ src: "../fonts/rubik-latin.woff2", weight: "400 700", variable: "--font-role-rubik" });
+const mulish = localFont({ src: "../fonts/mulish-latin.woff2", weight: "400 700", variable: "--font-role-mulish" });
+const karla = localFont({ src: "../fonts/karla-latin.woff2", weight: "400 700", variable: "--font-role-karla" });
+const dmSans = localFont({ src: "../fonts/dm-sans-latin.woff2", weight: "400 700", variable: "--font-role-dm-sans" });
+const spaceGrotesk = localFont({ src: "../fonts/space-grotesk-latin.woff2", weight: "400 700", variable: "--font-role-space-grotesk" });
+const bebasNeue = localFont({ src: "../fonts/bebas-neue-latin.woff2", weight: "400", variable: "--font-role-bebas-neue" });
 
 export const ROLE_FONTS = [
   inter,

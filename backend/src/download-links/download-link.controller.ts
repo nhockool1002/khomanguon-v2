@@ -16,6 +16,7 @@ import { PERMISSIONS } from '../roles/permissions.constant';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { UpdateDownloadLinkDto } from './dto/update-download-link.dto';
 import { DownloadRateLimitGuard } from './download-rate-limit.guard';
+import { SkipAudit } from '../audit-log/audit.decorators';
 
 interface AuthUser {
   id: string;
@@ -60,6 +61,7 @@ export class DownloadLinkController {
   // Nút ẩn "Admin Get Presigned Link" (chỉ hiện trên FE với user có quyền download.bypass) — không
   // qua DownloadRateLimitGuard, đây là công cụ nội bộ cho Admin/role được cấp quyền, không phải luồng
   // mua hàng công khai cần chặn spam.
+  @SkipAudit() // ghi DOWNLOAD_BYPASSED chi tiết trong service
   @UseGuards(JwtAuthGuard, PermissionsGuard)
   @Permissions(PERMISSIONS.DOWNLOAD_BYPASS)
   @Post(':linkId/admin-bypass')

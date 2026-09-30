@@ -26,6 +26,7 @@ import { UpdateStatusDto } from './dto/update-status.dto';
 import { UpdateStyleRoleDto } from './dto/update-style-role.dto';
 import { UpdateUserTitleDto } from './dto/update-user-title.dto';
 import { CreateProfileMessageDto } from './dto/create-profile-message.dto';
+import { SkipAudit } from '../audit-log/audit.decorators';
 
 interface AuthUser {
   id: string;
@@ -143,6 +144,7 @@ export class UsersController {
     return this.usersService.updateStatus(id, dto.status);
   }
 
+  @SkipAudit() // ghi ROLE_ASSIGNED chi tiết trong service
   @UseGuards(JwtAuthGuard, PermissionsGuard)
   @Permissions(PERMISSIONS.USER_ASSIGN_ROLE)
   @Post(':id/roles')
@@ -154,6 +156,7 @@ export class UsersController {
     return this.usersService.assignRole(id, dto.roleSlug, actor.id);
   }
 
+  @SkipAudit() // ghi ROLE_REMOVED chi tiết trong service
   @UseGuards(JwtAuthGuard, PermissionsGuard)
   @Permissions(PERMISSIONS.USER_ASSIGN_ROLE)
   @Delete(':id/roles/:roleSlug')

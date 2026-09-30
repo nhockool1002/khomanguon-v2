@@ -702,6 +702,9 @@ enum AuditAction {
   // Admin duyệt / từ chối yêu cầu nạp quốc tế (Buy Me a Coffee) — intl-topup.service.ts.
   INTL_TOPUP_APPROVED
   INTL_TOPUP_REJECTED
+  // Thao tác quản trị chung — ghi TỰ ĐỘNG bởi AdminAuditInterceptor cho mọi POST/PUT/PATCH/DELETE
+  // thành công trên route cần quyền quản trị; metadata.label là mô tả tiếng Việt (audit-labels.ts).
+  ADMIN_ACTION
 }
 
 // Audit log thao tác nhạy cảm (PLAN.md 4.3) — đổi quyền, chỉnh ví tay, đổi key R2/S3. Khác

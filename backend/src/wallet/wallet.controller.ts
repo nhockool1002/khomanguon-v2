@@ -18,6 +18,7 @@ import { PERMISSIONS } from '../roles/permissions.constant';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { CreateTopupOrderDto } from '../sepay/dto/create-topup-order.dto';
 import { AdjustWalletDto } from './dto/adjust-wallet.dto';
+import { SkipAudit } from '../audit-log/audit.decorators';
 
 const WALLET_TX_TYPES = Object.values(WalletTxType) as string[];
 const WALLET_TX_STATUSES = Object.values(WalletTxStatus) as string[];
@@ -150,6 +151,7 @@ export class WalletController {
 
   // Điều chỉnh số dư tay theo email — dùng khi đối soát webhook SePay lệch (xem comment
   // sepay.service.ts matchAndCredit) hoặc các trường hợp cộng/trừ $P thủ công khác.
+  @SkipAudit() // ghi WALLET_ADJUSTED trong cùng transaction
   @UseGuards(JwtAuthGuard, PermissionsGuard)
   @Permissions(PERMISSIONS.WALLET_ADJUST)
   @Post('admin/adjust')

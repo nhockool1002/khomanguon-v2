@@ -17,7 +17,27 @@ const ACTION_LABEL: Record<AuditAction, string> = {
   WALLET_ADJUSTED: "Điều chỉnh ví tay",
   STORAGE_PROVIDER_KEY_CHANGED: "Đổi key R2/S3",
   DOWNLOAD_BYPASSED: "Admin lấy link tải (bỏ qua $P)",
+  SUBSCRIPTION_REVOKED: "Thu hồi Subscription",
+  INTL_TOPUP_APPROVED: "Duyệt nạp quốc tế",
+  INTL_TOPUP_REJECTED: "Từ chối nạp quốc tế",
+  ADMIN_ACTION: "Thao tác quản trị",
 };
+
+// ADMIN_ACTION (ghi tự động mọi thao tác quản trị) mang mô tả cụ thể trong metadata.label — vd "Sửa
+// bài viết", "Lưu cài đặt SePay"; các loại còn lại dùng nhãn cố định ở ACTION_LABEL.
+function actionText(log: AuditLogEntry): string {
+  const label = log.metadata?.label;
+  return log.action === "ADMIN_ACTION" && typeof label === "string" ? label : ACTION_LABEL[log.action];
+}
+
+// Chi tiết đầy đủ (bấm để mở) — bỏ các trường đã hiện ở cột khác (label/handler) cho gọn.
+function detailJson(log: AuditLogEntry): string | null {
+  if (!log.metadata) return null;
+  const rest = Object.fromEntries(
+    Object.entries(log.metadata).filter(([key]) => key !== "label" && key !== "handler"),
+  );
+  return JSON.stringify(rest, null, 2);
+}
 
 export default function AuditLogPage() {
   const { user, loading } = useAuth();
@@ -61,7 +81,8 @@ export default function AuditLogPage() {
     <div className="flex w-full flex-col gap-4 px-4 py-6 sm:px-8 sm:py-8">
       <h1 className="text-xl font-semibold text-zinc-900">Nhật ký hệ thống (Audit log)</h1>
       <p className="text-sm text-zinc-500">
-        Lịch sử thao tác nhạy cảm: đổi quyền user, điều chỉnh ví $P thủ công, đổi key R2/S3.
+        Lịch sử mọi thao tác quản trị (tạo/sửa/xoá nội dung, cài đặt, user, giao dịch...) — hệ thống tự
+        ghi lại, dữ liệu nhạy cảm (mật khẩu, secret, token, API key) được ẩn.
       </p>
 
       <label className="flex w-fit flex-col gap-1.5 text-sm text-zinc-700">
@@ -114,15 +135,31 @@ export default function AuditLogPage() {
                     <span className="block text-xs text-zinc-400">{log.actor.email}</span>
                   </td>
                   <td className="px-3 py-2">
-                    <span className="rounded-full bg-zinc-100 px-2 py-0.5 font-mono text-xs text-zinc-600">
-                      {ACTION_LABEL[log.action]}
+                    <span
+                      className={`rounded-full px-2 py-0.5 text-xs ${
+                        log.action === "ADMIN_ACTION" ? "bg-sky-50 text-sky-700" : "bg-zinc-100 font-mono text-zinc-600"
+                      }`}
+                    >
+                      {actionText(log)}
                     </span>
                   </td>
                   <td className="px-3 py-2 text-zinc-500">
-                    {log.targetType && log.targetId ? `${log.targetType}:${log.targetId}` : "—"}
+                    {log.targetType ? `${log.targetType}${log.targetId ? `:${log.targetId}` : ""}` : "—"}
                   </td>
-                  <td className="max-w-xs truncate px-3 py-2 font-mono text-xs text-zinc-500">
-                    {log.metadata ? JSON.stringify(log.metadata) : "—"}
+                  <td className="max-w-md px-3 py-2 font-mono text-xs text-zinc-500">
+                    {detailJson(log) ? (
+                      <details>
+                        <summary className="cursor-pointer truncate">
+                          {JSON.stringify(log.metadata)}
+                        </summary>
+                        <pre className="mt-1 max-h-80 overflow-auto whitespace-pre-wrap break-all rounded bg-zinc-50 p-2">
+                          {detailJson(log)}
+                        </pre>
+                        {log.ipAddress && <p className="mt-1 text-zinc-400">IP: {log.ipAddress}</p>}
+                      </details>
+                    ) : (
+                      "—"
+                    )}
                   </td>
                 </tr>
               ))}

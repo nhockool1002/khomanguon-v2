@@ -16,6 +16,7 @@ import { PermissionsGuard } from '../roles/guards/permissions.guard';
 import { Permissions } from '../roles/decorators/permissions.decorator';
 import { PERMISSIONS } from '../roles/permissions.constant';
 import { CreateSubscriptionOrderDto } from './dto/create-subscription-order.dto';
+import { SkipAudit } from '../audit-log/audit.decorators';
 
 interface AuthUser {
   id: string;
@@ -67,6 +68,7 @@ export class SubscriptionController {
   // trước hạn — dùng nút "Thu hồi" ở card Subscription khi xem hồ sơ người khác. Khác
   // getUserStatus() ở trên: đây dùng PermissionsGuard/@Permissions() chuẩn (không có nhánh "hoặc là
   // chính mình" — revoke chỉ dành cho người có quyền quản trị, không tự áp dụng cho chính chủ).
+  @SkipAudit() // ghi SUBSCRIPTION_REVOKED chi tiết trong service
   @UseGuards(JwtAuthGuard, PermissionsGuard)
   @Permissions(PERMISSIONS.SUBSCRIPTION_REVOKE)
   @HttpCode(200)
