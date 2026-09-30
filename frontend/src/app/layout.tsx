@@ -1,6 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import Script from "next/script";
-import { Geist, Geist_Mono } from "next/font/google";
+import localFont from "next/font/local";
 import "./globals.css";
 import { AuthProvider } from "@/context/auth-context";
 import { RoleBadgesProvider } from "@/context/role-badges-context";
@@ -9,14 +9,17 @@ import { SiteShell } from "@/components/site-shell";
 import { fetchGeneralSettings, fetchMenus, fetchRoleBadges } from "@/lib/public-api";
 import { ROLE_FONT_VARS } from "@/lib/fonts";
 
-const geistSans = Geist({
+// Font lưu sẵn trong src/fonts (không tải từ Google lúc build — xem ghi chú ở lib/fonts.ts).
+const geistSans = localFont({
+  src: "../fonts/geist-latin.woff2",
+  weight: "100 900",
   variable: "--font-geist-sans",
-  subsets: ["latin"],
 });
 
-const geistMono = Geist_Mono({
+const geistMono = localFont({
+  src: "../fonts/geist-mono-latin.woff2",
+  weight: "100 900",
   variable: "--font-geist-mono",
-  subsets: ["latin"],
 });
 
 export const viewport: Viewport = {
