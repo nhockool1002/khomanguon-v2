@@ -341,6 +341,7 @@ export interface DownloadLinkAdmin {
   id: string;
   label: string;
   objectKey: string;
+  storageProviderId: string;
   sizeBytes: number | null;
   priceP: number;
 }

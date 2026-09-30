@@ -143,9 +143,12 @@ function DownloadLinkForm({
   onCancel: () => void;
   onSaved: () => void;
 }) {
-  const [storageProviderId, setStorageProviderId] = useState(
-    () => providers.find((p) => p.isDefault)?.id || providers[0]?.id || "",
-  );
+  // Sửa link: chọn sẵn đúng provider đã lưu (trước đây luôn lấy provider mặc định — R2 — nên
+  // form hiện sai và bấm lưu lại sẽ ghi đè mất provider thật). Tạo mới / chưa chọn: provider mặc
+  // định — tính lúc render vì danh sách providers tải bất đồng bộ, có thể về sau khi form đã mở.
+  const [selectedProviderId, setStorageProviderId] = useState(link?.storageProviderId ?? "");
+  const storageProviderId =
+    selectedProviderId || providers.find((p) => p.isDefault)?.id || providers[0]?.id || "";
   const [objectKey, setObjectKey] = useState(link?.objectKey ?? "");
   const [priceP, setPriceP] = useState(link?.priceP ?? 0);
   const [label, setLabel] = useState(link?.label ?? "");
