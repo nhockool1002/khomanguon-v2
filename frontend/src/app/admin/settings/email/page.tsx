@@ -41,6 +41,10 @@ const TEMPLATE_INFO = {
     title: "Khi có góp ý mới từ modal Feedback (gửi Admin)",
     placeholders: ["displayName", "contactEmail", "message", "timestamp"],
   },
+  feedbackReply: {
+    title: "Khi Admin phản hồi góp ý (gửi người góp ý)",
+    placeholders: ["displayName", "originalMessage", "replyMessage", "timestamp"],
+  },
 } as const;
 
 type Kind = keyof typeof TEMPLATE_INFO;
@@ -79,6 +83,7 @@ export default function MailTemplatesPage() {
     linkReportResolved: { subject: "", html: "" },
     verifyEmail: { subject: "", html: "" },
     feedbackAdmin: { subject: "", html: "" },
+    feedbackReply: { subject: "", html: "" },
   });
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
@@ -102,6 +107,7 @@ export default function MailTemplatesPage() {
           linkReportResolved: res.linkReportResolved,
           verifyEmail: res.verifyEmail,
           feedbackAdmin: res.feedbackAdmin,
+          feedbackReply: res.feedbackReply,
         });
       })
       .catch((err) => setError(err instanceof ApiError ? err.message : "Có lỗi xảy ra"));

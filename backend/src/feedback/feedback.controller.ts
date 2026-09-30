@@ -20,6 +20,7 @@ import { PublicRateLimitGuard } from '../common/rate-limit/public-rate-limit.gua
 import { RateLimitKey } from '../common/rate-limit/rate-limit-key.decorator';
 import { CreateFeedbackDto } from './dto/create-feedback.dto';
 import { UpdateFeedbackStatusDto } from './dto/update-feedback-status.dto';
+import { ReplyFeedbackDto } from './dto/reply-feedback.dto';
 
 interface AuthUser {
   id: string;
@@ -69,5 +70,17 @@ export class FeedbackController {
     @CurrentUser() user: AuthUser,
   ) {
     return this.feedbackService.resolve(id, user.id);
+  }
+
+  // Trả lời góp ý qua email (template "feedbackReply" ở Cài đặt Email) + đánh dấu đã xử lý.
+  @UseGuards(JwtAuthGuard, PermissionsGuard)
+  @Permissions(PERMISSIONS.FEEDBACK_MANAGE)
+  @Patch(':id/reply')
+  reply(
+    @Param('id') id: string,
+    @Body() dto: ReplyFeedbackDto,
+    @CurrentUser() user: AuthUser,
+  ) {
+    return this.feedbackService.reply(id, user.id, dto.message);
   }
 }

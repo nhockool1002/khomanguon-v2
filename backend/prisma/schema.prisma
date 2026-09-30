@@ -651,6 +651,10 @@ model Feedback {
   resolvedById String?
   resolvedBy   User?          @relation("FeedbackResolvedBy", fields: [resolvedById], references: [id], onDelete: SetNull)
   resolvedAt   DateTime?
+  // Phản hồi Admin gửi qua email cho người góp ý (template "feedbackReply") — null = chỉ đánh dấu
+  // đã xử lý, không gửi phản hồi.
+  replyMessage String?
+  repliedAt    DateTime?
   createdAt    DateTime       @default(now())
 
   @@map("feedbacks")

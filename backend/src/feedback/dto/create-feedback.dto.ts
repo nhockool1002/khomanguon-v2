@@ -7,8 +7,8 @@ import {
 } from 'class-validator';
 
 // name/email chỉ dùng khi gửi ẩn danh (không đăng nhập) — FeedbackService bỏ qua 2 field này nếu
-// đã xác định được authorId, xem feedback.service.ts create(). Frontend không gửi field khi để
-// trống (bỏ hẳn key thay vì chuỗi rỗng) nên @IsOptional() ở đây là đủ, không cần cho phép "".
+// đã xác định được authorId (email lấy từ tài khoản), xem feedback.service.ts create(). email vẫn
+// @IsOptional() ở tầng DTO vì người đã đăng nhập không gửi — service tự bắt buộc với khách ẩn danh.
 export class CreateFeedbackDto {
   @IsString()
   @MinLength(1)

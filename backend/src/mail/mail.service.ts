@@ -7,6 +7,7 @@ import { decryptSecret } from '../common/secret-crypto.util';
 import {
   DEFAULT_MAIL_TEMPLATES,
   MAIL_TEMPLATES_KEY,
+  escapeMailText,
   renderMailTemplate,
   type MailTemplates,
 } from './mail-templates.types';
@@ -158,6 +159,9 @@ export class MailService {
       ...(dto.feedbackAdmin !== undefined && {
         feedbackAdmin: dto.feedbackAdmin,
       }),
+      ...(dto.feedbackReply !== undefined && {
+        feedbackReply: dto.feedbackReply,
+      }),
     };
     await this.prisma.siteSetting.upsert({
       where: { key: MAIL_TEMPLATES_KEY },
@@ -280,6 +284,7 @@ export class MailService {
       const { subject, html } = renderMailTemplate(templates.feedbackAdmin, {
         timestamp: formatTimestamp(new Date()),
         ...vars,
+        message: escapeMailText(vars.message),
       });
       await this.send({ to: recipients, subject, html });
     } catch (err) {
@@ -287,6 +292,27 @@ export class MailService {
         `Gửi mail "feedbackAdmin" thất bại: ${err instanceof Error ? err.message : String(err)}`,
       );
     }
+  }
+
+  // Admin trả lời góp ý — gửi CHO người góp ý. KHÁC các hàm thông báo khác: CÓ throw khi gửi lỗi,
+  // vì Admin đang chủ động bấm "Gửi phản hồi" và cần biết email có tới được người dùng hay không
+  // (FeedbackService chỉ đánh dấu đã xử lý sau khi gửi thành công).
+  async sendFeedbackReply(
+    vars: {
+      displayName: string;
+      originalMessage: string;
+      replyMessage: string;
+    },
+    to: string,
+  ): Promise<void> {
+    const templates = await this.getTemplates();
+    const { subject, html } = renderMailTemplate(templates.feedbackReply, {
+      timestamp: formatTimestamp(new Date()),
+      displayName: escapeMailText(vars.displayName),
+      originalMessage: escapeMailText(vars.originalMessage),
+      replyMessage: escapeMailText(vars.replyMessage),
+    });
+    await this.send({ to: [to], subject, html });
   }
 
   // Nút "Gửi thử" ở trang Admin — dùng dữ liệu mẫu, gửi đúng cả 2 người nhận thật (notifyEmail +
@@ -303,14 +329,16 @@ export class MailService {
       | 'linkReportAdmin'
       | 'linkReportResolved'
       | 'verifyEmail'
-      | 'feedbackAdmin',
+      | 'feedbackAdmin'
+      | 'feedbackReply',
     testerEmail: string,
   ): Promise<{ success: boolean; message: string }> {
     const templates = await this.getTemplates();
     const recipients =
       kind === 'passwordReset' ||
       kind === 'linkReportResolved' ||
-      kind === 'verifyEmail'
+      kind === 'verifyEmail' ||
+      kind === 'feedbackReply'
         ? [testerEmail]
         : [...new Set([templates.notifyEmail, testerEmail].filter(Boolean))];
     if (recipients.length === 0) {
@@ -370,6 +398,14 @@ export class MailService {
           displayName: 'demo_user (ẩn danh)',
           contactEmail: 'demo@example.com',
           message: 'Đây là nội dung góp ý mẫu để xem thử giao diện email.',
+        };
+        break;
+      case 'feedbackReply':
+        sampleVars = {
+          displayName: 'demo_user',
+          originalMessage: 'Tôi không thanh toán được bằng mã QR.',
+          replyMessage:
+            'Cảm ơn bạn! Bạn có thể liên hệ Admin để nạp $P qua kênh quốc tế.',
         };
         break;
     }
