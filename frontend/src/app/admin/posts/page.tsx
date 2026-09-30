@@ -92,7 +92,7 @@ export default function AdminPostsPage() {
                 <th className="px-3 py-2">Tiêu đề</th>
                 <th className="px-3 py-2">Tác giả</th>
                 <th className="px-3 py-2">Trạng thái</th>
-                <th className="px-3 py-2">Ngày tạo</th>
+                <th className="px-3 py-2">Ngày đăng</th>
                 <th className="px-3 py-2" />
               </tr>
             </thead>
@@ -112,7 +112,7 @@ export default function AdminPostsPage() {
                       {STATUS_LABEL[post.status]}
                     </span>
                   </td>
-                  <td className="px-3 py-2 text-zinc-500">{formatDate(post.createdAt)}</td>
+                  <td className="px-3 py-2 text-zinc-500">{formatDate(post.publishedAt ?? post.createdAt)}</td>
                   <td className="px-3 py-2 text-right">
                     {post.status === "PUBLISHED" ? (
                       <Link
