@@ -335,10 +335,14 @@ export class PostsService {
           canonicalUrl: dto.canonicalUrl,
         }),
         ...(dto.jsonLd !== undefined && { jsonLd: dto.jsonLd }),
+        // Chỉ gán publishedAt ở lần publish ĐẦU TIÊN — FE luôn gửi kèm status khi lưu bài, nếu mỗi
+        // lần sửa đều set new Date() thì bài cũ vừa sửa bị đẩy lên đầu danh sách (issue #65).
         ...(nextStatus !== undefined && {
           status: nextStatus,
           publishedAt:
-            nextStatus === PostStatus.PUBLISHED ? new Date() : post.publishedAt,
+            nextStatus === PostStatus.PUBLISHED && !post.publishedAt
+              ? new Date()
+              : post.publishedAt,
         }),
         // Đồng bộ toàn bộ tag theo tagIds mới (xoá hết + tạo lại) — đơn giản hơn diff thêm/bớt,
         // chỉ đụng vào khi FE thực sự gửi tagIds (undefined = giữ nguyên tag hiện có).

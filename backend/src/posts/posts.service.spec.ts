@@ -116,4 +116,39 @@ describe('PostsService.update — phân quyền sửa bài (post.edit.own / post
     });
     expect(result.status).toBe(PostStatus.PUBLISHED);
   });
+
+  it('publish lần đầu (publishedAt null) thì gán publishedAt mới', async () => {
+    roles.getUserPermissionKeys.mockResolvedValue([
+      PERMISSIONS.POST_EDIT_OWN,
+      PERMISSIONS.POST_PUBLISH,
+    ]);
+    await service.update('author-1', 'post-1', {
+      status: PostStatus.PUBLISHED,
+    });
+    const [[{ data }]] = prisma.post.update.mock.calls as [
+      [{ data: { publishedAt: Date | null } }],
+    ];
+    expect(data.publishedAt).toBeInstanceOf(Date);
+  });
+
+  it('sửa bài đã publish thì giữ nguyên publishedAt cũ (issue #65)', async () => {
+    const originalPublishedAt = new Date('2025-01-01T00:00:00Z');
+    prisma.post.findUnique.mockResolvedValue({
+      ...basePost,
+      status: PostStatus.PUBLISHED,
+      publishedAt: originalPublishedAt,
+    });
+    roles.getUserPermissionKeys.mockResolvedValue([
+      PERMISSIONS.POST_EDIT_OWN,
+      PERMISSIONS.POST_PUBLISH,
+    ]);
+    await service.update('author-1', 'post-1', {
+      title: 'Sửa',
+      status: PostStatus.PUBLISHED,
+    });
+    const [[{ data }]] = prisma.post.update.mock.calls as [
+      [{ data: { publishedAt: Date | null } }],
+    ];
+    expect(data.publishedAt).toBe(originalPublishedAt);
+  });
 });
