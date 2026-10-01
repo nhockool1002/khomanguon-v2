@@ -7,6 +7,7 @@ export const AUDIT_ROUTE_LABELS: Record<string, string> = {
   'PostsController.update': 'Sửa bài viết',
   'PostsController.remove': 'Xoá bài viết',
   'PostsController.setVisibility': 'Ẩn / hiện bài viết',
+  'PostsController.bulkUpdate': 'Thao tác hàng loạt bài viết',
   'CategoriesController.create': 'Tạo danh mục',
   'CategoriesController.reorder': 'Sắp xếp danh mục',
   'CategoriesController.update': 'Sửa danh mục',

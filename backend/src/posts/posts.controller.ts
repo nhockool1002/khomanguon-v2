@@ -27,6 +27,7 @@ import { RateLimitKey } from '../common/rate-limit/rate-limit-key.decorator';
 import { CreatePostDto } from './dto/create-post.dto';
 import { UpdatePostDto } from './dto/update-post.dto';
 import { SetPostVisibilityDto } from './dto/set-post-visibility.dto';
+import { BulkUpdatePostsDto } from './dto/bulk-update-posts.dto';
 import { Cacheable } from '../cache/cacheable.decorator';
 import { HttpCacheInterceptor } from '../cache/http-cache.interceptor';
 import { AuditAdminAction } from '../audit-log/audit.decorators';
@@ -177,6 +178,15 @@ export class PostsController {
     @Body() dto: UpdatePostDto,
   ) {
     return this.postsService.update(user.id, id, dto);
+  }
+
+  // Bulk Actions (Ẩn/Hiện, đổi trạng thái nhiều bài) — cùng quyền với xuất bản bài. Đường dẫn tĩnh
+  // "bulk-update" bằng POST để không đụng route PATCH ':id'.
+  @UseGuards(JwtAuthGuard, PermissionsGuard)
+  @Permissions(PERMISSIONS.POST_PUBLISH)
+  @Post('bulk-update')
+  bulkUpdate(@Body() dto: BulkUpdatePostsDto) {
+    return this.postsService.bulkUpdate(dto.ids, dto.action, dto.status);
   }
 
   // Công tắc Ẩn/Hiện ở trang Quản lý bài viết — cùng quyền với xuất bản bài.
