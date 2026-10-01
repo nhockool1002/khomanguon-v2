@@ -50,7 +50,8 @@ export interface UserActivity {
   createdAt: string;
 }
 
-export type PostStatus = "DRAFT" | "PENDING_REVIEW" | "PUBLISHED";
+// HIDDEN = đã xuất bản nhưng Admin tạm ẩn khỏi site (công tắc Ẩn/Hiện ở trang Quản lý bài viết).
+export type PostStatus = "DRAFT" | "PENDING_REVIEW" | "PUBLISHED" | "HIDDEN";
 
 export interface Category {
   id: string;

@@ -386,20 +386,51 @@ export class PostsService {
     ]);
   }
 
-  // Chỉ user có quyền post.publish mới được đặt status PUBLISHED trực tiếp
-  // (workflow duyệt bài đầy đủ — Nháp → Chờ duyệt → Xuất bản — là phạm vi Phase 2.1).
+  // Chỉ user có quyền post.publish mới được đặt status PUBLISHED (hoặc HIDDEN — ẩn bài đã xuất bản
+  // cũng là quyết định xuất bản) trực tiếp (workflow duyệt bài đầy đủ — Nháp → Chờ duyệt → Xuất bản —
+  // là phạm vi Phase 2.1).
   private async resolveStatus(
     userId: string,
     requested?: PostStatus,
   ): Promise<PostStatus> {
-    if (!requested || requested !== PostStatus.PUBLISHED) {
+    if (
+      !requested ||
+      (requested !== PostStatus.PUBLISHED && requested !== PostStatus.HIDDEN)
+    ) {
       return requested ?? PostStatus.DRAFT;
     }
     const permissions = await this.roles.getUserPermissionKeys(userId);
     if (!permissions.includes(PERMISSIONS.POST_PUBLISH)) {
       throw new ForbiddenException('Bạn không có quyền xuất bản bài viết');
     }
-    return PostStatus.PUBLISHED;
+    return requested;
+  }
+
+  // Công tắc Ẩn/Hiện ở trang Quản lý bài viết — chỉ đổi qua lại PUBLISHED <-> HIDDEN, KHÔNG đụng
+  // publishedAt (hiện lại giữ nguyên vị trí cũ). Bài Nháp/Chờ duyệt không có công tắc này.
+  async setVisibility(id: string, hidden: boolean) {
+    const from = hidden ? PostStatus.PUBLISHED : PostStatus.HIDDEN;
+    const to = hidden ? PostStatus.HIDDEN : PostStatus.PUBLISHED;
+    const result = await this.prisma.post.updateMany({
+      where: { id, status: from },
+      data: { status: to },
+    });
+    if (result.count === 0) {
+      const exists = await this.prisma.post.findUnique({
+        where: { id },
+        select: { status: true },
+      });
+      if (!exists) throw new NotFoundException('Không tìm thấy bài viết');
+      if (exists.status !== to) {
+        throw new BadRequestException('Chỉ ẩn/hiện được bài viết đã xuất bản');
+      }
+      // Đã đúng trạng thái yêu cầu (bấm 2 lần) — coi như thành công, không làm gì thêm.
+    }
+    await Promise.all([
+      this.cache.invalidatePrefix('posts'),
+      this.frontendRevalidate.revalidateAll(),
+    ]);
+    return { id, status: to };
   }
 
   private async assertCategoryExists(categoryId: string): Promise<void> {

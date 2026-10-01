@@ -208,6 +208,10 @@ enum PostStatus {
   DRAFT
   PENDING_REVIEW
   PUBLISHED
+  // Đã xuất bản nhưng Admin tạm ẩn (công tắc Ẩn/Hiện ở trang Quản lý bài viết) — mọi truy vấn công
+  // khai chỉ lấy PUBLISHED nên bài ẩn tự biến mất khỏi trang chủ/chi tiết/danh mục/tìm kiếm/sitemap/
+  // RSS/bản tin. Hiện lại -> PUBLISHED, giữ nguyên publishedAt (thứ tự không đổi).
+  HIDDEN
 }
 
 model Category {

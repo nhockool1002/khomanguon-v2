@@ -15,7 +15,40 @@ const STATUS_LABEL: Record<PostStatus, string> = {
   DRAFT: "Nháp",
   PENDING_REVIEW: "Chờ duyệt",
   PUBLISHED: "Xuất bản",
+  HIDDEN: "Đã ẩn",
 };
+
+// Công tắc Ẩn/Hiện — chỉ áp dụng cho bài đã xuất bản (PUBLISHED <-> HIDDEN), giữ nguyên ngày đăng.
+function VisibilitySwitch({
+  visible,
+  disabled,
+  onToggle,
+}: {
+  visible: boolean;
+  disabled: boolean;
+  onToggle: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      role="switch"
+      aria-checked={visible}
+      aria-label={visible ? "Đang hiện — bấm để ẩn" : "Đang ẩn — bấm để hiện"}
+      title={visible ? "Đang hiện — bấm để ẩn khỏi site" : "Đang ẩn — bấm để hiện lại"}
+      onClick={onToggle}
+      disabled={disabled}
+      className={`relative inline-flex h-5 w-9 flex-none items-center rounded-full transition-colors disabled:opacity-50 ${
+        visible ? "bg-emerald-500" : "bg-zinc-300"
+      }`}
+    >
+      <span
+        className={`inline-block h-4 w-4 rounded-full bg-white shadow transition-transform ${
+          visible ? "translate-x-4" : "translate-x-0.5"
+        }`}
+      />
+    </button>
+  );
+}
 
 export default function AdminPostsPage() {
   const { user, loading } = useAuth();
@@ -23,6 +56,7 @@ export default function AdminPostsPage() {
   const [data, setData] = useState<PostListResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [togglingId, setTogglingId] = useState<string | null>(null);
 
   useEffect(() => {
     if (!loading && !user) router.replace("/dang-nhap");
@@ -57,12 +91,33 @@ export default function AdminPostsPage() {
     }
   }
 
+  async function handleToggleVisibility(id: string, hide: boolean) {
+    setTogglingId(id);
+    setError(null);
+    try {
+      const res = await apiFetch<{ id: string; status: PostStatus }>(`/posts/${id}/visibility`, {
+        method: "PATCH",
+        body: JSON.stringify({ hidden: hide }),
+      });
+      setData((prev) =>
+        prev ? { ...prev, items: prev.items.map((p) => (p.id === id ? { ...p, status: res.status } : p)) } : prev,
+      );
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : "Có lỗi xảy ra");
+    } finally {
+      setTogglingId(null);
+    }
+  }
+
   if (loading || !user) {
     return <div className="px-8 py-16 text-center text-sm text-zinc-400">Đang tải...</div>;
   }
   if (!user.permissionKeys?.includes(PERMISSIONS.POST_CREATE)) {
     return <ForbiddenPage />;
   }
+
+  // Ẩn/hiện bài cùng quyền với xuất bản (backend PATCH /posts/:id/visibility yêu cầu post.publish).
+  const canPublish = !!user.permissionKeys?.includes(PERMISSIONS.POST_PUBLISH);
 
   return (
     <div className="flex w-full flex-col gap-4 px-4 py-6 sm:px-8 sm:py-8">
@@ -92,6 +147,7 @@ export default function AdminPostsPage() {
                 <th className="px-3 py-2">Tiêu đề</th>
                 <th className="px-3 py-2">Tác giả</th>
                 <th className="px-3 py-2">Trạng thái</th>
+                <th className="px-3 py-2">Hiển thị</th>
                 <th className="px-3 py-2">Ngày đăng</th>
                 <th className="px-3 py-2" />
               </tr>
@@ -108,9 +164,26 @@ export default function AdminPostsPage() {
                   </Tooltip>
                   <td className="px-3 py-2 text-zinc-600">{post.author.displayName}</td>
                   <td className="px-3 py-2">
-                    <span className="rounded-full bg-zinc-100 px-2 py-0.5 font-mono text-xs text-zinc-600">
+                    <span
+                      className={`rounded-full px-2 py-0.5 font-mono text-xs ${
+                        post.status === "HIDDEN" ? "bg-amber-100 text-amber-700" : "bg-zinc-100 text-zinc-600"
+                      }`}
+                    >
                       {STATUS_LABEL[post.status]}
                     </span>
+                  </td>
+                  <td className="px-3 py-2">
+                    {post.status === "PUBLISHED" || post.status === "HIDDEN" ? (
+                      <VisibilitySwitch
+                        visible={post.status === "PUBLISHED"}
+                        disabled={togglingId === post.id || !canPublish}
+                        onToggle={() => handleToggleVisibility(post.id, post.status === "PUBLISHED")}
+                      />
+                    ) : (
+                      <span className="text-xs text-zinc-300" title="Chỉ bài đã xuất bản mới ẩn/hiện được">
+                        —
+                      </span>
+                    )}
                   </td>
                   <td className="px-3 py-2 text-zinc-500">{formatDate(post.publishedAt ?? post.createdAt)}</td>
                   <td className="px-3 py-2 text-right">

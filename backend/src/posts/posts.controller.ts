@@ -26,6 +26,7 @@ import { PublicRateLimitGuard } from '../common/rate-limit/public-rate-limit.gua
 import { RateLimitKey } from '../common/rate-limit/rate-limit-key.decorator';
 import { CreatePostDto } from './dto/create-post.dto';
 import { UpdatePostDto } from './dto/update-post.dto';
+import { SetPostVisibilityDto } from './dto/set-post-visibility.dto';
 import { Cacheable } from '../cache/cacheable.decorator';
 import { HttpCacheInterceptor } from '../cache/http-cache.interceptor';
 import { AuditAdminAction } from '../audit-log/audit.decorators';
@@ -176,6 +177,14 @@ export class PostsController {
     @Body() dto: UpdatePostDto,
   ) {
     return this.postsService.update(user.id, id, dto);
+  }
+
+  // Công tắc Ẩn/Hiện ở trang Quản lý bài viết — cùng quyền với xuất bản bài.
+  @UseGuards(JwtAuthGuard, PermissionsGuard)
+  @Permissions(PERMISSIONS.POST_PUBLISH)
+  @Patch(':id/visibility')
+  setVisibility(@Param('id') id: string, @Body() dto: SetPostVisibilityDto) {
+    return this.postsService.setVisibility(id, dto.hidden);
   }
 
   @UseGuards(JwtAuthGuard, PermissionsGuard)
