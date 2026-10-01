@@ -367,7 +367,18 @@ export function RichTextEditor({
   const handleMediaSelect = useCallback(
     (urls: string[]) => {
       if (!editor || urls.length === 0) return;
-      urls.forEach((src) => editor.chain().focus().setImage({ src }).run());
+      // Chèn TẤT CẢ ảnh trong 1 lệnh — trước đây gọi setImage() lần lượt từng ảnh: ảnh là node khối,
+      // sau mỗi lần chèn ProseMirror để NodeSelection ngay trên ảnh vừa chèn nên ảnh kế tiếp THAY THẾ
+      // ảnh trước (chọn 5 ảnh chỉ còn ảnh cuối) — cùng bản chất bug đã ghi ở handleSliderSelect.
+      editor
+        .chain()
+        .focus()
+        .insertContent(urls.map((src) => ({ type: "image", attrs: { src } })))
+        .run();
+      // Dời con trỏ ra SAU ảnh cuối (không để NodeSelection trên nó) — lệnh chèn kế tiếp (ảnh khác,
+      // slider, nhập tài liệu) sẽ chèn tiếp thay vì đè lên ảnh cuối. Tách .run() riêng: editor.state
+      // chỉ phản ánh doc mới sau khi lệnh insert đã dispatch (xem ghi chú handleSliderSelect).
+      editor.chain().setTextSelection(editor.state.selection.to).run();
     },
     [editor],
   );

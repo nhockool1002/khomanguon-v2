@@ -14,6 +14,7 @@ import { CacheService } from '../cache/cache.service';
 import { FrontendRevalidateService } from '../cache/frontend-revalidate.service';
 import { BadgesService } from '../badges/badges.service';
 import { CreatePostDto } from './dto/create-post.dto';
+import type { BulkPostAction } from './dto/bulk-update-posts.dto';
 import { UpdatePostDto } from './dto/update-post.dto';
 
 // Export cho bookmarks.service.ts dùng lại đúng shape (danh sách "Bài viết đã lưu" trả về post
@@ -404,6 +405,72 @@ export class PostsService {
       throw new ForbiddenException('Bạn không có quyền xuất bản bài viết');
     }
     return requested;
+  }
+
+  // Bulk Actions ở trang Quản lý bài viết (quyền post.publish ở controller). Bài không hợp lệ cho thao
+  // tác (vd "Ẩn" bài đang Nháp) được bỏ qua, không báo lỗi cả lô — trả về số đã cập nhật/bỏ qua.
+  // - hide/show: chỉ PUBLISHED -> HIDDEN / HIDDEN -> PUBLISHED, không đụng publishedAt.
+  // - set-status: đổi sang trạng thái bất kỳ; sang PUBLISHED thì chỉ gán publishedAt cho bài CHƯA từng
+  //   xuất bản (giữ thứ tự bài cũ — cùng quy tắc update() sau fix issue #65).
+  async bulkUpdate(ids: string[], action: BulkPostAction, status?: PostStatus) {
+    const uniqueIds = [...new Set(ids)];
+    let updated = 0;
+    if (action === 'hide' || action === 'show') {
+      const result = await this.prisma.post.updateMany({
+        where: {
+          id: { in: uniqueIds },
+          status: action === 'hide' ? PostStatus.PUBLISHED : PostStatus.HIDDEN,
+        },
+        data: {
+          status: action === 'hide' ? PostStatus.HIDDEN : PostStatus.PUBLISHED,
+        },
+      });
+      updated = result.count;
+    } else {
+      if (!status) {
+        throw new BadRequestException('Thiếu trạng thái cần đổi');
+      }
+      const target = status;
+      updated = await this.prisma.$transaction(async (tx) => {
+        const others = { id: { in: uniqueIds }, status: { not: target } };
+        if (target !== PostStatus.PUBLISHED) {
+          return (
+            await tx.post.updateMany({
+              where: others,
+              data: { status: target },
+            })
+          ).count;
+        }
+        const firstPublish = await tx.post.updateMany({
+          where: { ...others, publishedAt: null },
+          data: { status: target, publishedAt: new Date() },
+        });
+        const republish = await tx.post.updateMany({
+          where: others,
+          data: { status: target },
+        });
+        return firstPublish.count + republish.count;
+      });
+    }
+
+    if (updated > 0) {
+      await Promise.all([
+        this.cache.invalidatePrefix('posts'),
+        this.frontendRevalidate.revalidateAll(),
+      ]);
+    }
+    // Xuất bản hàng loạt -> tính lại huy hiệu cho từng tác giả (giống update() khi publish 1 bài).
+    if (updated > 0 && (status === PostStatus.PUBLISHED || action === 'show')) {
+      const authors = await this.prisma.post.findMany({
+        where: { id: { in: uniqueIds } },
+        select: { authorId: true },
+        distinct: ['authorId'],
+      });
+      authors.forEach(
+        ({ authorId }) => void this.badges.checkAndAward(authorId),
+      );
+    }
+    return { updated, skipped: uniqueIds.length - updated };
   }
 
   // Công tắc Ẩn/Hiện ở trang Quản lý bài viết — chỉ đổi qua lại PUBLISHED <-> HIDDEN, KHÔNG đụng

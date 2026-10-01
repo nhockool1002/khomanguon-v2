@@ -8,7 +8,7 @@ import { apiFetch, ApiError } from "@/lib/api";
 import { PERMISSIONS } from "@/lib/permissions";
 import type { PostListResponse, PostStatus } from "@/lib/types";
 import { formatDate } from "@/lib/format";
-import { ErrorBanner, Tooltip } from "@/components/ui";
+import { ErrorBanner, SuccessBanner, Tooltip } from "@/components/ui";
 import { ForbiddenPage } from "@/components/forbidden-page";
 
 const STATUS_LABEL: Record<PostStatus, string> = {
@@ -17,6 +17,16 @@ const STATUS_LABEL: Record<PostStatus, string> = {
   PUBLISHED: "Xuất bản",
   HIDDEN: "Đã ẩn",
 };
+
+// Menu Bulk Actions — value gửi lên POST /posts/bulk-update: "hide"/"show" hoặc "status:<STATUS>".
+const BULK_ACTIONS: { value: string; label: string }[] = [
+  { value: "hide", label: "Ẩn bài viết" },
+  { value: "show", label: "Hiện bài viết" },
+  { value: "status:DRAFT", label: "Đổi trạng thái → Nháp" },
+  { value: "status:PENDING_REVIEW", label: "Đổi trạng thái → Chờ duyệt" },
+  { value: "status:PUBLISHED", label: "Đổi trạng thái → Xuất bản" },
+  { value: "status:HIDDEN", label: "Đổi trạng thái → Đã ẩn" },
+];
 
 // Công tắc Ẩn/Hiện — chỉ áp dụng cho bài đã xuất bản (PUBLISHED <-> HIDDEN), giữ nguyên ngày đăng.
 function VisibilitySwitch({
@@ -57,6 +67,11 @@ export default function AdminPostsPage() {
   const [error, setError] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [togglingId, setTogglingId] = useState<string | null>(null);
+  const [message, setMessage] = useState<string | null>(null);
+  // Bulk Actions — id các bài đang tick + thao tác đang chọn trong menu.
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [bulkAction, setBulkAction] = useState("");
+  const [bulkRunning, setBulkRunning] = useState(false);
 
   useEffect(() => {
     if (!loading && !user) router.replace("/dang-nhap");
@@ -88,6 +103,46 @@ export default function AdminPostsPage() {
       setError(err instanceof ApiError ? err.message : "Có lỗi xảy ra");
     } finally {
       setDeletingId(null);
+    }
+  }
+
+  function toggleSelect(id: string) {
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }
+
+  async function handleBulkApply() {
+    const option = BULK_ACTIONS.find((a) => a.value === bulkAction);
+    if (!option || selected.size === 0) return;
+    if (!confirm(`${option.label} cho ${selected.size} bài viết đã chọn?`)) return;
+    const [action, status] = bulkAction.startsWith("status:")
+      ? ["set-status", bulkAction.slice("status:".length)]
+      : [bulkAction, undefined];
+    setBulkRunning(true);
+    setError(null);
+    setMessage(null);
+    try {
+      const res = await apiFetch<{ updated: number; skipped: number }>("/posts/bulk-update", {
+        method: "POST",
+        body: JSON.stringify({ ids: [...selected], action, status }),
+      });
+      setMessage(
+        `Đã cập nhật ${res.updated} bài viết` +
+          (res.skipped > 0
+            ? `, bỏ qua ${res.skipped} bài (đã ở trạng thái này, hoặc không áp dụng được — vd chỉ ẩn/hiện được bài đã xuất bản).`
+            : "."),
+      );
+      setSelected(new Set());
+      setBulkAction("");
+      await reload();
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : "Có lỗi xảy ra");
+    } finally {
+      setBulkRunning(false);
     }
   }
 
@@ -132,6 +187,47 @@ export default function AdminPostsPage() {
       </div>
 
       <ErrorBanner message={error} />
+      <SuccessBanner message={message} />
+
+      {canPublish && data && data.items.length > 0 && (
+        <div className="flex flex-wrap items-center gap-2 rounded-md border border-zinc-200 bg-zinc-50 px-3 py-2 text-sm">
+          <span className="font-medium text-zinc-700">Bulk Actions</span>
+          <span className="text-zinc-400">·</span>
+          <span className="text-zinc-500">
+            {selected.size > 0 ? `Đã chọn ${selected.size} bài` : "Tick chọn bài viết bên dưới"}
+          </span>
+          <select
+            value={bulkAction}
+            onChange={(e) => setBulkAction(e.target.value)}
+            disabled={selected.size === 0 || bulkRunning}
+            className="rounded-md border border-zinc-300 bg-white px-2 py-1 text-sm outline-none focus:border-[#1d3557] disabled:opacity-50"
+          >
+            <option value="">— Chọn thao tác —</option>
+            {BULK_ACTIONS.map((a) => (
+              <option key={a.value} value={a.value}>
+                {a.label}
+              </option>
+            ))}
+          </select>
+          <button
+            type="button"
+            onClick={handleBulkApply}
+            disabled={selected.size === 0 || !bulkAction || bulkRunning}
+            className="rounded-md bg-[#1d3557] px-3 py-1 text-sm font-medium text-white hover:bg-[#16294a] disabled:opacity-50"
+          >
+            {bulkRunning ? "Đang áp dụng..." : "Áp dụng"}
+          </button>
+          {selected.size > 0 && (
+            <button
+              type="button"
+              onClick={() => setSelected(new Set())}
+              className="text-xs font-medium text-zinc-500 hover:underline"
+            >
+              Bỏ chọn
+            </button>
+          )}
+        </div>
+      )}
 
       {data && data.items.length === 0 && (
         <p className="rounded-lg border border-dashed border-zinc-300 px-4 py-10 text-center text-sm text-zinc-400">
@@ -144,6 +240,21 @@ export default function AdminPostsPage() {
           <table className="w-full text-left text-sm">
             <thead className="bg-zinc-50 text-xs uppercase text-zinc-500">
               <tr>
+                {canPublish && (
+                  <th className="w-8 px-3 py-2">
+                    <input
+                      type="checkbox"
+                      aria-label="Chọn tất cả bài viết"
+                      checked={data.items.length > 0 && selected.size === data.items.length}
+                      ref={(el) => {
+                        if (el) el.indeterminate = selected.size > 0 && selected.size < data.items.length;
+                      }}
+                      onChange={(e) =>
+                        setSelected(e.target.checked ? new Set(data.items.map((p) => p.id)) : new Set())
+                      }
+                    />
+                  </th>
+                )}
                 <th className="px-3 py-2">Tiêu đề</th>
                 <th className="px-3 py-2">Tác giả</th>
                 <th className="px-3 py-2">Trạng thái</th>
@@ -154,7 +265,20 @@ export default function AdminPostsPage() {
             </thead>
             <tbody>
               {data.items.map((post) => (
-                <tr key={post.id} className="border-t border-zinc-100">
+                <tr
+                  key={post.id}
+                  className={`border-t border-zinc-100 ${selected.has(post.id) ? "bg-[#1d3557]/5" : ""}`}
+                >
+                  {canPublish && (
+                    <td className="px-3 py-2">
+                      <input
+                        type="checkbox"
+                        aria-label={`Chọn bài ${post.title}`}
+                        checked={selected.has(post.id)}
+                        onChange={() => toggleSelect(post.id)}
+                      />
+                    </td>
+                  )}
                   <Tooltip
                     as="td"
                     content={post.title}

@@ -189,4 +189,75 @@ describe('PostsService.update — phân quyền sửa bài (post.edit.own / post
       ).rejects.toBeInstanceOf(ForbiddenException);
     });
   });
+
+  describe('bulkUpdate() — Bulk Actions', () => {
+    it('Ẩn hàng loạt: chỉ bài PUBLISHED, trả số đã cập nhật / bỏ qua', async () => {
+      prisma.post.updateMany = jest.fn().mockResolvedValue({ count: 2 });
+      const result = await service.bulkUpdate(['a', 'b', 'c', 'a'], 'hide');
+      expect(prisma.post.updateMany).toHaveBeenCalledWith({
+        where: { id: { in: ['a', 'b', 'c'] }, status: PostStatus.PUBLISHED },
+        data: { status: PostStatus.HIDDEN },
+      });
+      expect(result).toEqual({ updated: 2, skipped: 1 });
+    });
+
+    it('Hiện hàng loạt: HIDDEN -> PUBLISHED', async () => {
+      prisma.post.updateMany = jest.fn().mockResolvedValue({ count: 1 });
+      prisma.post.findMany = jest.fn().mockResolvedValue([]);
+      await service.bulkUpdate(['a'], 'show');
+      expect(prisma.post.updateMany).toHaveBeenCalledWith({
+        where: { id: { in: ['a'] }, status: PostStatus.HIDDEN },
+        data: { status: PostStatus.PUBLISHED },
+      });
+    });
+
+    it('Đổi sang Xuất bản: chỉ gán publishedAt cho bài chưa từng xuất bản', async () => {
+      const tx = {
+        post: {
+          updateMany: jest
+            .fn()
+            .mockResolvedValueOnce({ count: 1 })
+            .mockResolvedValueOnce({ count: 2 }),
+        },
+      };
+      (prisma as unknown as Record<string, unknown>).$transaction = jest.fn(
+        (fn: (t: unknown) => unknown) => fn(tx),
+      );
+      prisma.post.findMany = jest
+        .fn()
+        .mockResolvedValue([{ authorId: 'author-1' }]);
+      const result = await service.bulkUpdate(
+        ['a', 'b', 'c'],
+        'set-status',
+        PostStatus.PUBLISHED,
+      );
+      const calls = tx.post.updateMany.mock.calls as [
+        { where: Record<string, unknown>; data: Record<string, unknown> },
+      ][];
+      expect(calls[0][0].where).toMatchObject({ publishedAt: null });
+      expect(calls[0][0].data.publishedAt).toBeInstanceOf(Date);
+      expect(calls[1][0].data).toEqual({ status: PostStatus.PUBLISHED });
+      expect(result).toEqual({ updated: 3, skipped: 0 });
+    });
+
+    it('Đổi sang Nháp: không đụng publishedAt', async () => {
+      const tx = {
+        post: { updateMany: jest.fn().mockResolvedValue({ count: 2 }) },
+      };
+      (prisma as unknown as Record<string, unknown>).$transaction = jest.fn(
+        (fn: (t: unknown) => unknown) => fn(tx),
+      );
+      await service.bulkUpdate(['a', 'b'], 'set-status', PostStatus.DRAFT);
+      expect(tx.post.updateMany).toHaveBeenCalledWith({
+        where: { id: { in: ['a', 'b'] }, status: { not: PostStatus.DRAFT } },
+        data: { status: PostStatus.DRAFT },
+      });
+    });
+
+    it('set-status thiếu trạng thái -> BadRequest', async () => {
+      await expect(
+        service.bulkUpdate(['a'], 'set-status'),
+      ).rejects.toBeInstanceOf(BadRequestException);
+    });
+  });
 });
