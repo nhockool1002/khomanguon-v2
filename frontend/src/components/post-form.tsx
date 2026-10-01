@@ -13,6 +13,7 @@ const STATUS_LABEL: Record<PostStatus, string> = {
   DRAFT: "Nháp",
   PENDING_REVIEW: "Chờ duyệt",
   PUBLISHED: "Xuất bản",
+  HIDDEN: "Đã ẩn",
 };
 
 export interface PostFormValues {

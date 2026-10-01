@@ -1,4 +1,4 @@
-import { ForbiddenException } from '@nestjs/common';
+import { BadRequestException, ForbiddenException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 import { PostStatus } from '@prisma/client';
 import { PostsService } from './posts.service';
@@ -150,5 +150,43 @@ describe('PostsService.update — phân quyền sửa bài (post.edit.own / post
       [{ data: { publishedAt: Date | null } }],
     ];
     expect(data.publishedAt).toBe(originalPublishedAt);
+  });
+
+  describe('setVisibility() — công tắc Ẩn/Hiện', () => {
+    it('ẩn: chỉ đổi PUBLISHED -> HIDDEN, không đụng publishedAt', async () => {
+      prisma.post.updateMany = jest.fn().mockResolvedValue({ count: 1 });
+      const result = await service.setVisibility('post-1', true);
+      expect(prisma.post.updateMany).toHaveBeenCalledWith({
+        where: { id: 'post-1', status: PostStatus.PUBLISHED },
+        data: { status: PostStatus.HIDDEN },
+      });
+      expect(result).toEqual({ id: 'post-1', status: PostStatus.HIDDEN });
+    });
+
+    it('hiện lại: HIDDEN -> PUBLISHED', async () => {
+      prisma.post.updateMany = jest.fn().mockResolvedValue({ count: 1 });
+      await service.setVisibility('post-1', false);
+      expect(prisma.post.updateMany).toHaveBeenCalledWith({
+        where: { id: 'post-1', status: PostStatus.HIDDEN },
+        data: { status: PostStatus.PUBLISHED },
+      });
+    });
+
+    it('bài Nháp/Chờ duyệt -> BadRequest', async () => {
+      prisma.post.updateMany = jest.fn().mockResolvedValue({ count: 0 });
+      prisma.post.findUnique.mockResolvedValue({ status: PostStatus.DRAFT });
+      await expect(
+        service.setVisibility('post-1', true),
+      ).rejects.toBeInstanceOf(BadRequestException);
+    });
+
+    it('không có post.publish thì không tự đặt được HIDDEN qua form sửa bài', async () => {
+      roles.getUserPermissionKeys.mockResolvedValue([
+        PERMISSIONS.POST_EDIT_OWN,
+      ]);
+      await expect(
+        service.update('author-1', 'post-1', { status: PostStatus.HIDDEN }),
+      ).rejects.toBeInstanceOf(ForbiddenException);
+    });
   });
 });
