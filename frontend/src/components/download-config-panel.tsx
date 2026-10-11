@@ -3,8 +3,15 @@
 import { useCallback, useEffect, useState } from "react";
 import { apiFetch, ApiError } from "@/lib/api";
 import { formatFileSize } from "@/lib/format";
+import { useAuth } from "@/context/auth-context";
+import { PERMISSIONS } from "@/lib/permissions";
 import type { CloudFile, DownloadLinkPublic, StorageProvider } from "@/lib/types";
 import { Skeleton } from "@/components/ui";
+
+// Link dự phòng Admin tạo để gửi member bị lỗi link tải/link die giữa đường — không trừ $P, không
+// ghi lịch sử (dùng lại adminBypassUnlock, xem download-link.controller.ts), chỉ khác public ở
+// thời hạn dài hơn (12h thay vì 10 phút) để đủ thời gian member tải lại cả file lớn.
+const STANDBY_LINK_EXPIRES_SECONDS = 12 * 60 * 60;
 
 // "Download Config" — cấu hình link tải trả phí gắn theo bài viết (Cloud Storage + Key File + @Cash),
 // khớp bố cục trang quản trị v1 cũ. Hỗ trợ NHIỀU link/bài (đổi thiết kế — trước đây chỉ 1 link
@@ -92,32 +99,32 @@ export function DownloadConfigPanel({ postId }: { postId?: string }) {
                 }}
               />
             ) : (
-              <div
-                key={link.id}
-                className="flex items-center justify-between gap-2 rounded-md border border-zinc-200 px-3 py-2"
-              >
-                <div className="min-w-0">
-                  <p className="truncate text-sm font-medium text-zinc-800">{link.label}</p>
-                  <p className="truncate font-mono text-xs text-zinc-400">
-                    {link.objectKey} · {link.priceP > 0 ? `${link.priceP} $P` : "Miễn phí"}
-                  </p>
+              <div key={link.id} className="flex flex-col gap-2 rounded-md border border-zinc-200 px-3 py-2">
+                <div className="flex items-center justify-between gap-2">
+                  <div className="min-w-0">
+                    <p className="truncate text-sm font-medium text-zinc-800">{link.label}</p>
+                    <p className="truncate font-mono text-xs text-zinc-400">
+                      {link.objectKey} · {link.priceP > 0 ? `${link.priceP} $P` : "Miễn phí"}
+                    </p>
+                  </div>
+                  <div className="flex flex-none items-center gap-1">
+                    <button
+                      type="button"
+                      onClick={() => setEditingId(link.id)}
+                      className="rounded px-2 py-0.5 text-xs font-medium text-[#1d3557] hover:bg-zinc-100"
+                    >
+                      Sửa
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleDelete(link)}
+                      className="rounded px-2 py-0.5 text-xs font-medium text-red-600 hover:bg-zinc-100"
+                    >
+                      Xoá
+                    </button>
+                  </div>
                 </div>
-                <div className="flex flex-none items-center gap-1">
-                  <button
-                    type="button"
-                    onClick={() => setEditingId(link.id)}
-                    className="rounded px-2 py-0.5 text-xs font-medium text-[#1d3557] hover:bg-zinc-100"
-                  >
-                    Sửa
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => handleDelete(link)}
-                    className="rounded px-2 py-0.5 text-xs font-medium text-red-600 hover:bg-zinc-100"
-                  >
-                    Xoá
-                  </button>
-                </div>
+                <StandbyLinkBox link={link} />
               </div>
             ),
           )}
@@ -326,6 +333,89 @@ function DownloadLinkForm({
           Huỷ
         </button>
       </div>
+    </div>
+  );
+}
+
+// Link dự phòng (12h) để gửi member khi link tải gốc bị lỗi/đứt giữa đường — chỉ hiện với user có
+// quyền download.bypass (khớp điều kiện nút ẩn "Admin Get Presigned Link" ở download-box.tsx).
+// Gọi lại đúng endpoint admin-bypass hiện có, chỉ truyền thêm expiresInSeconds dài hơn mặc định
+// 10 phút — không trừ $P, không ghi vào "Member đã tải"/lịch sử giao dịch của ai.
+function StandbyLinkBox({ link }: { link: DownloadLinkPublic }) {
+  const { user } = useAuth();
+  const [generating, setGenerating] = useState(false);
+  const [result, setResult] = useState<{ url: string; expiresAt: string } | null>(null);
+  const [copied, setCopied] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  if (!user?.permissionKeys?.includes(PERMISSIONS.DOWNLOAD_BYPASS)) return null;
+
+  async function handleGenerate() {
+    setError(null);
+    setCopied(false);
+    setGenerating(true);
+    try {
+      const res = await apiFetch<{ url: string; expiresAt: string }>(
+        `/download-links/${link.id}/admin-bypass`,
+        {
+          method: "POST",
+          body: JSON.stringify({ expiresInSeconds: STANDBY_LINK_EXPIRES_SECONDS }),
+        },
+      );
+      setResult(res);
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : "Có lỗi xảy ra");
+    } finally {
+      setGenerating(false);
+    }
+  }
+
+  async function handleCopy() {
+    if (!result) return;
+    try {
+      await navigator.clipboard.writeText(result.url);
+      setCopied(true);
+    } catch {
+      setError("Không copy được — tự chọn và copy link ở ô trên.");
+    }
+  }
+
+  return (
+    <div className="flex flex-col gap-1.5 border-t border-dashed border-zinc-200 pt-2">
+      <button
+        type="button"
+        onClick={handleGenerate}
+        disabled={generating}
+        title="Admin: tạo link tải không trừ $P, không ghi lịch sử, dùng gửi member khi link gốc bị lỗi"
+        className="w-fit text-[11px] font-medium text-zinc-400 hover:text-[#1d3557] hover:underline disabled:opacity-50"
+      >
+        {generating ? "Đang tạo link..." : "🔑 Tạo link dự phòng (hạn 12h)"}
+      </button>
+
+      {result && (
+        <div className="flex flex-col gap-1 rounded-md bg-zinc-50 p-2">
+          <div className="flex items-center gap-2">
+            <input
+              readOnly
+              value={result.url}
+              onFocus={(e) => e.currentTarget.select()}
+              className="min-w-0 flex-1 truncate rounded border border-zinc-300 bg-white px-2 py-1 font-mono text-xs text-zinc-700"
+            />
+            <button
+              type="button"
+              onClick={handleCopy}
+              className="flex-none rounded border border-zinc-300 px-2 py-1 text-xs font-medium text-zinc-700 hover:bg-zinc-100"
+            >
+              {copied ? "Đã copy" : "Copy"}
+            </button>
+          </div>
+          <p className="text-[11px] text-zinc-400">
+            Hết hạn lúc {new Date(result.expiresAt).toLocaleString("vi-VN")} — gửi cho member bị lỗi link tải.
+          </p>
+        </div>
+      )}
+
+      {error && <p className="text-[11px] text-red-600">{error}</p>}
     </div>
   );
 }
