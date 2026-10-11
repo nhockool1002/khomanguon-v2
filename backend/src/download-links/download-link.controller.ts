@@ -15,6 +15,7 @@ import { Permissions } from '../roles/decorators/permissions.decorator';
 import { PERMISSIONS } from '../roles/permissions.constant';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { UpdateDownloadLinkDto } from './dto/update-download-link.dto';
+import { AdminPresignDto } from './dto/admin-presign.dto';
 import { DownloadRateLimitGuard } from './download-rate-limit.guard';
 import { SkipAudit } from '../audit-log/audit.decorators';
 
@@ -60,12 +61,22 @@ export class DownloadLinkController {
 
   // Nút ẩn "Admin Get Presigned Link" (chỉ hiện trên FE với user có quyền download.bypass) — không
   // qua DownloadRateLimitGuard, đây là công cụ nội bộ cho Admin/role được cấp quyền, không phải luồng
-  // mua hàng công khai cần chặn spam.
+  // mua hàng công khai cần chặn spam. expiresInSeconds tuỳ chọn (DTO clamp 60s-7 ngày) — trang Quản
+  // lý bài viết dùng để tạo link dự phòng 12h gửi member bị lỗi link tải, bỏ trống thì giữ đúng mặc
+  // định 10 phút như cũ (không đổi hành vi nút ẩn trên trang public).
   @SkipAudit() // ghi DOWNLOAD_BYPASSED chi tiết trong service
   @UseGuards(JwtAuthGuard, PermissionsGuard)
   @Permissions(PERMISSIONS.DOWNLOAD_BYPASS)
   @Post(':linkId/admin-bypass')
-  adminBypass(@Param('linkId') linkId: string, @CurrentUser() user: AuthUser) {
-    return this.downloadLinksService.adminBypassUnlock(user.id, linkId);
+  adminBypass(
+    @Param('linkId') linkId: string,
+    @CurrentUser() user: AuthUser,
+    @Body() dto: AdminPresignDto,
+  ) {
+    return this.downloadLinksService.adminBypassUnlock(
+      user.id,
+      linkId,
+      dto.expiresInSeconds,
+    );
   }
 }

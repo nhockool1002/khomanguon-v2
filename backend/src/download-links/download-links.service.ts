@@ -327,7 +327,11 @@ export class DownloadLinksService {
   // (không trừ $P, không hiện trong "Member đã tải" hay lịch sử giao dịch của bất kỳ ai) và không gửi
   // mail thông báo tải — chỉ ghi AuditLog (chỉ Admin xem được qua quyền audit.view riêng) vì đây là
   // năng lực nhạy cảm, dễ bị lạm dụng nếu gán nhầm quyền.
-  async adminBypassUnlock(actorUserId: string, linkId: string) {
+  async adminBypassUnlock(
+    actorUserId: string,
+    linkId: string,
+    expiresInSeconds?: number,
+  ) {
     const link = await this.prisma.downloadLink.findUnique({
       where: { id: linkId },
     });
@@ -336,15 +340,24 @@ export class DownloadLinksService {
     const url = await this.r2Client.getPresignedDownloadUrl(
       link.storageProviderId,
       link.objectKey,
+      expiresInSeconds,
     );
+    // r2Client tự áp DEFAULT_EXPIRES_SECONDS (10 phút) khi expiresInSeconds undefined — tính lại
+    // đúng giá trị thực tế để trả expiresAt cho FE hiển thị (vd link dự phòng 12h ở trang Admin).
+    const actualExpiresSeconds = expiresInSeconds ?? 60 * 10;
+    const expiresAt = new Date(Date.now() + actualExpiresSeconds * 1000);
 
     void this.auditLog.log(actorUserId, AuditAction.DOWNLOAD_BYPASSED, {
       targetType: 'download_link',
       targetId: link.id,
-      metadata: { postId: link.postId, objectKey: link.objectKey },
+      metadata: {
+        postId: link.postId,
+        objectKey: link.objectKey,
+        expiresInSeconds: actualExpiresSeconds,
+      },
     });
 
-    return { url };
+    return { url, expiresAt };
   }
 
   private async getLinkOrThrow(linkId: string) {
