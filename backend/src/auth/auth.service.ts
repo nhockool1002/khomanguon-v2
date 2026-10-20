@@ -7,7 +7,7 @@ import {
 import { ConfigService } from '@nestjs/config';
 import { JwtService, JwtSignOptions } from '@nestjs/jwt';
 import * as argon2 from 'argon2';
-import { UserActivityType } from '@prisma/client';
+import { RegisterSource, UserActivityType } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { MailService } from '../mail/mail.service';
 import { RolesService } from '../roles/roles.service';
@@ -66,6 +66,7 @@ export class AuthService {
 
   async register(
     dto: RegisterDto,
+    source: RegisterSource = RegisterSource.WEB,
   ): Promise<{ user: PublicUser; tokens: AuthTokens }> {
     if (!(await this.recaptcha.verify(dto.recaptchaToken))) {
       throw new BadRequestException(
@@ -86,6 +87,7 @@ export class AuthService {
         email: dto.email,
         passwordHash,
         displayName: dto.displayName,
+        registeredVia: source,
         wallet: { create: { balance: 0 } },
       },
     });

@@ -258,12 +258,14 @@ export interface RoleBadgeInfo {
 }
 
 export type UserStatus = "ACTIVE" | "BANNED";
+export type RegisterSource = "WEB" | "EXTENSION";
 
 export interface AdminUser {
   id: string;
   email: string;
   displayName: string;
   status: UserStatus;
+  registeredVia: RegisterSource;
   createdAt: string;
   roles: { slug: string; name: string }[];
 }
