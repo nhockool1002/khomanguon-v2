@@ -7,6 +7,7 @@ import {
   FileClock,
   FileText,
   FolderTree,
+  Gamepad2,
   Globe,
   Tag as TagIcon,
   GalleryHorizontal,
@@ -18,6 +19,7 @@ import {
   MessageSquare,
   MessageSquareText,
   Menu as MenuIcon,
+  Play,
   Send,
   Server,
   Settings,
@@ -131,6 +133,29 @@ export const ADMIN_NAV: NavEntry[] = [
         icon: MenuIcon,
         match: "prefix",
         permission: PERMISSIONS.MENU_MANAGE,
+      },
+    ],
+  },
+  // Mini-game thử nghiệm nội bộ — chưa public, chỉ admin (xem backend/src/game, quyền
+  // game.play/game.manage).
+  {
+    kind: "group",
+    label: "Game",
+    icon: Gamepad2,
+    children: [
+      {
+        href: "/admin/game/play",
+        label: "Chơi thử",
+        icon: Play,
+        match: "prefix",
+        permission: PERMISSIONS.GAME_PLAY,
+      },
+      {
+        href: "/admin/game/settings",
+        label: "Cài đặt Game",
+        icon: Settings,
+        match: "prefix",
+        permission: PERMISSIONS.GAME_MANAGE,
       },
     ],
   },

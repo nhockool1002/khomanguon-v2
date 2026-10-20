@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/auth-context";
 import { apiFetch, ApiError } from "@/lib/api";
 import { PERMISSIONS } from "@/lib/permissions";
-import type { AdminUser, UserStatus } from "@/lib/types";
+import type { AdminUser, RegisterSource, UserStatus } from "@/lib/types";
 import { ErrorBanner, SuccessBanner } from "@/components/ui";
 import { DEFAULT_ROLE_OPTIONS } from "@/components/menu-tree-editor";
 import { ForbiddenPage } from "@/components/forbidden-page";
@@ -16,6 +16,11 @@ const PAGE_SIZE = 20;
 const STATUS_LABEL: Record<UserStatus, string> = {
   ACTIVE: "Đang hoạt động",
   BANNED: "Đã khoá",
+};
+
+const SOURCE_LABEL: Record<RegisterSource, string> = {
+  WEB: "Website",
+  EXTENSION: "K-Extension",
 };
 
 type SortBy = "email" | "displayName" | "status" | "createdAt";
@@ -56,6 +61,7 @@ export default function AdminUsersPage() {
   const [search, setSearch] = useState("");
   const [sortBy, setSortBy] = useState<SortBy>("createdAt");
   const [sortDir, setSortDir] = useState<SortDir>("desc");
+  const [source, setSource] = useState<RegisterSource | "">("");
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
@@ -82,13 +88,14 @@ export default function AdminUsersPage() {
       sortDir,
     });
     if (search.trim()) params.set("search", search.trim());
+    if (source) params.set("source", source);
     apiFetch<{ items: AdminUser[]; total: number }>(`/users?${params.toString()}`)
       .then((res) => {
         setItems(res.items);
         setTotal(res.total);
       })
       .catch((err) => setError(err instanceof ApiError ? err.message : "Có lỗi xảy ra"));
-  }, [page, search, sortBy, sortDir]);
+  }, [page, search, sortBy, sortDir, source]);
 
   useEffect(() => {
     if (!user) return;
@@ -190,12 +197,26 @@ export default function AdminUsersPage() {
       <ErrorBanner message={error} />
       <SuccessBanner message={message} />
 
-      <input
-        value={searchInput}
-        onChange={(e) => setSearchInput(e.target.value)}
-        placeholder="Tìm theo email hoặc tên hiển thị..."
-        className="w-full max-w-sm rounded-md border border-zinc-300 px-3 py-2 text-sm outline-none focus:border-[#1d3557] focus:ring-1 focus:ring-[#1d3557]"
-      />
+      <div className="flex flex-wrap items-center gap-2">
+        <input
+          value={searchInput}
+          onChange={(e) => setSearchInput(e.target.value)}
+          placeholder="Tìm theo email hoặc tên hiển thị..."
+          className="w-full max-w-sm rounded-md border border-zinc-300 px-3 py-2 text-sm outline-none focus:border-[#1d3557] focus:ring-1 focus:ring-[#1d3557]"
+        />
+        <select
+          value={source}
+          onChange={(e) => {
+            setSource(e.target.value as RegisterSource | "");
+            setPage(1);
+          }}
+          className="rounded-md border border-zinc-300 px-2 py-2 text-sm text-zinc-700 outline-none focus:border-[#1d3557] focus:ring-1 focus:ring-[#1d3557]"
+        >
+          <option value="">Mọi nguồn đăng ký</option>
+          <option value="WEB">Website</option>
+          <option value="EXTENSION">K-Extension</option>
+        </select>
+      </div>
 
       {items && items.length === 0 && (
         <p className="rounded-lg border border-dashed border-zinc-300 px-4 py-10 text-center text-sm text-zinc-400">
@@ -220,6 +241,7 @@ export default function AdminUsersPage() {
                     </button>
                   </th>
                 ))}
+                <th className="px-3 py-2">Nguồn</th>
                 <th className="px-3 py-2">Vai trò</th>
                 <th className="px-3 py-2"></th>
               </tr>
@@ -251,6 +273,17 @@ export default function AdminUsersPage() {
                   </td>
                   <td className="px-3 py-2 text-xs text-zinc-500">
                     {new Date(u.createdAt).toLocaleDateString("vi-VN")}
+                  </td>
+                  <td className="px-3 py-2">
+                    <span
+                      className={`rounded-full px-2 py-0.5 text-xs font-medium ${
+                        u.registeredVia === "EXTENSION"
+                          ? "bg-violet-100 text-violet-700"
+                          : "bg-zinc-100 text-zinc-600"
+                      }`}
+                    >
+                      {SOURCE_LABEL[u.registeredVia]}
+                    </span>
                   </td>
                   <td className="px-3 py-2">
                     <div className="flex flex-wrap items-center gap-1">

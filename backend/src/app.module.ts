@@ -20,6 +20,7 @@ import { DownloadLinksModule } from './download-links/download-links.module';
 import { LinkReportsModule } from './link-reports/link-reports.module';
 import { FeedbackModule } from './feedback/feedback.module';
 import { BookmarksModule } from './bookmarks/bookmarks.module';
+import { ExtensionSyncModule } from './extension-sync/extension-sync.module';
 import { NewsletterModule } from './newsletter/newsletter.module';
 import { SubscriptionPlansModule } from './subscription-plans/subscription-plans.module';
 import { SubscriptionModule } from './subscriptions/subscription.module';
@@ -40,6 +41,7 @@ import { AuditLogModule } from './audit-log/audit-log.module';
 import { RateLimitModule } from './common/rate-limit/rate-limit.module';
 import { RecaptchaModule } from './recaptcha/recaptcha.module';
 import { DbBackupModule } from './db-backup/db-backup.module';
+import { GameModule } from './game/game.module';
 
 @Module({
   imports: [
@@ -68,11 +70,13 @@ import { DbBackupModule } from './db-backup/db-backup.module';
     LinkReportsModule,
     FeedbackModule,
     BookmarksModule,
+    ExtensionSyncModule,
     NewsletterModule,
     SubscriptionPlansModule,
     SubscriptionModule,
     SepayModule,
     IntlTopupModule,
+    GameModule,
     RealtimeModule,
     CloudFilesModule,
     WidgetsModule,

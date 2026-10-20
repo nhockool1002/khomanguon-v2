@@ -41,6 +41,8 @@ export const PERMISSIONS = {
   CACHE_MANAGE: "cache.manage",
   SETTINGS_BACKUP: "settings.backup",
   AUDIT_VIEW: "audit.view",
+  GAME_PLAY: "game.play",
+  GAME_MANAGE: "game.manage",
 } as const;
 
 export type PermissionKey = (typeof PERMISSIONS)[keyof typeof PERMISSIONS];

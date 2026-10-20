@@ -258,12 +258,14 @@ export interface RoleBadgeInfo {
 }
 
 export type UserStatus = "ACTIVE" | "BANNED";
+export type RegisterSource = "WEB" | "EXTENSION";
 
 export interface AdminUser {
   id: string;
   email: string;
   displayName: string;
   status: UserStatus;
+  registeredVia: RegisterSource;
   createdAt: string;
   roles: { slug: string; name: string }[];
 }
@@ -742,4 +744,61 @@ export interface IntlPaymentAdminSettings {
   sellerEmail: string;
   domesticBaseRateVndPerP: number;
   packages: IntlTopupPackage[];
+}
+
+// Mini-game nội bộ CMS (chưa public) — xem backend/src/game. 12 level cố định, id dạng
+// "level-01".."level-12" (xem GameLevel trong schema.prisma).
+export type GameWinConditionType = "ITEM_COLLECT" | "MONSTER_CATCH";
+
+export interface GameLevel {
+  id: string;
+  order: number;
+  name: string;
+  skyThemeKey: string;
+  backgroundUrl: string;
+  winConditionType: GameWinConditionType;
+  targetCount: number;
+  scrollSpeedPxS: number;
+  spawnIntervalMs: number;
+  rewardP: number;
+  isActive: boolean;
+}
+
+export interface GameCompleteLevelResult {
+  rewardP: number;
+  balanceAfter: number;
+  nextLevel: GameLevel | null;
+  isRunComplete: boolean;
+}
+
+// Tiến độ chơi 1 user — backend/src/game GamePlayerProgress. characterKey null = chưa chọn nhân
+// vật, FE bắt chọn trước khi vào chơi (xem frontend/src/components/game/characters.ts).
+export interface GamePlayerProgress {
+  id: string;
+  userId: string;
+  characterKey: "VIKING_AXE" | "VIKING_SWORD" | null;
+  currentLevelOrder: number;
+  totalRewardP: number;
+  startedAt: string;
+  updatedAt: string;
+}
+
+// Dòng trong bảng "Người chơi" ở trang Cài đặt Game (GET /game/admin/players).
+export interface GamePlayerAdminRow extends GamePlayerProgress {
+  user: {
+    id: string;
+    displayName: string;
+    email: string;
+  };
+}
+
+// Cấu hình toàn cục (không theo level) cho máu nhân vật + quái lang thang gây sát thương — xem
+// backend/src/game/game-settings.types.ts.
+export interface GameSettings {
+  characterMaxHp: number;
+  monsterDamagePerHit: number;
+  hazardMonsterHp: number;
+  characterAttackDamage: number;
+  hazardMonsterPercent: number;
+  hazardItemPercent: number;
 }

@@ -17,19 +17,29 @@ enum UserStatus {
   BANNED
 }
 
+// Kênh đăng ký — WEB (frontend Next.js, mặc định) hay EXTENSION (K-Extension, xem
+// AuthController.register đọc x-extension-key). Chỉ để Admin lọc/thống kê ở trang Quản lý User,
+// KHÔNG ảnh hưởng role/quyền mặc định — mọi user vẫn qua đúng 1 pipeline RolesService.assignDefaultRole
+// (UNVERIFIED -> MEMBER sau khi xác minh email) dù đăng ký từ đâu.
+enum RegisterSource {
+  WEB
+  EXTENSION
+}
+
 model User {
-  id                  String     @id @default(cuid())
-  email               String     @unique
+  id                  String         @id @default(cuid())
+  email               String         @unique
   passwordHash        String
   displayName         String
   avatarUrl           String?
   bio                 String?
-  status              UserStatus @default(ACTIVE)
+  status              UserStatus     @default(ACTIVE)
+  registeredVia       RegisterSource @default(WEB)
   emailVerifiedAt     DateTime?
-  failedLoginAttempts Int        @default(0)
+  failedLoginAttempts Int            @default(0)
   lockedUntil         DateTime?
-  createdAt           DateTime   @default(now())
-  updatedAt           DateTime   @updatedAt
+  createdAt           DateTime       @default(now())
+  updatedAt           DateTime       @updatedAt
 
   // Đổi tên hiển thị: Super Moderator trở lên (quyền user.manage) đổi tự do; Moderator trở xuống
   // chỉ đổi được 1 lần — null nghĩa là còn quyền đổi miễn phí, có giá trị nghĩa là đã dùng hết
@@ -81,6 +91,8 @@ model User {
   profileMessagesReceived ProfileMessage[]         @relation("ProfileMessagesReceived")
   profileMessagesSent     ProfileMessage[]         @relation("ProfileMessagesSent")
   uploadedCloudFiles      CloudUploadRecord[]
+  gamePlayerProgress      GamePlayerProgress?
+  extensionBookmarkData   ExtensionBookmarkData?
 
   @@map("users")
 }
@@ -137,6 +149,37 @@ model RefreshToken {
   createdAt DateTime  @default(now())
 
   @@map("refresh_tokens")
+}
+
+// Cây bookmark/folder/note của extension K-Extension (xem K-Extension src/storage.js) — lưu
+// nguyên khối JSON đúng format client đang dùng ({version, trashIds, nodes}) thay vì chuẩn hoá ra
+// bảng riêng, để khỏi phải đồng bộ 2 schema (client/server) mỗi lần K-Extension đổi cấu trúc cây.
+// Mỗi user chỉ có 1 cây — client luôn PUT nguyên khối (last-write-wins), không merge ở backend.
+model ExtensionBookmarkData {
+  id        String   @id @default(cuid())
+  userId    String   @unique
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  data      Json
+  updatedAt DateTime @updatedAt
+  createdAt DateTime @default(now())
+
+  @@map("extension_bookmark_data")
+}
+
+// Định danh ỨNG DỤNG gọi API (hiện chỉ K-Extension) — không thay cho đăng nhập user, chỉ xác nhận
+// request tới từ đúng extension đã phát hành (xem extension-sync/guards/api-client.guard.ts). Key
+// nằm trong mã nguồn extension nên không phải bí mật tuyệt đối (ai unpack .crx cũng đọc được) —
+// mục đích là định danh/thu hồi theo ứng dụng, hàng rào bảo mật chính vẫn là JwtAuthGuard theo
+// từng user (dữ liệu bookmark trả về luôn theo userId từ JWT, không phải theo ApiClient).
+model ApiClient {
+  id         String    @id @default(cuid())
+  name       String    @unique // vd: "k-extension"
+  keyHash    String    @unique // sha256(raw key) — cùng cách với RefreshToken.tokenHash
+  isActive   Boolean   @default(true)
+  lastUsedAt DateTime?
+  createdAt  DateTime  @default(now())
+
+  @@map("api_clients")
 }
 
 // Vai trò chỉ là một tập hợp quyền — Admin có thể tạo Custom Role bằng cách
@@ -739,6 +782,9 @@ enum WalletTxType {
   // Nạp quốc tế qua Buy Me a Coffee, Admin duyệt tay (intl-topup module) — tách khỏi TOPUP (SePay)
   // để lịch sử ví/đối soát phân biệt rõ 2 kênh.
   INTL_TOPUP
+  // Thưởng $P hoàn thành 1 level mini-game (xem game.service.ts completeLevel). Tự thưởng (không
+  // phải Admin tác động user khác) nên KHÔNG ghi AuditLog riêng — giống nhánh mua link tải tự phục vụ.
+  GAME_REWARD
 }
 
 enum WalletTxStatus {
@@ -1073,4 +1119,66 @@ model IntlTopupOrder {
   @@index([userId, status])
   @@index([status, createdAt])
   @@map("intl_topup_orders")
+}
+
+// ───────────────────────── Mini-game nội bộ CMS (chưa public) ─────────────────────────
+
+enum GameWinConditionType {
+  ITEM_COLLECT // nhặt đủ targetCount vật phẩm
+  MONSTER_CATCH // bắt đủ targetCount quái
+}
+
+// 12 level cố định của mini-game thử nghiệm (chỉ admin chơi qua /admin/game/play, xem
+// backend/src/game). id dùng slug cố định "level-01".."level-12" (KHÔNG @default(cuid())) vì
+// WalletTransaction.referenceId trỏ vào id này để truy ngược level đã thưởng — nếu tái tạo lại 12
+// dòng kiểu IntlTopupPackage (deleteMany + createMany mỗi lần Admin lưu Cài đặt Game) thì id đổi,
+// đứt tham chiếu lịch sử ví cũ.
+model GameLevel {
+  id               String               @id
+  order            Int                  @unique // 1..12, thứ tự chơi + thứ tự lặp lại sau level 12
+  name             String
+  // Không dùng Prisma enum cho theme bầu trời — danh sách nằm ở code (GAME_SKY_THEMES, dùng chung
+  // FE/BE), đổi/thêm theme mới không cần migration. DTO validate bằng @IsIn(...).
+  skyThemeKey      String
+  backgroundUrl    String // "/game/maps/level-01.webp" — chỉ preview ở trang Cài đặt Game, không sửa qua UI này
+  winConditionType GameWinConditionType @default(ITEM_COLLECT)
+  targetCount      Int                  @default(5)
+  scrollSpeedPxS   Int                  @default(120)
+  spawnIntervalMs  Int                  @default(1500)
+  rewardP          Int                  @default(10)
+  isActive         Boolean              @default(true)
+  createdAt        DateTime             @default(now())
+  updatedAt        DateTime             @updatedAt
+
+  @@map("game_levels")
+}
+
+enum GameCharacterKey {
+  VIKING_AXE
+  VIKING_SWORD
+}
+
+// Tiến độ chơi mini-game của từng user — 1 dòng/user (singleton, tạo lười lúc user mở trang Chơi
+// thử lần đầu). Trước đây trang Chơi thử hoàn toàn ephemeral (state chỉ sống trong React, mất khi
+// reload trang) — giờ lưu server-side để trang Cài đặt Game hiện được "ai đang chơi, đang ở level
+// nào" và Admin reset được (xem game.service.ts resetPlayer). characterKey=null nghĩa là user CHƯA
+// chọn nhân vật, FE bắt chọn trước khi vào chơi.
+model GamePlayerProgress {
+  id     String @id @default(cuid())
+  userId String @unique
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  characterKey      GameCharacterKey?
+  // Lưu THỨ TỰ (1..12) thay vì currentLevelId trực tiếp — tránh vỡ tham chiếu nếu sau này Admin có
+  // thao tác thêm/bớt level; suy ngược ra GameLevel đúng lúc đọc (xem completeLevel()).
+  currentLevelOrder Int               @default(1)
+  // Thống kê riêng của mini-game (số $P đã kiếm qua game, cộng dồn) — KHÔNG phải số dư ví thật
+  // (Wallet.balance). Admin "Reset" chỉ reset các field ở model này, hoàn toàn không đụng
+  // Wallet/WalletTransaction — $P đã vào ví là tiền thật, muốn thu hồi phải dùng wallet.adjust riêng.
+  totalRewardP      Int               @default(0)
+
+  startedAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("game_player_progress")
 }

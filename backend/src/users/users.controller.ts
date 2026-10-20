@@ -9,7 +9,7 @@ import {
   Query,
   UseGuards,
 } from '@nestjs/common';
-import { UserActivityType } from '@prisma/client';
+import { RegisterSource, UserActivityType } from '@prisma/client';
 import { UsersService } from './users.service';
 import type { UserSortBy, SortDir } from './users.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
@@ -113,10 +113,24 @@ export class UsersController {
     @Query('search') search?: string,
     @Query('sortBy') sortBy?: UserSortBy,
     @Query('sortDir') sortDir?: SortDir,
+    @Query('source') source?: RegisterSource,
   ) {
     const take = Math.min(Number(limit) || 20, 100);
     const skip = (Math.max(Number(page) || 1, 1) - 1) * take;
-    return this.usersService.list(skip, take, search, sortBy, sortDir);
+    // ?source lạ (không phải WEB/EXTENSION) -> bỏ qua filter thay vì để Prisma ném lỗi 500.
+    const validSource = Object.values(RegisterSource).includes(
+      source as RegisterSource,
+    )
+      ? (source as RegisterSource)
+      : undefined;
+    return this.usersService.list(
+      skip,
+      take,
+      search,
+      sortBy,
+      sortDir,
+      validSource,
+    );
   }
 
   // Admin bấm "Đặt lại mật khẩu" ở trang quản lý user — gửi mail chứa link đặt lại mật khẩu, không

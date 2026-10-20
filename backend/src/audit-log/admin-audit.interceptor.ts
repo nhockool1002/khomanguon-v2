@@ -23,6 +23,10 @@ const MEMBER_PERMISSIONS = new Set<PermissionKey>([
   PERMISSIONS.COMMENT_CREATE,
   PERMISSIONS.WALLET_VIEW_OWN,
   PERMISSIONS.DOWNLOAD_PURCHASE,
+  // Hoàn thành 1 level mini-game (POST .../complete) — hành động tự phục vụ gọi liên tục lúc chơi,
+  // không phải thao tác quản trị, không nên spam audit log (giống DOWNLOAD_PURCHASE). PUT
+  // admin/levels (GAME_MANAGE) vẫn auto-audit bình thường, không nằm trong set này.
+  PERMISSIONS.GAME_PLAY,
 ]);
 
 // Khoá chứa bí mật — luôn che trước khi lưu vào metadata audit (audit log xem được trên UI).
