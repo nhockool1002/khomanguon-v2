@@ -66,6 +66,10 @@ export const PERMISSIONS = {
   // đặt gói/tỉ giá. Cùng mức nhạy cảm với WALLET_ADJUST — KHÔNG gán cho Super Moderator mặc định,
   // chỉ Admin có qua ALL_PERMISSION_KEYS (seed backfill khi deploy).
   PAYMENT_INTL_MANAGE: 'payment.intl.manage',
+  // Đồng bộ dữ liệu bookmark của extension K-Extension (ExtensionBookmarkData) — gán cho mọi role
+  // đã kích hoạt (Member trở lên), KHÔNG gán UNVERIFIED (cùng chính sách "chưa kích hoạt thì chỉ
+  // xem được bài viết" như các quyền khác, xem DEFAULT_ROLE_PERMISSIONS bên dưới).
+  EXT_BOOKMARK_SYNC: 'ext_bookmark.sync',
 } as const;
 
 export type PermissionKey = (typeof PERMISSIONS)[keyof typeof PERMISSIONS];
@@ -109,17 +113,20 @@ export const DEFAULT_ROLE_PERMISSIONS: Record<string, PermissionKey[]> = {
     PERMISSIONS.DOWNLOAD_MANAGE_LINKS,
     PERMISSIONS.MEDIA_MANAGE,
     PERMISSIONS.FEEDBACK_MANAGE,
+    PERMISSIONS.EXT_BOOKMARK_SYNC,
   ],
   [DEFAULT_ROLES.MODERATOR.slug]: [
     PERMISSIONS.POST_CREATE,
     PERMISSIONS.POST_EDIT_OWN,
     PERMISSIONS.COMMENT_CREATE,
     PERMISSIONS.COMMENT_MODERATE,
+    PERMISSIONS.EXT_BOOKMARK_SYNC,
   ],
   [DEFAULT_ROLES.MEMBER.slug]: [
     PERMISSIONS.COMMENT_CREATE,
     PERMISSIONS.WALLET_VIEW_OWN,
     PERMISSIONS.DOWNLOAD_PURCHASE,
+    PERMISSIONS.EXT_BOOKMARK_SYNC,
   ],
   // Không có quyền nào — "chỉ xem được bài viết" (xem bài viết vốn đã public, không cần permission)
   // "nhưng không tải được": cũng chặn luôn bình luận/ví cho tới khi xác minh email, đúng nghĩa

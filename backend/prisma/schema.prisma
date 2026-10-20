@@ -17,19 +17,29 @@ enum UserStatus {
   BANNED
 }
 
+// Kênh đăng ký — WEB (frontend Next.js, mặc định) hay EXTENSION (K-Extension, xem
+// AuthController.register đọc x-extension-key). Chỉ để Admin lọc/thống kê ở trang Quản lý User,
+// KHÔNG ảnh hưởng role/quyền mặc định — mọi user vẫn qua đúng 1 pipeline RolesService.assignDefaultRole
+// (UNVERIFIED -> MEMBER sau khi xác minh email) dù đăng ký từ đâu.
+enum RegisterSource {
+  WEB
+  EXTENSION
+}
+
 model User {
-  id                  String     @id @default(cuid())
-  email               String     @unique
+  id                  String         @id @default(cuid())
+  email               String         @unique
   passwordHash        String
   displayName         String
   avatarUrl           String?
   bio                 String?
-  status              UserStatus @default(ACTIVE)
+  status              UserStatus     @default(ACTIVE)
+  registeredVia       RegisterSource @default(WEB)
   emailVerifiedAt     DateTime?
-  failedLoginAttempts Int        @default(0)
+  failedLoginAttempts Int            @default(0)
   lockedUntil         DateTime?
-  createdAt           DateTime   @default(now())
-  updatedAt           DateTime   @updatedAt
+  createdAt           DateTime       @default(now())
+  updatedAt           DateTime       @updatedAt
 
   // Đổi tên hiển thị: Super Moderator trở lên (quyền user.manage) đổi tự do; Moderator trở xuống
   // chỉ đổi được 1 lần — null nghĩa là còn quyền đổi miễn phí, có giá trị nghĩa là đã dùng hết
@@ -81,6 +91,7 @@ model User {
   profileMessagesReceived ProfileMessage[]         @relation("ProfileMessagesReceived")
   profileMessagesSent     ProfileMessage[]         @relation("ProfileMessagesSent")
   uploadedCloudFiles      CloudUploadRecord[]
+  extensionBookmarkData   ExtensionBookmarkData?
 
   @@map("users")
 }
@@ -137,6 +148,37 @@ model RefreshToken {
   createdAt DateTime  @default(now())
 
   @@map("refresh_tokens")
+}
+
+// Cây bookmark/folder/note của extension K-Extension (xem K-Extension src/storage.js) — lưu
+// nguyên khối JSON đúng format client đang dùng ({version, trashIds, nodes}) thay vì chuẩn hoá ra
+// bảng riêng, để khỏi phải đồng bộ 2 schema (client/server) mỗi lần K-Extension đổi cấu trúc cây.
+// Mỗi user chỉ có 1 cây — client luôn PUT nguyên khối (last-write-wins), không merge ở backend.
+model ExtensionBookmarkData {
+  id        String   @id @default(cuid())
+  userId    String   @unique
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  data      Json
+  updatedAt DateTime @updatedAt
+  createdAt DateTime @default(now())
+
+  @@map("extension_bookmark_data")
+}
+
+// Định danh ỨNG DỤNG gọi API (hiện chỉ K-Extension) — không thay cho đăng nhập user, chỉ xác nhận
+// request tới từ đúng extension đã phát hành (xem extension-sync/guards/api-client.guard.ts). Key
+// nằm trong mã nguồn extension nên không phải bí mật tuyệt đối (ai unpack .crx cũng đọc được) —
+// mục đích là định danh/thu hồi theo ứng dụng, hàng rào bảo mật chính vẫn là JwtAuthGuard theo
+// từng user (dữ liệu bookmark trả về luôn theo userId từ JWT, không phải theo ApiClient).
+model ApiClient {
+  id         String    @id @default(cuid())
+  name       String    @unique // vd: "k-extension"
+  keyHash    String    @unique // sha256(raw key) — cùng cách với RefreshToken.tokenHash
+  isActive   Boolean   @default(true)
+  lastUsedAt DateTime?
+  createdAt  DateTime  @default(now())
+
+  @@map("api_clients")
 }
 
 // Vai trò chỉ là một tập hợp quyền — Admin có thể tạo Custom Role bằng cách

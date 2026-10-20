@@ -6,7 +6,12 @@ import {
   UnauthorizedException,
 } from '@nestjs/common';
 import * as argon2 from 'argon2';
-import { AuditAction, Prisma, UserStatus } from '@prisma/client';
+import {
+  AuditAction,
+  Prisma,
+  RegisterSource,
+  UserStatus,
+} from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { RolesService } from '../roles/roles.service';
 import { resolveStyleRoleSlug } from '../roles/style-role.util';
@@ -273,15 +278,19 @@ export class UsersService {
     search?: string,
     sortBy: UserSortBy = 'createdAt',
     sortDir: SortDir = 'desc',
+    source?: RegisterSource,
   ) {
-    const where: Prisma.UserWhereInput | undefined = search?.trim()
-      ? {
-          OR: [
-            { email: { contains: search.trim(), mode: 'insensitive' } },
-            { displayName: { contains: search.trim(), mode: 'insensitive' } },
-          ],
-        }
-      : undefined;
+    const where: Prisma.UserWhereInput = {
+      ...(search?.trim()
+        ? {
+            OR: [
+              { email: { contains: search.trim(), mode: 'insensitive' } },
+              { displayName: { contains: search.trim(), mode: 'insensitive' } },
+            ],
+          }
+        : {}),
+      ...(source ? { registeredVia: source } : {}),
+    };
     const [items, total] = await this.prisma.$transaction([
       this.prisma.user.findMany({
         where,
@@ -293,6 +302,7 @@ export class UsersService {
           email: true,
           displayName: true,
           status: true,
+          registeredVia: true,
           createdAt: true,
           roles: { select: { role: { select: { slug: true, name: true } } } },
         },
