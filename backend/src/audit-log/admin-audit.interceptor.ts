@@ -18,13 +18,14 @@ import { FORCE_AUDIT_KEY, SKIP_AUDIT_KEY } from './audit.decorators';
 const MUTATING_METHODS = new Set(['POST', 'PUT', 'PATCH', 'DELETE']);
 
 // Quyền "tự phục vụ" của thành viên thường — route CHỈ yêu cầu các quyền này (bình luận, nạp/xem ví
-// của mình, mua link tải, đồng bộ bookmark K-Extension của chính mình) không phải thao tác quản
-// trị nên không ghi audit.
+// của mình, mua link tải, đồng bộ bookmark/mã MFA của K-Extension cho chính mình) không phải thao
+// tác quản trị nên không ghi audit.
 const MEMBER_PERMISSIONS = new Set<PermissionKey>([
   PERMISSIONS.COMMENT_CREATE,
   PERMISSIONS.WALLET_VIEW_OWN,
   PERMISSIONS.DOWNLOAD_PURCHASE,
   PERMISSIONS.EXT_BOOKMARK_SYNC,
+  PERMISSIONS.EXT_MFA_SYNC,
 ]);
 
 // Khoá chứa bí mật — luôn che trước khi lưu vào metadata audit (audit log xem được trên UI).

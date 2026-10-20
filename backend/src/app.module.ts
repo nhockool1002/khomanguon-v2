@@ -21,6 +21,7 @@ import { LinkReportsModule } from './link-reports/link-reports.module';
 import { FeedbackModule } from './feedback/feedback.module';
 import { BookmarksModule } from './bookmarks/bookmarks.module';
 import { ExtensionSyncModule } from './extension-sync/extension-sync.module';
+import { ExtensionMfaModule } from './extension-mfa/extension-mfa.module';
 import { NewsletterModule } from './newsletter/newsletter.module';
 import { SubscriptionPlansModule } from './subscription-plans/subscription-plans.module';
 import { SubscriptionModule } from './subscriptions/subscription.module';
@@ -70,6 +71,7 @@ import { DbBackupModule } from './db-backup/db-backup.module';
     FeedbackModule,
     BookmarksModule,
     ExtensionSyncModule,
+    ExtensionMfaModule,
     NewsletterModule,
     SubscriptionPlansModule,
     SubscriptionModule,

@@ -92,6 +92,7 @@ model User {
   profileMessagesSent     ProfileMessage[]         @relation("ProfileMessagesSent")
   uploadedCloudFiles      CloudUploadRecord[]
   extensionBookmarkData   ExtensionBookmarkData?
+  extensionMfaData        ExtensionMfaData?
 
   @@map("users")
 }
@@ -179,6 +180,23 @@ model ApiClient {
   createdAt  DateTime  @default(now())
 
   @@map("api_clients")
+}
+
+// Danh sách mã MFA/TOTP (2FA) của extension K-Extension — KHÁC hẳn ExtensionBookmarkData về mức
+// nhạy cảm: TOTP secret là "chìa khoá" bỏ qua được lớp 2FA của dịch vụ khác nếu lộ. `data` ở đây
+// LUÔN LÀ CIPHERTEXT (AES-GCM) do K-Extension mã hoá phía client bằng key suy ra từ mật khẩu tài
+// khoản TRƯỚC khi gửi lên — backend không giữ key, không bao giờ giải mã được, chỉ lưu/trả lại
+// nguyên khối. Dù DB hoặc STORAGE_SECRET_KEY production bị lộ, TOTP secret thật vẫn an toàn (khác
+// cơ chế encryptSecret/decryptSecret của StorageProvider — nơi backend THỰC SỰ giải mã được).
+model ExtensionMfaData {
+  id        String   @id @default(cuid())
+  userId    String   @unique
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  data      Json
+  updatedAt DateTime @updatedAt
+  createdAt DateTime @default(now())
+
+  @@map("extension_mfa_data")
 }
 
 // Vai trò chỉ là một tập hợp quyền — Admin có thể tạo Custom Role bằng cách
