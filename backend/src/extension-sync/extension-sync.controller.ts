@@ -6,7 +6,7 @@ import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { Permissions } from '../roles/decorators/permissions.decorator';
 import { PermissionsGuard } from '../roles/guards/permissions.guard';
 import { PERMISSIONS } from '../roles/permissions.constant';
-import { ApiClientGuard } from './guards/api-client.guard';
+import { ApiClientGuard } from '../common/guards/api-client.guard';
 
 interface AuthUser {
   id: string;

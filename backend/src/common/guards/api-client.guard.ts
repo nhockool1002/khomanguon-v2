@@ -6,16 +6,15 @@ import {
 } from '@nestjs/common';
 import { Request } from 'express';
 import { PrismaService } from '../../prisma/prisma.service';
-import {
-  API_CLIENT_KEY_HEADER,
-  findActiveApiClient,
-} from '../../common/api-client.util';
+import { API_CLIENT_KEY_HEADER, findActiveApiClient } from '../api-client.util';
 
 // Xác nhận request tới từ đúng extension đã phát hành (ApiClient), KHÔNG xác thực user — luôn
 // dùng chung với JwtAuthGuard (JwtAuthGuard đứng trước để request.user có trước khi vào đây không
-// bắt buộc, 2 guard độc lập). Xem comment model ApiClient trong schema.prisma về việc key này
-// không phải bí mật tuyệt đối. AuthController dùng cùng findActiveApiClient() nhưng không bắt
-// buộc (login/refresh vẫn chạy được không cần header này, chỉ đổi cách trả refreshToken).
+// bắt buộc, 2 guard độc lập). Dùng chung bởi mọi module extension-* (extension-sync,
+// extension-mfa...) — đặt ở common/ thay vì bên trong 1 module cụ thể vì không còn gắn riêng cho
+// bookmark nữa. Xem comment model ApiClient trong schema.prisma về việc key này không phải bí mật
+// tuyệt đối. AuthController dùng cùng findActiveApiClient() nhưng không bắt buộc (login/refresh
+// vẫn chạy được không cần header này, chỉ đổi cách trả refreshToken).
 @Injectable()
 export class ApiClientGuard implements CanActivate {
   constructor(private readonly prisma: PrismaService) {}

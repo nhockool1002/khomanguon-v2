@@ -70,6 +70,10 @@ export const PERMISSIONS = {
   // đã kích hoạt (Member trở lên), KHÔNG gán UNVERIFIED (cùng chính sách "chưa kích hoạt thì chỉ
   // xem được bài viết" như các quyền khác, xem DEFAULT_ROLE_PERMISSIONS bên dưới).
   EXT_BOOKMARK_SYNC: 'ext_bookmark.sync',
+  // Đồng bộ mã MFA/TOTP của extension (ExtensionMfaData) — tách riêng khỏi EXT_BOOKMARK_SYNC dù
+  // cùng chính sách gán (Member trở lên, không UNVERIFIED) vì đây là dữ liệu nhạy cảm hơn hẳn, cần
+  // audit/thu hồi độc lập với bookmark nếu sau này cần siết chặt riêng quyền này.
+  EXT_MFA_SYNC: 'ext_mfa.sync',
 } as const;
 
 export type PermissionKey = (typeof PERMISSIONS)[keyof typeof PERMISSIONS];
@@ -114,6 +118,7 @@ export const DEFAULT_ROLE_PERMISSIONS: Record<string, PermissionKey[]> = {
     PERMISSIONS.MEDIA_MANAGE,
     PERMISSIONS.FEEDBACK_MANAGE,
     PERMISSIONS.EXT_BOOKMARK_SYNC,
+    PERMISSIONS.EXT_MFA_SYNC,
   ],
   [DEFAULT_ROLES.MODERATOR.slug]: [
     PERMISSIONS.POST_CREATE,
@@ -121,12 +126,14 @@ export const DEFAULT_ROLE_PERMISSIONS: Record<string, PermissionKey[]> = {
     PERMISSIONS.COMMENT_CREATE,
     PERMISSIONS.COMMENT_MODERATE,
     PERMISSIONS.EXT_BOOKMARK_SYNC,
+    PERMISSIONS.EXT_MFA_SYNC,
   ],
   [DEFAULT_ROLES.MEMBER.slug]: [
     PERMISSIONS.COMMENT_CREATE,
     PERMISSIONS.WALLET_VIEW_OWN,
     PERMISSIONS.DOWNLOAD_PURCHASE,
     PERMISSIONS.EXT_BOOKMARK_SYNC,
+    PERMISSIONS.EXT_MFA_SYNC,
   ],
   // Không có quyền nào — "chỉ xem được bài viết" (xem bài viết vốn đã public, không cần permission)
   // "nhưng không tải được": cũng chặn luôn bình luận/ví cho tới khi xác minh email, đúng nghĩa

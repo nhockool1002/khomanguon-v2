@@ -1,7 +1,7 @@
 import { Module } from '@nestjs/common';
 import { ExtensionSyncService } from './extension-sync.service';
 import { ExtensionSyncController } from './extension-sync.controller';
-import { ApiClientGuard } from './guards/api-client.guard';
+import { ApiClientGuard } from '../common/guards/api-client.guard';
 import { AuthModule } from '../auth/auth.module';
 
 @Module({
