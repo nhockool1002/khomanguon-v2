@@ -50,6 +50,7 @@ export class UsersService {
         displayNameChangedAt: true,
         primaryRoleId: true,
         showPostPopup: true,
+        receiveDigestEmails: true,
         roles: {
           select: {
             roleId: true,
@@ -198,11 +199,15 @@ export class UsersService {
       avatarUrl?: string;
       displayNameChangedAt?: Date;
       showPostPopup?: boolean;
+      receiveDigestEmails?: boolean;
     } = {
       ...(dto.bio !== undefined && { bio: dto.bio }),
       ...(dto.avatarUrl !== undefined && { avatarUrl: dto.avatarUrl }),
       ...(dto.showPostPopup !== undefined && {
         showPostPopup: dto.showPostPopup,
+      }),
+      ...(dto.receiveDigestEmails !== undefined && {
+        receiveDigestEmails: dto.receiveDigestEmails,
       }),
     };
 
