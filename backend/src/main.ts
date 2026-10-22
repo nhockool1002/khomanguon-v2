@@ -26,16 +26,18 @@ async function bootstrap() {
     immutable: true,
   });
 
-  // ALLOWED_ORIGINS: danh sách phân cách bởi dấu phẩy — cho phép thêm URL Preview
-  // Deployment của Vercel (subdomain đổi mỗi lần) mà không phải mở CORS cho mọi domain.
-  // Không đặt thì mặc định chỉ FRONTEND_URL (domain production) được phép.
-  const allowedOrigins = (
-    process.env.ALLOWED_ORIGINS ??
-    process.env.FRONTEND_URL ??
-    'http://localhost:3000'
-  )
-    .split(',')
-    .map((origin) => origin.trim());
+  // ALLOWED_ORIGINS: danh sách phân cách bởi dấu phẩy — cho phép thêm origin khác ngoài
+  // FRONTEND_URL (URL Preview Deployment của Vercel đổi subdomain mỗi lần, hoặc
+  // chrome-extension://<id> cho K-Extension) mà không phải mở CORS cho mọi domain.
+  // Luôn cộng dồn với FRONTEND_URL (không thay thế) — đặt ALLOWED_ORIGINS chỉ để thêm origin
+  // bổ sung, tránh lặp lại lỗi set ALLOWED_ORIGINS=chrome-extension://... làm mất luôn domain
+  // production khỏi danh sách cho phép và sập CORS của web.
+  const allowedOrigins = [
+    ...(process.env.ALLOWED_ORIGINS ?? '').split(','),
+    process.env.FRONTEND_URL ?? 'http://localhost:3000',
+  ]
+    .map((origin) => origin.trim())
+    .filter((origin, index, self) => origin.length > 0 && self.indexOf(origin) === index);
 
   app.enableCors({
     origin: (
