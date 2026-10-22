@@ -25,6 +25,10 @@ export const PERMISSIONS = {
   // Super Moderator, xem DEFAULT_ROLE_PERMISSIONS bên dưới).
   FEEDBACK_MANAGE: 'feedback.manage',
   NEWSLETTER_MANAGE: 'newsletter.manage',
+  // Bản tin thành viên định kỳ (member-digest module) — gửi hàng loạt cho User đã kích hoạt tài
+  // khoản, cùng mức nhạy cảm với NEWSLETTER_MANAGE nên cũng chỉ Admin có mặc định (không gán Super
+  // Moderator, xem DEFAULT_ROLE_PERMISSIONS bên dưới).
+  MEMBER_DIGEST_MANAGE: 'member-digest.manage',
   // Truy cập được toàn site khi Chế độ Bảo trì đang bật (GeneralSettings.maintenanceMode, xem
   // maintenance-gate.tsx) — gán cho role nào tuỳ Admin qua trang Quản lý Permission, không có danh
   // sách roleSlugs riêng. Admin luôn có quyền này qua ALL_PERMISSION_KEYS.

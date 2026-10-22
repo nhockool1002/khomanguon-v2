@@ -37,7 +37,10 @@ async function bootstrap() {
     process.env.FRONTEND_URL ?? 'http://localhost:3000',
   ]
     .map((origin) => origin.trim())
-    .filter((origin, index, self) => origin.length > 0 && self.indexOf(origin) === index);
+    .filter(
+      (origin, index, self) =>
+        origin.length > 0 && self.indexOf(origin) === index,
+    );
 
   app.enableCors({
     origin: (

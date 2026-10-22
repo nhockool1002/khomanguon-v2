@@ -10,6 +10,9 @@ export interface AuthUser {
   permissionKeys?: string[];
   // Bật/tắt popup gợi ý bài viết ngẫu nhiên (post-popup.tsx) — optional cùng lý do permissionKeys.
   showPostPopup?: boolean;
+  // Bật/tắt email "Bản tin thành viên" định kỳ (member-digest module) — optional cùng lý do
+  // permissionKeys.
+  receiveDigestEmails?: boolean;
 }
 
 export interface UserTitleConfig {
@@ -410,6 +413,65 @@ export interface NewsletterSendResult {
   sent: number;
   postCount: number;
   skippedReason?: string;
+}
+
+export interface MemberDigestTemplate {
+  subject: string;
+  html: string;
+}
+
+export interface MemberDigestConfig {
+  enabled: boolean;
+  dayOfWeek: number;
+  hour: number;
+  minute: number;
+  lastSentAt: string | null;
+  template: MemberDigestTemplate;
+}
+
+export interface MemberDigestEligibleCount {
+  eligible: number;
+}
+
+export interface MemberDigestRunResult {
+  batchId: string | null;
+  totalRecipients: number;
+  skippedReason?: string;
+}
+
+export type MemberDigestBatchStatus = "PENDING" | "RUNNING" | "COMPLETED";
+export type MemberDigestTrigger = "CRON" | "MANUAL";
+export type MemberDigestRecipientStatus = "PENDING" | "SENT" | "FAILED";
+
+export interface MemberDigestBatch {
+  id: string;
+  status: MemberDigestBatchStatus;
+  trigger: MemberDigestTrigger;
+  newPostCount: number;
+  mostViewedCount: number;
+  mostDownloadedCount: number;
+  totalRecipients: number;
+  sentCount: number;
+  failedCount: number;
+  startedAt: string;
+  finishedAt: string | null;
+}
+
+export interface MemberDigestRecipient {
+  id: string;
+  batchId: string;
+  userId: string;
+  email: string;
+  status: MemberDigestRecipientStatus;
+  errorMessage: string | null;
+  sentAt: string | null;
+}
+
+export interface PaginatedResult<T> {
+  items: T[];
+  total: number;
+  page: number;
+  limit: number;
 }
 
 export type AuditAction =

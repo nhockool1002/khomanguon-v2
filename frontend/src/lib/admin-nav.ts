@@ -15,6 +15,7 @@ import {
   LayoutTemplate,
   DatabaseBackup,
   Mail,
+  Megaphone,
   MessageSquare,
   MessageSquareText,
   Menu as MenuIcon,
@@ -263,6 +264,16 @@ export const ADMIN_NAV: NavEntry[] = [
         // Khớp @Permissions() ở newsletter.controller.ts GET /newsletter/config — gửi mail hàng loạt
         // nên mặc định chỉ Admin (không gán Super Moderator, xem permissions.constant.ts backend).
         permission: PERMISSIONS.NEWSLETTER_MANAGE,
+      },
+      {
+        href: "/admin/member-digest",
+        label: "Email thành viên",
+        icon: Megaphone,
+        match: "prefix",
+        // Khớp @Permissions() ở member-digest.controller.ts — gửi mail hàng loạt cho User đã kích
+        // hoạt tài khoản (khác Newsletter — email ẩn danh đăng ký ở footer), cùng mức nhạy cảm nên
+        // cũng chỉ Admin mặc định (xem permissions.constant.ts backend).
+        permission: PERMISSIONS.MEMBER_DIGEST_MANAGE,
       },
       {
         href: "/admin/settings/general",

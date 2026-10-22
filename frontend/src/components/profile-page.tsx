@@ -220,6 +220,7 @@ function AccountInfoTab({ onSaved }: { onSaved: () => Promise<void> }) {
   const [resending, setResending] = useState(false);
   const [savingStyleRole, setSavingStyleRole] = useState(false);
   const [savingPopupPref, setSavingPopupPref] = useState(false);
+  const [savingDigestPref, setSavingDigestPref] = useState(false);
   const [cacheStatus, setCacheStatus] = useState<"idle" | "clearing" | "done" | "error">("idle");
 
   const loadProfile = useCallback(() => {
@@ -295,6 +296,23 @@ function AccountInfoTab({ onSaved }: { onSaved: () => Promise<void> }) {
       setError(err instanceof ApiError ? err.message : "Có lỗi xảy ra");
     } finally {
       setSavingPopupPref(false);
+    }
+  }
+
+  async function handleToggleDigest(next: boolean) {
+    setSavingDigestPref(true);
+    setError(null);
+    try {
+      const updated = await apiFetch<Profile>("/users/me", {
+        method: "PATCH",
+        body: JSON.stringify({ receiveDigestEmails: next }),
+      });
+      setProfile(updated);
+      await refreshUser();
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : "Có lỗi xảy ra");
+    } finally {
+      setSavingDigestPref(false);
     }
   }
 
@@ -433,6 +451,21 @@ function AccountInfoTab({ onSaved }: { onSaved: () => Promise<void> }) {
           checked={profile.showPostPopup !== false}
           disabled={savingPopupPref}
           onChange={handleTogglePopup}
+        />
+      </div>
+
+      <div className="flex items-center justify-between gap-3 rounded-md border border-zinc-200 px-3 py-2.5">
+        <div>
+          <p className="text-sm font-medium text-zinc-800">Email bản tin thành viên</p>
+          <p className="text-xs text-zinc-500">
+            Email định kỳ về bài viết mới / được xem nhiều / được tải nhiều — tắt nếu không muốn
+            nhận.
+          </p>
+        </div>
+        <ToggleSwitch
+          checked={profile.receiveDigestEmails !== false}
+          disabled={savingDigestPref}
+          onChange={handleToggleDigest}
         />
       </div>
 

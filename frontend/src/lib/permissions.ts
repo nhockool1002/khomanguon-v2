@@ -22,6 +22,7 @@ export const PERMISSIONS = {
   DOWNLOAD_PURCHASE: "download.purchase",
   FEEDBACK_MANAGE: "feedback.manage",
   NEWSLETTER_MANAGE: "newsletter.manage",
+  MEMBER_DIGEST_MANAGE: "member-digest.manage",
   MAINTENANCE_BYPASS: "maintenance.bypass",
   SETTINGS_SUBSCRIPTION: "settings.subscription",
   // Xem thông tin Subscription (gói, hạn, quota đã tải) của NGƯỜI KHÁC ở card Subscription trang Hồ

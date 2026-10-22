@@ -23,6 +23,7 @@ import { BookmarksModule } from './bookmarks/bookmarks.module';
 import { ExtensionSyncModule } from './extension-sync/extension-sync.module';
 import { ExtensionMfaModule } from './extension-mfa/extension-mfa.module';
 import { NewsletterModule } from './newsletter/newsletter.module';
+import { MemberDigestModule } from './member-digest/member-digest.module';
 import { SubscriptionPlansModule } from './subscription-plans/subscription-plans.module';
 import { SubscriptionModule } from './subscriptions/subscription.module';
 import { SepayModule } from './sepay/sepay.module';
@@ -73,6 +74,7 @@ import { DbBackupModule } from './db-backup/db-backup.module';
     ExtensionSyncModule,
     ExtensionMfaModule,
     NewsletterModule,
+    MemberDigestModule,
     SubscriptionPlansModule,
     SubscriptionModule,
     SepayModule,

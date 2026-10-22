@@ -27,4 +27,10 @@ export class UpdateProfileDto {
   @IsOptional()
   @IsBoolean()
   showPostPopup?: boolean;
+
+  // Bật/tắt email "Bản tin thành viên" định kỳ (member-digest module) — chỉnh ở trang Tài khoản,
+  // cùng cơ chế opt-out với showPostPopup.
+  @IsOptional()
+  @IsBoolean()
+  receiveDigestEmails?: boolean;
 }
