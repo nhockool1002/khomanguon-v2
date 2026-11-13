@@ -6,10 +6,10 @@ import { AuthProvider } from "@/context/auth-context";
 import { RoleBadgesProvider } from "@/context/role-badges-context";
 import { GlobalLoadingBar } from "@/components/global-loading-bar";
 import { VisitTracker } from "@/components/visit-tracker";
+import { AdsScripts } from "@/components/ads-scripts";
 import { SiteShell } from "@/components/site-shell";
 import { fetchGeneralSettings, fetchMenus, fetchRoleBadges } from "@/lib/public-api";
 import { ROLE_FONT_VARS } from "@/lib/fonts";
-import { ADS_ONCLICK_SCRIPT, ADS_VIGNETTE_SCRIPT } from "@/lib/ads-config";
 
 // Font lưu sẵn trong src/fonts (không tải từ Google lúc build — xem ghi chú ở lib/fonts.ts).
 const geistSans = localFont({
@@ -88,17 +88,10 @@ gtag('config', '${settings.gaTrackingId}');`}
             "adsEnabled" ở Cài đặt chung (/admin/settings/general), không cần đụng code. Onclick
             (popunder) tự bắt mọi click trên trang (kể cả nút Tải xuống) nên không cần sửa riêng
             component download-box.tsx. Vignette là banner native không chiếm layout. Push
-            Notifications CHƯA bật — xem ghi chú trong lib/ads-config.ts (rủi ro mất xác minh site). */}
-        {settings.adsEnabled && (
-          <>
-            <Script id="ads-onclick" strategy="afterInteractive">
-              {ADS_ONCLICK_SCRIPT}
-            </Script>
-            <Script id="ads-vignette" strategy="afterInteractive">
-              {ADS_VIGNETTE_SCRIPT}
-            </Script>
-          </>
-        )}
+            Notifications CHƯA bật — xem ghi chú trong lib/ads-config.ts (rủi ro mất xác minh site).
+            Tách sang Client Component riêng (ads-scripts.tsx) để tự loại trừ /admin/* bằng
+            usePathname — layout.tsx là Server Component, không biết được pathname hiện tại. */}
+        <AdsScripts enabled={settings.adsEnabled} />
         <AuthProvider>
           <RoleBadgesProvider badges={roleBadges}>
             <SiteShell
