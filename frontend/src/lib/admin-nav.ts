@@ -1,6 +1,7 @@
 import {
   AlertTriangle,
   ArrowLeft,
+  BarChart3,
   Cloud,
   CreditCard,
   Crown,
@@ -63,6 +64,15 @@ export type NavEntry = ({ kind: "leaf" } & NavLeaf) | ({ kind: "group" } & NavGr
 // components/admin-sidebar.tsx (lọc menu) và từng trang /admin/* (chặn truy cập URL trực
 // tiếp, xem components/forbidden-page.tsx) để 2 nơi không bao giờ lệch nhau.
 export const ADMIN_NAV: NavEntry[] = [
+  {
+    kind: "leaf",
+    href: "/admin/dashboard",
+    label: "Dashboard",
+    icon: BarChart3,
+    match: "exact",
+    // Khớp @Permissions(PERMISSIONS.ANALYTICS_VIEW) trên GET /analytics/overview.
+    permission: PERMISSIONS.ANALYTICS_VIEW,
+  },
   {
     kind: "group",
     label: "Quản lý bài viết",

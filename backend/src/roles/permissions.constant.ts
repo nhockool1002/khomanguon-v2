@@ -74,6 +74,10 @@ export const PERMISSIONS = {
   // cùng chính sách gán (Member trở lên, không UNVERIFIED) vì đây là dữ liệu nhạy cảm hơn hẳn, cần
   // audit/thu hồi độc lập với bookmark nếu sau này cần siết chặt riêng quyền này.
   EXT_MFA_SYNC: 'ext_mfa.sync',
+  // Xem Dashboard thống kê truy cập (lượt truy cập, lượt xem bài viết, nguồn đến) — chỉ đọc, không
+  // tác động dữ liệu người dùng khác nên gán mặc định cho Super Moderator (xem
+  // DEFAULT_ROLE_PERMISSIONS bên dưới), khác các quyền SETTINGS_*/subscription.revoke chỉ Admin.
+  ANALYTICS_VIEW: 'analytics.view',
 } as const;
 
 export type PermissionKey = (typeof PERMISSIONS)[keyof typeof PERMISSIONS];
@@ -119,6 +123,7 @@ export const DEFAULT_ROLE_PERMISSIONS: Record<string, PermissionKey[]> = {
     PERMISSIONS.FEEDBACK_MANAGE,
     PERMISSIONS.EXT_BOOKMARK_SYNC,
     PERMISSIONS.EXT_MFA_SYNC,
+    PERMISSIONS.ANALYTICS_VIEW,
   ],
   [DEFAULT_ROLES.MODERATOR.slug]: [
     PERMISSIONS.POST_CREATE,

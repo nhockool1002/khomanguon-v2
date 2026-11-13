@@ -150,6 +150,7 @@ export const DEFAULT_GENERAL_SETTINGS: GeneralSettings = {
     newsletterSubscribe: { windowSec: 3600, max: 5 },
   },
   intlPaymentEnabled: false,
+  adsEnabled: true,
   maintenanceMode: {
     enabled: false,
     message:

@@ -93,6 +93,7 @@ model User {
   uploadedCloudFiles      CloudUploadRecord[]
   extensionBookmarkData   ExtensionBookmarkData?
   extensionMfaData        ExtensionMfaData?
+  siteVisits              SiteVisit[]
 
   @@map("users")
 }
@@ -329,6 +330,7 @@ model Post {
   downloadLinks DownloadLink[]
   notifications Notification[]
   bookmarks     PostBookmark[]
+  viewLogs      PostViewLog[]
 
   publishedAt DateTime?
   createdAt   DateTime  @default(now())
@@ -1133,4 +1135,40 @@ model IntlTopupOrder {
   @@index([userId, status])
   @@index([status, createdAt])
   @@map("intl_topup_orders")
+}
+
+// Dashboard thống kê truy cập (PLAN bổ sung 2026-11-13) — mỗi dòng là 1 "lượt truy cập" ĐÃ qua lọc
+// bot + dedup phiên 30 phút/identity (xem SiteVisitTrackerService, cùng kỹ thuật chống F5 spam với
+// PostViewTrackerService) nên COUNT(*) trực tiếp trên bảng này là số liệu cuối cùng hiển thị cho
+// Admin, không cần lọc gì thêm lúc truy vấn — đảm bảo "trung thực" vì input đã sạch ngay từ lúc ghi.
+model SiteVisit {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  path      String
+  // null = truy cập trực tiếp (gõ URL/bookmark/app, hoặc trình duyệt không gửi Referer vì lý do
+  // privacy) HOẶC referrer cùng domain site (tự điều hướng nội bộ không tính là "nguồn ngoài") — xem
+  // analytics.service.ts parseReferrerHost. Có giá trị thì luôn là hostname gốc (vd "google.com"),
+  // phân nhóm hiển thị (Google/Facebook/Zalo...) tính lúc đọc, không lưu sẵn để đổi quy tắc nhóm
+  // không cần migrate dữ liệu cũ.
+  referrerHost String?
+  userId       String?
+  user         User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([createdAt])
+  @@index([referrerHost, createdAt])
+  @@map("site_visits")
+}
+
+// Log từng lượt xem bài viết hợp lệ (ghi kèm registerView() sau khi PostViewTrackerService đã lọc
+// F5 spam, xem posts.service.ts) — tách khỏi Post.viewCount (tổng số nguyên) vì dashboard cần xem
+// theo mốc thời gian (hôm nay/6 tháng/1 năm/2 năm), không chỉ con số cộng dồn.
+model PostViewLog {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  postId    String
+  post      Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  @@index([postId, createdAt])
+  @@index([createdAt])
+  @@map("post_view_logs")
 }

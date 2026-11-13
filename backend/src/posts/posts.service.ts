@@ -167,6 +167,9 @@ export class PostsService {
       data: { viewCount: { increment: 1 } },
     });
     if (result.count === 0) return null;
+    // Ghi kèm PostViewLog (bảng log theo thời gian cho Dashboard thống kê) — đã qua đúng bộ lọc F5
+    // spam của PostViewTrackerService ở controller nên không cần dedup lại ở đây.
+    void this.prisma.postViewLog.create({ data: { postId } }).catch(() => {});
     return this.prisma.post.findUnique({
       where: { id: postId },
       select: { title: true, slug: true },

@@ -182,4 +182,8 @@ export class UpdateGeneralSettingsDto {
   @IsOptional()
   @IsBoolean()
   intlPaymentEnabled?: boolean;
+
+  @IsOptional()
+  @IsBoolean()
+  adsEnabled?: boolean;
 }

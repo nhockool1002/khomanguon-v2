@@ -41,6 +41,7 @@ export const PERMISSIONS = {
   CACHE_MANAGE: "cache.manage",
   SETTINGS_BACKUP: "settings.backup",
   AUDIT_VIEW: "audit.view",
+  ANALYTICS_VIEW: "analytics.view",
 } as const;
 
 export type PermissionKey = (typeof PERMISSIONS)[keyof typeof PERMISSIONS];
