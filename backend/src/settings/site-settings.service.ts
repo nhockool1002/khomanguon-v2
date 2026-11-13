@@ -104,6 +104,7 @@ export class SiteSettingsService {
       ...(dto.intlPaymentEnabled !== undefined && {
         intlPaymentEnabled: dto.intlPaymentEnabled,
       }),
+      ...(dto.adsEnabled !== undefined && { adsEnabled: dto.adsEnabled }),
       ...(dto.maintenanceMode !== undefined && {
         maintenanceMode: dto.maintenanceMode,
       }),

@@ -5,9 +5,11 @@ import "./globals.css";
 import { AuthProvider } from "@/context/auth-context";
 import { RoleBadgesProvider } from "@/context/role-badges-context";
 import { GlobalLoadingBar } from "@/components/global-loading-bar";
+import { VisitTracker } from "@/components/visit-tracker";
 import { SiteShell } from "@/components/site-shell";
 import { fetchGeneralSettings, fetchMenus, fetchRoleBadges } from "@/lib/public-api";
 import { ROLE_FONT_VARS } from "@/lib/fonts";
+import { ADS_ONCLICK_SCRIPT, ADS_VIGNETTE_SCRIPT } from "@/lib/ads-config";
 
 // Font lưu sẵn trong src/fonts (không tải từ Google lúc build — xem ghi chú ở lib/fonts.ts).
 const geistSans = localFont({
@@ -67,6 +69,7 @@ export default async function RootLayout({
           position:sticky nào trong site nên an toàn, không phá layout gì. */}
       <body className="flex min-h-full flex-col overflow-x-hidden">
         <GlobalLoadingBar />
+        <VisitTracker />
         {settings.gaTrackingId && (
           <>
             <Script
@@ -78,6 +81,21 @@ export default async function RootLayout({
 function gtag(){dataLayer.push(arguments);}
 gtag('js', new Date());
 gtag('config', '${settings.gaTrackingId}');`}
+            </Script>
+          </>
+        )}
+        {/* Quảng cáo Monetag toàn site (PLAN bổ sung 2026-11-13) — Admin tắt được qua công tắc
+            "adsEnabled" ở Cài đặt chung (/admin/settings/general), không cần đụng code. Onclick
+            (popunder) tự bắt mọi click trên trang (kể cả nút Tải xuống) nên không cần sửa riêng
+            component download-box.tsx. Vignette là banner native không chiếm layout. Push
+            Notifications CHƯA bật — xem ghi chú trong lib/ads-config.ts (rủi ro mất xác minh site). */}
+        {settings.adsEnabled && (
+          <>
+            <Script id="ads-onclick" strategy="afterInteractive">
+              {ADS_ONCLICK_SCRIPT}
+            </Script>
+            <Script id="ads-vignette" strategy="afterInteractive">
+              {ADS_VIGNETTE_SCRIPT}
             </Script>
           </>
         )}

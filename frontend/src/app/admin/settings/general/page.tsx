@@ -71,6 +71,7 @@ export default function GeneralSettingsPage() {
   const [rateLimits, setRateLimits] = useState<RateLimitSettings>(DEFAULT_RATE_LIMITS);
   const [maintenanceEnabled, setMaintenanceEnabled] = useState(false);
   const [intlPaymentEnabled, setIntlPaymentEnabled] = useState(false);
+  const [adsEnabled, setAdsEnabled] = useState(true);
   const [maintenanceMessage, setMaintenanceMessage] = useState("");
 
   const [recaptchaEnabled, setRecaptchaEnabled] = useState(false);
@@ -117,6 +118,7 @@ export default function GeneralSettingsPage() {
         setRateLimits(res.rateLimits);
         setMaintenanceEnabled(res.maintenanceMode.enabled);
         setIntlPaymentEnabled(res.intlPaymentEnabled);
+        setAdsEnabled(res.adsEnabled);
         setMaintenanceMessage(res.maintenanceMode.message);
       })
       .catch((err) => setError(err instanceof ApiError ? err.message : "Có lỗi xảy ra"));
@@ -186,6 +188,7 @@ export default function GeneralSettingsPage() {
           rateLimits,
           maintenanceMode: { enabled: maintenanceEnabled, message: maintenanceMessage },
           intlPaymentEnabled,
+          adsEnabled,
         }),
       });
       setMessage("Đã lưu cấu hình chung.");
@@ -564,6 +567,29 @@ export default function GeneralSettingsPage() {
             Cài đặt thanh toán quốc tế
           </Link>
           . Chỉ bật sau khi đã kết nối Payout trên Buy Me a Coffee.
+        </p>
+      </div>
+
+      <div className="flex flex-col gap-3 rounded-md border border-zinc-200 p-4">
+        <div className="flex items-center justify-between">
+          <p className="text-xs font-semibold uppercase tracking-wide text-zinc-500">
+            Quảng cáo (Monetag)
+          </p>
+          <label className="flex items-center gap-2 text-xs text-zinc-600">
+            <input
+              type="checkbox"
+              checked={adsEnabled}
+              onChange={(e) => setAdsEnabled(e.target.checked)}
+            />
+            Bật quảng cáo toàn site
+          </label>
+        </div>
+        <p className="text-xs text-zinc-400">
+          Bật thì toàn site nhúng quảng cáo Monetag: Onclick (bắt mọi click trên trang, kể cả nút Tải
+          xuống) và Vignette Banner (banner native, không chiếm layout). Tắt thì gỡ hết, không ảnh
+          hưởng chức năng khác của site. Zone đã cấu hình sẵn trên tài khoản Monetag của site
+          v2.khomanguon.org, không chỉnh được ở đây. (Push Notifications chưa bật — xem ghi chú ở
+          frontend/src/lib/ads-config.ts.)
         </p>
       </div>
 

@@ -293,7 +293,7 @@ function DownloadBoxIntro() {
         Bạn có thể tải về với một liên kết duy nhất bên dưới 🚀
       </p>
       <ul className="mt-1 flex flex-col gap-0.5 text-xs text-zinc-500">
-        <li>➜ Liên kết tải trực tiếp, không quảng cáo.</li>
+        <li>➜ Liên kết tải trực tiếp.</li>
         <li>➜ Liên kết tải đơn luồng, tốc độ tải không giới hạn.</li>
       </ul>
     </div>

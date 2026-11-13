@@ -42,6 +42,7 @@ import { AuditLogModule } from './audit-log/audit-log.module';
 import { RateLimitModule } from './common/rate-limit/rate-limit.module';
 import { RecaptchaModule } from './recaptcha/recaptcha.module';
 import { DbBackupModule } from './db-backup/db-backup.module';
+import { AnalyticsModule } from './analytics/analytics.module';
 
 @Module({
   imports: [
@@ -86,6 +87,7 @@ import { DbBackupModule } from './db-backup/db-backup.module';
     BadgesModule,
     SiteSettingsModule,
     MediaModule,
+    AnalyticsModule,
   ],
   controllers: [AppController],
   providers: [AppService],

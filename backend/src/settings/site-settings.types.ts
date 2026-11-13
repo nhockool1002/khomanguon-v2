@@ -70,6 +70,10 @@ export interface GeneralSettings {
   // International ở trang Ví + chặn tạo yêu cầu mới; yêu cầu đã tạo vẫn báo đã trả/duyệt bình thường
   // để không kẹt tiền khách đã thanh toán. Mặc định TẮT cho tới khi Admin cài payout trên BMC.
   intlPaymentEnabled: boolean;
+  // Công tắc tổng quảng cáo Monetag (bổ sung 2026-11-13) — tắt thì FE (layout.tsx) không nhúng bất
+  // kỳ script Monetag nào (Onclick/Push/Vignette), kể cả ở nút tải. Zone ID cố định theo site
+  // v2.khomanguon.org trên Monetag, không cấu hình qua Admin (chỉ bật/tắt tổng).
+  adsEnabled: boolean;
 }
 
 export const GENERAL_SETTINGS_KEY = 'general_settings';
@@ -109,6 +113,7 @@ export const DEFAULT_GENERAL_SETTINGS: GeneralSettings = {
     newsletterSubscribe: { windowSec: 3600, max: 5 },
   },
   intlPaymentEnabled: false,
+  adsEnabled: true,
   maintenanceMode: {
     enabled: false,
     message:

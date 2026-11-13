@@ -601,6 +601,7 @@ export interface GeneralSettings {
   rateLimits: RateLimitSettings;
   maintenanceMode: MaintenanceModeSettings;
   intlPaymentEnabled: boolean;
+  adsEnabled: boolean;
 }
 
 export interface RecaptchaAdminConfig {
@@ -744,4 +745,33 @@ export interface IntlPaymentAdminSettings {
   sellerEmail: string;
   domesticBaseRateVndPerP: number;
   packages: IntlTopupPackage[];
+}
+
+export interface AnalyticsSeriesPoint {
+  bucket: string;
+  count: number;
+}
+
+export interface AnalyticsReferrerSlice {
+  source: string;
+  count: number;
+}
+
+export interface AnalyticsTopPost {
+  postId: string;
+  title: string;
+  slug: string;
+  count: number;
+}
+
+export interface AnalyticsOverview {
+  from: string;
+  to: string;
+  granularity: "hour" | "day" | "week" | "month";
+  totalVisits: number;
+  totalPostViews: number;
+  visitsSeries: AnalyticsSeriesPoint[];
+  postViewsSeries: AnalyticsSeriesPoint[];
+  referrerBreakdown: AnalyticsReferrerSlice[];
+  topPosts: AnalyticsTopPost[];
 }
