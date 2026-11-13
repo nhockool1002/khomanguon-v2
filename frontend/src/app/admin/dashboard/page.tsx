@@ -60,8 +60,8 @@ export default function DashboardPage() {
   const router = useRouter();
 
   const [preset, setPreset] = useState<Preset>("today");
-  const [customFrom, setCustomFrom] = useState(toDateInputValue(new Date(Date.now() - 30 * 86_400_000)));
-  const [customTo, setCustomTo] = useState(toDateInputValue(new Date()));
+  const [customFrom, setCustomFrom] = useState(() => toDateInputValue(new Date(Date.now() - 30 * 86_400_000)));
+  const [customTo, setCustomTo] = useState(() => toDateInputValue(new Date()));
   const [data, setData] = useState<AnalyticsOverview | null>(null);
   const [error, setError] = useState<string | null>(null);
 
