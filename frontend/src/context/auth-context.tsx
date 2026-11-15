@@ -13,7 +13,7 @@ import type { AuthResponse, AuthUser } from "@/lib/types";
 interface AuthContextValue {
   user: AuthUser | null;
   loading: boolean;
-  login: (email: string, password: string, recaptchaToken?: string) => Promise<void>;
+  login: (email: string, password: string, recaptchaToken?: string) => Promise<AuthUser>;
   register: (
     email: string,
     password: string,
@@ -21,7 +21,7 @@ interface AuthContextValue {
     recaptchaToken?: string,
   ) => Promise<void>;
   logout: () => Promise<void>;
-  refreshUser: () => Promise<void>;
+  refreshUser: () => Promise<AuthUser>;
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null);
@@ -33,6 +33,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const refreshUser = useCallback(async () => {
     const profile = await apiFetch<AuthUser>("/users/me");
     setUser(profile);
+    return profile;
   }, []);
 
   useEffect(() => {
@@ -58,7 +59,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setAccessToken(res.accessToken);
       // /auth/login trả về PublicUser rút gọn (không có permissionKeys) — gọi thêm /users/me
       // để UI ngay sau khi đăng nhập đã biết quyền (vd nút Quản trị/Xoá cache ở trang Tài khoản).
-      await refreshUser();
+      // Trả về profile đầy đủ (không chỉ cập nhật state) để nơi gọi login() (vd login-form.tsx)
+      // biết NGAY permissionKeys — tránh đọc `user` qua closure cũ (chưa kịp re-render) để quyết
+      // định có cần hard-reload loại bỏ quảng cáo đã lỡ tải trước khi đăng nhập hay không (xem
+      // ads-scripts.tsx).
+      return refreshUser();
     },
     [refreshUser],
   );
