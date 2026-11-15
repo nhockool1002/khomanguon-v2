@@ -84,15 +84,16 @@ gtag('config', '${settings.gaTrackingId}');`}
             </Script>
           </>
         )}
-        {/* Quảng cáo Monetag toàn site (PLAN bổ sung 2026-11-13) — Admin tắt được qua công tắc
-            "adsEnabled" ở Cài đặt chung (/admin/settings/general), không cần đụng code. Onclick
-            (popunder) tự bắt mọi click trên trang (kể cả nút Tải xuống) nên không cần sửa riêng
-            component download-box.tsx. Vignette là banner native không chiếm layout. Push
-            Notifications CHƯA bật — xem ghi chú trong lib/ads-config.ts (rủi ro mất xác minh site).
-            Tách sang Client Component riêng (ads-scripts.tsx) để tự loại trừ /admin/* bằng
-            usePathname — layout.tsx là Server Component, không biết được pathname hiện tại. */}
-        <AdsScripts enabled={settings.adsEnabled} />
         <AuthProvider>
+          {/* Quảng cáo Monetag toàn site (PLAN bổ sung 2026-11-13) — Admin tắt được qua công tắc
+              "adsEnabled" ở Cài đặt chung (/admin/settings/general), không cần đụng code. Onclick
+              (popunder) tự bắt mọi click trên trang (kể cả nút Tải xuống) nên không cần sửa riêng
+              component download-box.tsx. Vignette là banner native không chiếm layout. Push
+              Notifications CHƯA bật — xem ghi chú trong lib/ads-config.ts (rủi ro mất xác minh
+              site). Tách sang Client Component riêng (ads-scripts.tsx) để tự loại trừ /admin/* và
+              tài khoản Admin (cần useAuth() nên phải nằm trong AuthProvider) — layout.tsx là
+              Server Component, không biết pathname/user hiện tại. */}
+          <AdsScripts enabled={settings.adsEnabled} />
           <RoleBadgesProvider badges={roleBadges}>
             <SiteShell
               menus={menus}

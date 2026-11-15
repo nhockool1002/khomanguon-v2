@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/auth-context";
 import { ApiError } from "@/lib/api";
+import { PERMISSIONS } from "@/lib/permissions";
 import { ErrorBanner, FormField, SubmitButton } from "@/components/ui";
 import { RecaptchaWidget } from "@/components/recaptcha-widget";
 
@@ -22,8 +23,17 @@ export function LoginForm() {
     setError(null);
     setLoading(true);
     try {
-      await login(email, password, recaptchaToken);
-      router.push("/");
+      const profile = await login(email, password, recaptchaToken);
+      // Admin đăng nhập trên tab đã lỡ tải quảng cáo lúc còn là khách ẩn danh (ads-scripts.tsx chỉ
+      // biết ẩn quảng cáo SAU khi user context cập nhật — script của Monetag đã gắn listener vào
+      // document từ trước, gỡ thẻ <script> không huỷ được listener đó) — hard reload bằng
+      // window.location thay vì router.push để nạp lại toàn bộ trang, đảm bảo không còn quảng cáo
+      // nào sót lại trong phiên làm việc của Admin.
+      if (profile.permissionKeys?.includes(PERMISSIONS.SETTINGS_GENERAL)) {
+        window.location.href = "/";
+      } else {
+        router.push("/");
+      }
     } catch (err) {
       setError(err instanceof ApiError ? err.message : "Có lỗi xảy ra, thử lại sau");
     } finally {
